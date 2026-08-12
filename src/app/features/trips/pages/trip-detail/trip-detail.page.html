@@ -1,0 +1,31 @@
+@if (trip(); as t) {
+  <section class="th-page detail">
+    <div class="detail__hero" [style.--cover]="t.coverImageUrl ? 'url(' + t.coverImageUrl + ')' : 'none'">
+      <a routerLink="/trips" class="back"><mat-icon>arrow_back</mat-icon> My trips</a>
+      <div class="detail__hero-copy">
+        <span class="th-status" [class]="'th-status th-status--' + t.status.toLowerCase()">
+          {{ t.status | statusLabel }}
+        </span>
+        <h1>{{ t.title }}</h1>
+        <p>
+          {{ t.origin }} → {{ t.destination }} · {{ t.startDate | tripDate: t.endDate }} ·
+          {{ t.memberCount }} members · {{ t.estimatedBudget | inr: t.currency }}
+        </p>
+      </div>
+    </div>
+
+    <nav class="detail__tabs" aria-label="Trip sections">
+      @for (tab of tabs; track tab.path) {
+        <a [routerLink]="tab.path" routerLinkActive="is-active">{{ tab.label }}</a>
+      }
+    </nav>
+
+    <div class="detail__outlet">
+      <router-outlet />
+    </div>
+  </section>
+} @else {
+  <section class="th-page">
+    <div class="th-panel">Trip not found. <a routerLink="/trips">Back to trips</a></div>
+  </section>
+}

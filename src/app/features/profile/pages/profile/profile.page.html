@@ -1,0 +1,17 @@
+<section class="th-page">
+  <header class="th-page-header">
+    <div>
+      <h1>Profile</h1>
+      <p>Your organization identity and travel preferences.</p>
+    </div>
+  </header>
+  <div class="th-panel profile">
+    <mat-icon>account_circle</mat-icon>
+    <div>
+      <h2>{{ user()?.firstName }} {{ user()?.lastName }}</h2>
+      <p>{{ user()?.email }}</p>
+      <p>{{ user()?.organizationName }} · {{ user()?.role?.replaceAll('_', ' ') }}</p>
+      <p>{{ user()?.department }} · {{ user()?.timezone }}</p>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,89 @@
+<section class="th-page dashboard">
+  <header class="th-page-header">
+    <div>
+      <h1>Welcome back, {{ user()?.firstName }}</h1>
+      <p>Here’s what needs your attention across team trips.</p>
+    </div>
+    <a mat-flat-button color="primary" routerLink="/trips/create">
+      <mat-icon>add</mat-icon>
+      Create trip
+    </a>
+  </header>
+
+  <div class="th-grid th-grid-4 dashboard__stats">
+    <article class="stat">
+      <mat-icon>pending_actions</mat-icon>
+      <div>
+        <span>Pending approvals</span>
+        <strong>{{ summary.pendingApprovals }}</strong>
+      </div>
+    </article>
+    <article class="stat">
+      <mat-icon>task_alt</mat-icon>
+      <div>
+        <span>Open tasks</span>
+        <strong>{{ summary.myTasks.length }}</strong>
+      </div>
+    </article>
+    <article class="stat">
+      <mat-icon>payments</mat-icon>
+      <div>
+        <span>You paid</span>
+        <strong>{{ summary.expenseSummary.youPaid | inr }}</strong>
+      </div>
+    </article>
+    <article class="stat">
+      <mat-icon>south_west</mat-icon>
+      <div>
+        <span>You receive</span>
+        <strong>{{ summary.expenseSummary.youReceive | inr }}</strong>
+      </div>
+    </article>
+  </div>
+
+  <div class="dashboard__layout">
+    <section>
+      <div class="section-head">
+        <h2>Upcoming trips</h2>
+        <a routerLink="/trips">View all</a>
+      </div>
+      <div class="th-grid th-grid-2">
+        @for (trip of summary.upcomingTrips; track trip.id) {
+          <app-trip-card [trip]="trip" />
+        }
+      </div>
+    </section>
+
+    <aside class="dashboard__side">
+      <div class="th-panel">
+        <h2>My tasks</h2>
+        <ul class="list">
+          @for (task of summary.myTasks; track task.id) {
+            <li>
+              <div>
+                <strong>{{ task.title }}</strong>
+                <span>{{ task.assignedToName }} · Due {{ task.dueDate }}</span>
+              </div>
+              <em>{{ task.status.replaceAll('_', ' ') }}</em>
+            </li>
+          }
+        </ul>
+      </div>
+
+      <div class="th-panel">
+        <h2>Recent activity</h2>
+        <ul class="list list--activity">
+          @for (item of summary.recentActivity; track item.id) {
+            <li>
+              <mat-icon>bolt</mat-icon>
+              <div>
+                <strong>{{ item.message }}</strong>
+                <span>{{ item.createdAt | date: 'mediumDate' }}</span>
+              </div>
+            </li>
+          }
+        </ul>
+      </div>
+    </aside>
+  </div>
+</section>

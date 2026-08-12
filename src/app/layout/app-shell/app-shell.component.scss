@@ -1,0 +1,243 @@
+.shell {
+  --sidebar-w: var(--th-sidebar-width);
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: var(--sidebar-w) 1fr;
+  transition: grid-template-columns 0.25s ease;
+}
+
+.shell--collapsed {
+  --sidebar-w: 88px;
+
+  .shell__brand-text,
+  .shell__nav span,
+  .shell__org strong,
+  .shell__org span,
+  .shell__badge {
+    display: none;
+  }
+
+  .shell__nav a,
+  .shell__org {
+    justify-content: center;
+  }
+}
+
+.shell__sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  padding: 1.25rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  background: linear-gradient(180deg, #0a3f4c 0%, #0f5c6e 55%, #134e5e 100%);
+  color: var(--th-text-inverse);
+  animation: th-slide-in 0.4s ease both;
+}
+
+.shell__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.35rem 0.5rem;
+}
+
+.shell__logo {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  font-family: var(--th-font-display);
+  font-weight: 700;
+  background: color-mix(in srgb, white 16%, transparent);
+  border: 1px solid color-mix(in srgb, white 25%, transparent);
+}
+
+.shell__brand-text {
+  display: flex;
+  flex-direction: column;
+
+  strong {
+    font-family: var(--th-font-display);
+    font-size: 1.05rem;
+  }
+
+  span {
+    font-size: 0.75rem;
+    opacity: 0.75;
+  }
+}
+
+.shell__nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  flex: 1;
+
+  a {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.7rem 0.85rem;
+    border-radius: 12px;
+    color: color-mix(in srgb, white 82%, transparent);
+    transition:
+      background 0.2s ease,
+      color 0.2s ease;
+
+    &:hover,
+    &.is-active {
+      background: color-mix(in srgb, white 14%, transparent);
+      color: white;
+    }
+  }
+}
+
+.shell__badge {
+  margin-left: auto;
+  background: var(--th-accent);
+  color: white;
+  font-style: normal;
+  font-size: 0.7rem;
+  font-weight: 700;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  padding: 0 0.3rem;
+}
+
+.shell__org {
+  display: flex;
+  gap: 0.65rem;
+  align-items: center;
+  padding: 0.85rem;
+  border-radius: 14px;
+  background: color-mix(in srgb, black 18%, transparent);
+
+  strong,
+  span {
+    display: block;
+  }
+
+  span {
+    font-size: 0.75rem;
+    opacity: 0.75;
+  }
+}
+
+.shell__main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.shell__header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  min-height: var(--th-header-height);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1.25rem;
+  backdrop-filter: blur(14px);
+  background: color-mix(in srgb, var(--th-bg) 80%, transparent);
+  border-bottom: 1px solid var(--th-border);
+}
+
+.shell__header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  h1 {
+    margin: 0;
+    font-size: 1.2rem;
+  }
+}
+
+.shell__eyebrow {
+  margin: 0;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--th-text-muted);
+  font-weight: 700;
+}
+
+.shell__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.shell__content {
+  flex: 1;
+  padding-bottom: 5rem;
+}
+
+.shell__mobile-nav {
+  display: none;
+}
+
+@media (max-width: 959px) {
+  .shell,
+  .shell--collapsed {
+    grid-template-columns: 1fr;
+  }
+
+  .shell__sidebar {
+    display: none;
+  }
+
+  .shell__header-actions a[mat-stroked-button] {
+    display: none;
+  }
+
+  .shell__mobile-nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 30;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0.25rem;
+    padding: 0.45rem 0.5rem calc(0.45rem + env(safe-area-inset-bottom));
+    background: color-mix(in srgb, var(--th-surface) 94%, transparent);
+    backdrop-filter: blur(12px);
+    border-top: 1px solid var(--th-border);
+
+    a {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.15rem;
+      padding: 0.35rem;
+      color: var(--th-text-muted);
+      font-size: 0.68rem;
+      border-radius: 12px;
+
+      &.is-active {
+        color: var(--th-primary);
+        background: color-mix(in srgb, var(--th-primary) 10%, transparent);
+      }
+    }
+
+    .shell__fab {
+      color: var(--th-accent);
+      transform: translateY(-8px);
+
+      mat-icon {
+        font-size: 30px;
+        width: 30px;
+        height: 30px;
+      }
+    }
+  }
+}

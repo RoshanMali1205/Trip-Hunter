@@ -1,0 +1,201 @@
+@use '@angular/material' as mat;
+@use './styles/tokens';
+
+html {
+  height: 100%;
+  @include mat.theme(
+    (
+      color: (
+        primary: mat.$azure-palette,
+        tertiary: mat.$orange-palette,
+      ),
+      typography: (
+        plain-family: var(--th-font-body),
+        brand-family: var(--th-font-display),
+      ),
+      density: 0,
+    )
+  );
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  color-scheme: light;
+  margin: 0;
+  min-height: 100%;
+  font-family: var(--th-font-body);
+  color: var(--th-text);
+  background: var(--th-gradient-page);
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4,
+.th-display {
+  font-family: var(--th-font-display);
+  letter-spacing: -0.02em;
+}
+
+a {
+  color: var(--th-primary);
+  text-decoration: none;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+.th-page {
+  padding: 1.5rem;
+  max-width: 1280px;
+  margin: 0 auto;
+  animation: th-fade-up 0.45s ease both;
+}
+
+.th-page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+
+  h1 {
+    margin: 0;
+    font-size: clamp(1.5rem, 2.5vw, 2rem);
+    font-weight: 650;
+  }
+
+  p {
+    margin: 0.35rem 0 0;
+    color: var(--th-text-secondary);
+  }
+}
+
+.th-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.th-grid-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.th-grid-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.th-grid-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+@media (max-width: 959px) {
+  .th-grid-2,
+  .th-grid-3,
+  .th-grid-4 {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 600px) and (max-width: 959px) {
+  .th-grid-2,
+  .th-grid-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 960px) {
+  .th-grid-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .th-grid-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.th-panel {
+  background: color-mix(in srgb, var(--th-surface) 92%, transparent);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--th-border);
+  border-radius: var(--th-radius-lg);
+  padding: 1.25rem;
+  box-shadow: var(--th-shadow-sm);
+}
+
+.th-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.th-status--approved,
+.th-status--completed {
+  background: color-mix(in srgb, var(--th-success) 16%, white);
+  color: var(--th-success);
+}
+
+.th-status--planning,
+.th-status--voting,
+.th-status--booking {
+  background: color-mix(in srgb, var(--th-info) 16%, white);
+  color: var(--th-info);
+}
+
+.th-status--pending,
+.th-status--pending_approval {
+  background: color-mix(in srgb, var(--th-warning) 18%, white);
+  color: #8a6a00;
+}
+
+.th-status--rejected,
+.th-status--cancelled {
+  background: color-mix(in srgb, var(--th-error) 16%, white);
+  color: var(--th-error);
+}
+
+.th-status--draft,
+.th-status--upcoming,
+.th-status--in_progress {
+  background: color-mix(in srgb, var(--th-primary) 12%, white);
+  color: var(--th-primary-dark);
+}
+
+@keyframes th-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes th-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}

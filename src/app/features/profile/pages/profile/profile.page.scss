@@ -1,0 +1,21 @@
+.profile {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+mat-icon {
+  font-size: 64px;
+  width: 64px;
+  height: 64px;
+  color: var(--th-primary);
+}
+
+h2 {
+  margin: 0 0 0.35rem;
+}
+
+p {
+  margin: 0.2rem 0;
+  color: var(--th-text-secondary);
+}

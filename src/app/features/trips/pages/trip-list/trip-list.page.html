@@ -1,0 +1,48 @@
+<section class="th-page">
+  <header class="th-page-header">
+    <div>
+      <h1>My trips</h1>
+      <p>Track upcoming, planning, and completed team travel.</p>
+    </div>
+    <a mat-flat-button color="primary" routerLink="/trips/create">
+      <mat-icon>add</mat-icon>
+      Create trip
+    </a>
+  </header>
+
+  <div class="filters th-panel">
+    <mat-form-field appearance="outline" class="search">
+      <mat-label>Search trips</mat-label>
+      <input matInput [ngModel]="search()" (ngModelChange)="search.set($event)" placeholder="Goa, Lonavala…" />
+      <mat-icon matPrefix>search</mat-icon>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Filter</mat-label>
+      <mat-select [ngModel]="filter()" (ngModelChange)="filter.set($event)">
+        <mat-option value="all">All trips</mat-option>
+        <mat-option value="upcoming">Upcoming</mat-option>
+        <mat-option value="planning">Planning</mat-option>
+        <mat-option value="completed">Completed</mat-option>
+        <mat-option value="mine">Created by me</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Sort</mat-label>
+      <mat-select [ngModel]="sort()" (ngModelChange)="sort.set($event)">
+        <mat-option value="newest">Newest</mat-option>
+        <mat-option value="date">Trip date</mat-option>
+        <mat-option value="budget">Budget</mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  <div class="th-grid th-grid-3">
+    @for (trip of trips(); track trip.id) {
+      <app-trip-card [trip]="trip" />
+    } @empty {
+      <div class="th-panel empty">No trips match your filters.</div>
+    }
+  </div>
+</section>

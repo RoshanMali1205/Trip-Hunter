@@ -1,0 +1,13 @@
+export const APP_ROUTES = {
+  login: '/login',
+  dashboard: '/dashboard',
+  trips: '/trips',
+  tripCreate: '/trips/create',
+  tripDetail: (id: string) => `/trips/${id}`,
+  notifications: '/notifications',
+  profile: '/profile',
+  calendar: '/calendar',
+  tasks: '/tasks',
+  expenses: '/expenses',
+  admin: '/admin',
+} as const;

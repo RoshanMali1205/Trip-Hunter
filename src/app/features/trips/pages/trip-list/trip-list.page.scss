@@ -1,0 +1,23 @@
+.filters {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+  align-items: start;
+}
+
+.search {
+  width: 100%;
+}
+
+.empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: var(--th-text-secondary);
+}
+
+@media (max-width: 900px) {
+  .filters {
+    grid-template-columns: 1fr;
+  }
+}
