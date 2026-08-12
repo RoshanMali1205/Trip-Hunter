@@ -1,21 +1,13 @@
-<div class="shell" [class.shell--collapsed]="!sidebarOpen()">
+<div class="shell">
   <aside class="shell__sidebar" aria-label="Primary">
-    <div class="shell__brand">
-      <div class="shell__logo" aria-hidden="true">TH</div>
-      <div class="shell__brand-text">
-        <strong>Trip Hunter</strong>
-        <span>Team travel workspace</span>
-      </div>
-    </div>
+    <a class="shell__brand" routerLink="/dashboard">
+      <mat-icon>location_on</mat-icon>
+      <span>Trip Hunter</span>
+    </a>
 
     <nav class="shell__nav">
       @for (item of navItems; track item.path) {
-        <a
-          [routerLink]="item.path"
-          routerLinkActive="is-active"
-          [matTooltip]="item.label"
-          matTooltipPosition="right"
-        >
+        <a [routerLink]="item.path" routerLinkActive="is-active">
           <mat-icon>{{ item.icon }}</mat-icon>
           <span>{{ item.label }}</span>
           @if (item.path === '/notifications' && unreadCount() > 0) {
@@ -25,48 +17,30 @@
       }
     </nav>
 
-    <div class="shell__org">
-      <mat-icon>apartment</mat-icon>
-      <div>
-        <strong>{{ user()?.organizationName }}</strong>
-        <span>{{ user()?.role?.replaceAll('_', ' ') }}</span>
-      </div>
+    <div class="shell__footer">
+      <a class="shell__profile" routerLink="/profile">
+        <span class="shell__avatar">{{ initials() }}</span>
+        <div>
+          <strong>{{ user()?.firstName }} {{ user()?.lastName }}</strong>
+          <span>{{ roleLabel() }}</span>
+        </div>
+      </a>
+      <button
+        class="shell__logout"
+        type="button"
+        (click)="logout()"
+        matTooltip="Log out"
+        matTooltipPosition="right"
+        aria-label="Log out"
+      >
+        <mat-icon>logout</mat-icon>
+      </button>
     </div>
   </aside>
 
-  <div class="shell__main">
-    <header class="shell__header">
-      <div class="shell__header-left">
-        <button mat-icon-button type="button" (click)="toggleSidebar()" aria-label="Toggle sidebar">
-          <mat-icon>menu</mat-icon>
-        </button>
-        <div>
-          <p class="shell__eyebrow">Trip Hunter</p>
-          <h1>{{ pageTitle() }}</h1>
-        </div>
-      </div>
-
-      <div class="shell__header-actions">
-        <a mat-stroked-button routerLink="/trips/create">
-          <mat-icon>add</mat-icon>
-          New trip
-        </a>
-        <a mat-icon-button routerLink="/notifications" aria-label="Notifications">
-          <mat-icon>notifications</mat-icon>
-        </a>
-        <a mat-icon-button routerLink="/profile" aria-label="Profile">
-          <mat-icon>account_circle</mat-icon>
-        </a>
-        <button mat-icon-button type="button" (click)="logout()" aria-label="Logout">
-          <mat-icon>logout</mat-icon>
-        </button>
-      </div>
-    </header>
-
-    <main class="shell__content">
-      <router-outlet />
-    </main>
-  </div>
+  <main class="shell__content">
+    <router-outlet />
+  </main>
 
   <nav class="shell__mobile-nav" aria-label="Mobile">
     @for (item of mobileNav; track item.path) {

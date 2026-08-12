@@ -6,8 +6,9 @@ html {
   @include mat.theme(
     (
       color: (
-        primary: mat.$azure-palette,
-        tertiary: mat.$orange-palette,
+        theme-type: dark,
+        primary: mat.$violet-palette,
+        tertiary: mat.$cyan-palette,
       ),
       typography: (
         plain-family: var(--th-font-body),
@@ -25,7 +26,7 @@ html {
 }
 
 body {
-  color-scheme: light;
+  color-scheme: dark;
   margin: 0;
   min-height: 100%;
   font-family: var(--th-font-body);
@@ -138,44 +139,78 @@ select {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  padding: 0.2rem 0.65rem;
+  padding: 0.25rem 0.75rem;
   border-radius: 999px;
-  font-size: 0.75rem;
-  font-weight: 650;
-  letter-spacing: 0.02em;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
+  border: 1px solid transparent;
 }
 
 .th-status--approved,
 .th-status--completed {
-  background: color-mix(in srgb, var(--th-success) 16%, white);
-  color: var(--th-success);
+  background: color-mix(in srgb, var(--th-success) 55%, var(--th-bg));
+  color: #eafff2;
 }
 
 .th-status--planning,
-.th-status--voting,
-.th-status--booking {
-  background: color-mix(in srgb, var(--th-info) 16%, white);
+.th-status--booking,
+.th-status--in_progress {
+  background: var(--th-primary);
+  color: white;
+}
+
+.th-status--voting {
+  background: transparent;
+  border-color: color-mix(in srgb, var(--th-info) 55%, transparent);
   color: var(--th-info);
 }
 
 .th-status--pending,
 .th-status--pending_approval {
-  background: color-mix(in srgb, var(--th-warning) 18%, white);
-  color: #8a6a00;
+  background: transparent;
+  border-color: color-mix(in srgb, var(--th-warning) 55%, transparent);
+  color: var(--th-warning);
 }
 
 .th-status--rejected,
 .th-status--cancelled {
-  background: color-mix(in srgb, var(--th-error) 16%, white);
-  color: var(--th-error);
+  background: color-mix(in srgb, var(--th-error) 55%, var(--th-bg));
+  color: #ffeaea;
 }
 
 .th-status--draft,
-.th-status--upcoming,
-.th-status--in_progress {
-  background: color-mix(in srgb, var(--th-primary) 12%, white);
-  color: var(--th-primary-dark);
+.th-status--upcoming {
+  background: transparent;
+  border-color: var(--th-border-strong);
+  color: var(--th-text-secondary);
+}
+
+.th-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 650;
+  border: 1px solid transparent;
+}
+
+.th-pill--solid {
+  background: var(--th-primary);
+  color: white;
+}
+
+.th-pill--outline {
+  background: transparent;
+  border-color: var(--th-border-strong);
+  color: var(--th-text-secondary);
+}
+
+.th-pill--muted {
+  background: var(--th-surface-muted);
+  color: var(--th-text-secondary);
 }
 
 @keyframes th-fade-up {

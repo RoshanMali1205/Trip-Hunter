@@ -12,32 +12,20 @@
 
   <div class="th-grid th-grid-4 dashboard__stats">
     <article class="stat">
-      <mat-icon>pending_actions</mat-icon>
-      <div>
-        <span>Pending approvals</span>
-        <strong>{{ summary.pendingApprovals }}</strong>
-      </div>
+      <span>Pending approvals</span>
+      <strong>{{ summary.pendingApprovals }}</strong>
     </article>
     <article class="stat">
-      <mat-icon>task_alt</mat-icon>
-      <div>
-        <span>Open tasks</span>
-        <strong>{{ summary.myTasks.length }}</strong>
-      </div>
+      <span>Open tasks</span>
+      <strong>{{ summary.myTasks.length }}</strong>
     </article>
     <article class="stat">
-      <mat-icon>payments</mat-icon>
-      <div>
-        <span>You paid</span>
-        <strong>{{ summary.expenseSummary.youPaid | inr }}</strong>
-      </div>
+      <span>You paid</span>
+      <strong>{{ summary.expenseSummary.youPaid | inr }}</strong>
     </article>
     <article class="stat">
-      <mat-icon>south_west</mat-icon>
-      <div>
-        <span>You receive</span>
-        <strong>{{ summary.expenseSummary.youReceive | inr }}</strong>
-      </div>
+      <span>You receive</span>
+      <strong>{{ summary.expenseSummary.youReceive | inr }}</strong>
     </article>
   </div>
 

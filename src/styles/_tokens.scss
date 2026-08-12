@@ -1,56 +1,40 @@
 :root {
-  /* Brand — coastal expedition (not purple / cream-terracotta) */
-  --th-primary: #0f5c6e;
-  --th-primary-dark: #0a3f4c;
-  --th-primary-light: #1a7a90;
-  --th-accent: #e07a3d;
-  --th-accent-soft: #f4c9a8;
-  --th-success: #2a9d6a;
-  --th-warning: #d4a017;
-  --th-error: #c44536;
-  --th-info: #3a7ca5;
+  /* Nocturne — dark indigo/violet system */
+  --th-primary: #7c6cf6;
+  --th-primary-dark: #5b4bd6;
+  --th-primary-light: #a597ff;
+  --th-accent: #3ecfb2;
+  --th-accent-soft: #1f5f52;
+  --th-success: #3ecf8e;
+  --th-warning: #e0a94c;
+  --th-error: #ec6f6f;
+  --th-info: #5aa9e6;
 
-  --th-bg: #f3f7f8;
-  --th-bg-elevated: #ffffff;
-  --th-surface: #ffffff;
-  --th-surface-muted: #e8f0f2;
-  --th-border: #d2dde1;
-  --th-border-strong: #a8bdc4;
+  --th-bg: #0a0c14;
+  --th-bg-elevated: #12141f;
+  --th-surface: #151827;
+  --th-surface-muted: #1c2032;
+  --th-border: #262b40;
+  --th-border-strong: #383e59;
 
-  --th-text: #14262c;
-  --th-text-secondary: #4a636b;
-  --th-text-muted: #7a9299;
-  --th-text-inverse: #f8fbfc;
+  --th-text: #eef0fb;
+  --th-text-secondary: #a9adc9;
+  --th-text-muted: #767b9c;
+  --th-text-inverse: #0a0c14;
 
   --th-sidebar-width: 260px;
   --th-header-height: 64px;
   --th-radius-sm: 8px;
   --th-radius: 12px;
   --th-radius-lg: 20px;
-  --th-shadow: 0 8px 28px rgba(15, 92, 110, 0.08);
-  --th-shadow-sm: 0 2px 10px rgba(15, 92, 110, 0.06);
+  --th-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  --th-shadow-sm: 0 4px 16px rgba(0, 0, 0, 0.3);
 
   --th-font-display: 'Sora', system-ui, sans-serif;
   --th-font-body: 'Manrope', system-ui, sans-serif;
 
-  --th-gradient-hero: linear-gradient(145deg, #0f5c6e 0%, #1a7a90 45%, #0a3f4c 100%);
-  --th-gradient-page: radial-gradient(ellipse 120% 80% at 0% 0%, #d9eef2 0%, transparent 55%),
-    radial-gradient(ellipse 90% 70% at 100% 0%, #f8e8dc 0%, transparent 50%),
-    linear-gradient(180deg, #f3f7f8 0%, #eef4f6 100%);
-}
-
-[data-theme='dark'] {
-  --th-bg: #0d1a1e;
-  --th-bg-elevated: #152428;
-  --th-surface: #1a2c32;
-  --th-surface-muted: #243840;
-  --th-border: #2f464e;
-  --th-border-strong: #3f5a64;
-  --th-text: #eef5f7;
-  --th-text-secondary: #a8c0c7;
-  --th-text-muted: #7a9299;
-  --th-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
-  --th-gradient-page: radial-gradient(ellipse 120% 80% at 0% 0%, #14363e 0%, transparent 55%),
-    radial-gradient(ellipse 90% 70% at 100% 0%, #3a2a20 0%, transparent 45%),
-    linear-gradient(180deg, #0d1a1e 0%, #122226 100%);
+  --th-gradient-hero: linear-gradient(145deg, #2c2560 0%, #5b4bd6 45%, #14123a 100%);
+  --th-gradient-page: radial-gradient(ellipse 110% 70% at 0% 0%, #1c1f3d 0%, transparent 55%),
+    radial-gradient(ellipse 90% 60% at 100% 0%, #16233a 0%, transparent 50%),
+    linear-gradient(180deg, #0a0c14 0%, #0d0f1a 100%);
 }

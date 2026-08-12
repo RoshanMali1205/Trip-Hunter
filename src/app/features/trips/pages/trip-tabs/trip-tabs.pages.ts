@@ -77,11 +77,20 @@ export class TripOverviewPage {
       <ul>
         @for (m of members(); track m.id) {
           <li>
-            <mat-icon>person</mat-icon>
-            <div>
-              <strong>{{ m.name }}</strong>
-              <span>{{ m.role }} · {{ m.inviteStatus }}</span>
+            <div class="who">
+              <mat-icon>person</mat-icon>
+              <div>
+                <strong>{{ m.name }}</strong>
+                <span>{{ m.role }}</span>
+              </div>
             </div>
+            <em
+              class="th-pill"
+              [class.th-pill--solid]="m.inviteStatus === 'ACCEPTED'"
+              [class.th-pill--outline]="m.inviteStatus === 'INVITED' || m.inviteStatus === 'MAYBE'"
+              [class.th-pill--muted]="m.inviteStatus === 'DECLINED'"
+              >{{ m.inviteStatus }}</em
+            >
           </li>
         } @empty {
           <li>No members yet.</li>
@@ -102,6 +111,12 @@ export class TripOverviewPage {
         gap: 0.75rem;
       }
       li {
+        display: flex;
+        gap: 0.65rem;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .who {
         display: flex;
         gap: 0.65rem;
         align-items: center;
@@ -215,8 +230,9 @@ export class TripVotingPage {
             <li>
               <time>{{ item.startTime }}</time>
               <div>
+                <em class="th-pill th-pill--outline">{{ item.type }}</em>
                 <strong>{{ item.title }}</strong>
-                <span>{{ item.type }} · {{ item.locationName }}</span>
+                <span>{{ item.locationName }}</span>
               </div>
             </li>
           }
@@ -254,7 +270,21 @@ export class TripVotingPage {
       }
       time {
         font-weight: 700;
-        color: var(--th-primary);
+        color: var(--th-primary-light);
+      }
+      li > div {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+      .th-pill--outline {
+        text-transform: uppercase;
+        font-size: 0.65rem;
+        letter-spacing: 0.04em;
+      }
+      strong {
+        width: 100%;
       }
       span {
         display: block;
@@ -282,13 +312,14 @@ export class TripItineraryPage {
     <div class="th-grid th-grid-2">
       @for (b of bookings(); track b.id) {
         <article class="th-panel">
-          <p class="type">{{ b.bookingType }}</p>
+          <div class="top">
+            <em class="th-pill th-pill--outline">{{ b.bookingType }}</em>
+            <strong>{{ b.amount | inr: b.currency }}</strong>
+          </div>
           <h3>{{ b.provider }}</h3>
           <p>Booking #: {{ b.bookingReference }}</p>
           <p>{{ b.startDatetime }} → {{ b.endDatetime }}</p>
-          <p>
-            <strong>{{ b.amount | inr: b.currency }}</strong> · {{ b.status }}
-          </p>
+          <p class="muted">{{ b.status }}</p>
         </article>
       } @empty {
         <div class="th-panel">No bookings yet.</div>
@@ -297,16 +328,23 @@ export class TripItineraryPage {
   `,
   styles: [
     `
-      .type {
-        margin: 0;
+      .top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.35rem;
+      }
+      .th-pill--outline {
         text-transform: uppercase;
-        letter-spacing: 0.06em;
-        font-size: 0.75rem;
-        font-weight: 700;
-        color: var(--th-accent);
+        font-size: 0.68rem;
+        letter-spacing: 0.04em;
       }
       h3 {
-        margin: 0.35rem 0;
+        margin: 0.15rem 0 0.35rem;
+      }
+      .muted {
+        color: var(--th-text-muted);
+        font-size: 0.85rem;
       }
     `,
   ],
@@ -442,7 +480,13 @@ export class TripExpensesPage {
               <strong>{{ t.title }}</strong>
               <span>{{ t.assignedToName }} · {{ t.priority }} · due {{ t.dueDate }}</span>
             </div>
-            <em>{{ t.status.replaceAll('_', ' ') }}</em>
+            <em
+              class="th-pill"
+              [class.th-pill--solid]="t.status === 'IN_PROGRESS'"
+              [class.th-pill--outline]="t.status === 'TODO'"
+              [class.th-pill--muted]="t.status === 'COMPLETED'"
+              >{{ t.status.replaceAll('_', ' ') }}</em
+            >
           </li>
         } @empty {
           <li>No tasks yet.</li>
@@ -462,6 +506,7 @@ export class TripExpensesPage {
       li {
         display: flex;
         justify-content: space-between;
+        align-items: center;
         gap: 1rem;
       }
       span {
@@ -471,10 +516,7 @@ export class TripExpensesPage {
       }
       em {
         font-style: normal;
-        font-size: 0.75rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        color: var(--th-primary);
+        text-transform: capitalize;
       }
     `,
   ],

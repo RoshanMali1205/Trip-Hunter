@@ -5,7 +5,7 @@
   overflow: hidden;
   margin-bottom: 1rem;
   background:
-    linear-gradient(120deg, rgba(10, 63, 76, 0.88), rgba(15, 92, 110, 0.55)),
+    linear-gradient(120deg, rgba(14, 13, 40, 0.88), rgba(91, 75, 214, 0.45)),
     var(--cover) center/cover no-repeat,
     var(--th-gradient-hero);
   color: white;
@@ -57,9 +57,9 @@
     font-size: 0.9rem;
 
     &.is-active {
-      color: var(--th-primary-dark);
-      background: color-mix(in srgb, var(--th-primary) 12%, white);
-      border-color: color-mix(in srgb, var(--th-primary) 25%, white);
+      color: var(--th-primary-light);
+      background: color-mix(in srgb, var(--th-primary) 20%, var(--th-surface));
+      border-color: color-mix(in srgb, var(--th-primary) 35%, var(--th-surface));
     }
   }
 }

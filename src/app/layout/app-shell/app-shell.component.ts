@@ -1,10 +1,7 @@
-import { Component, computed, inject, signal } from '@angular/core';
-import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { Component, computed, inject } from '@angular/core';
+import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
-import { MatButtonModule } from '@angular/material/button';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { filter } from 'rxjs';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AuthService } from '../../core/auth/auth.service';
 import { TripStore } from '../../core/services/trip.store';
 
@@ -17,7 +14,7 @@ interface NavItem {
 @Component({
   selector: 'app-shell',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, MatIconModule, MatButtonModule, MatTooltipModule],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, MatIconModule, MatTooltipModule],
   templateUrl: './app-shell.component.html',
   styleUrl: './app-shell.component.scss',
 })
@@ -26,11 +23,22 @@ export class AppShellComponent {
   private readonly store = inject(TripStore);
   private readonly router = inject(Router);
 
-  readonly sidebarOpen = signal(true);
   readonly user = this.auth.user;
   readonly unreadCount = computed(
     () => this.store.getNotifications().filter((n) => !n.read).length,
   );
+
+  readonly initials = computed(() => {
+    const u = this.user();
+    if (!u) return '';
+    return `${u.firstName.charAt(0)}${u.lastName.charAt(0)}`.toUpperCase();
+  });
+
+  readonly roleLabel = computed(() => {
+    const role = this.user()?.role ?? '';
+    const label = role.replace(/^TRIP_|^ORG_/, '').replaceAll('_', ' ').toLowerCase();
+    return label.charAt(0).toUpperCase() + label.slice(1);
+  });
 
   readonly navItems: NavItem[] = [
     { label: 'Dashboard', path: '/dashboard', icon: 'dashboard' },
@@ -48,32 +56,6 @@ export class AppShellComponent {
     { label: 'Tasks', path: '/tasks', icon: 'task_alt' },
     { label: 'Profile', path: '/profile', icon: 'person' },
   ];
-
-  readonly pageTitle = signal('Dashboard');
-
-  constructor() {
-    this.router.events
-      .pipe(
-        filter((e): e is NavigationEnd => e instanceof NavigationEnd),
-        takeUntilDestroyed(),
-      )
-      .subscribe((e) => {
-        const path = e.urlAfterRedirects.split('?')[0];
-        if (path.startsWith('/trips/create')) this.pageTitle.set('Create trip');
-        else if (path.startsWith('/trips/')) this.pageTitle.set('Trip details');
-        else if (path.startsWith('/trips')) this.pageTitle.set('My trips');
-        else if (path.startsWith('/notifications')) this.pageTitle.set('Notifications');
-        else if (path.startsWith('/profile')) this.pageTitle.set('Profile');
-        else if (path.startsWith('/calendar')) this.pageTitle.set('Calendar');
-        else if (path.startsWith('/tasks')) this.pageTitle.set('Tasks');
-        else if (path.startsWith('/expenses')) this.pageTitle.set('Expenses');
-        else this.pageTitle.set('Dashboard');
-      });
-  }
-
-  toggleSidebar(): void {
-    this.sidebarOpen.update((v) => !v);
-  }
 
   logout(): void {
     this.auth.logout();

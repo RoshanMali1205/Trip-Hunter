@@ -56,7 +56,7 @@ import { InrCurrencyPipe, StatusLabelPipe, TripDatePipe } from '../../pipes/form
 
       .trip-card__media {
         background:
-          linear-gradient(180deg, transparent 20%, rgba(10, 63, 76, 0.55)),
+          linear-gradient(180deg, transparent 20%, rgba(10, 12, 24, 0.65)),
           var(--cover) center/cover no-repeat;
       }
 

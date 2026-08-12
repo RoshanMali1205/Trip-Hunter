@@ -74,7 +74,13 @@ export class CalendarPage {
                 <strong>{{ t.title }}</strong>
                 <span>{{ t.assignedToName }} · due {{ t.dueDate }}</span>
               </div>
-              <em>{{ t.status.replaceAll('_', ' ') }}</em>
+              <em
+                class="th-pill"
+                [class.th-pill--solid]="t.status === 'IN_PROGRESS'"
+                [class.th-pill--outline]="t.status === 'TODO'"
+                [class.th-pill--muted]="t.status === 'COMPLETED'"
+                >{{ t.status.replaceAll('_', ' ') }}</em
+              >
             </li>
           }
         </ul>
@@ -93,6 +99,7 @@ export class CalendarPage {
       li {
         display: flex;
         justify-content: space-between;
+        align-items: center;
         gap: 1rem;
       }
       span {
@@ -102,10 +109,7 @@ export class CalendarPage {
       }
       em {
         font-style: normal;
-        font-size: 0.75rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        color: var(--th-primary);
+        text-transform: capitalize;
       }
     `,
   ],
