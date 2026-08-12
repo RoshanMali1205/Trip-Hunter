@@ -1,18 +1,39 @@
 @if (trip(); as t) {
   <section class="th-page detail">
-    <div class="detail__hero" [style.--cover]="t.coverImageUrl ? 'url(' + t.coverImageUrl + ')' : 'none'">
-      <a routerLink="/trips" class="back"><mat-icon>arrow_back</mat-icon> My trips</a>
-      <div class="detail__hero-copy">
-        <span class="th-status" [class]="'th-status th-status--' + t.status.toLowerCase()">
-          {{ t.status | statusLabel }}
-        </span>
-        <h1>{{ t.title }}</h1>
-        <p>
-          {{ t.origin }} → {{ t.destination }} · {{ t.startDate | tripDate: t.endDate }} ·
-          {{ t.memberCount }} members · {{ t.estimatedBudget | inr: t.currency }}
-        </p>
+    <nav class="crumbs">
+      <a routerLink="/trips">My Trips</a>
+      <span>/</span>
+      <span>{{ t.destination || 'Trip' }} {{ t.startDate ? t.startDate.slice(0, 4) : '' }}</span>
+    </nav>
+
+    <header class="detail__header">
+      <div class="detail__title-row">
+        <div>
+          <div class="title-line">
+            <h1>{{ t.title }}</h1>
+            <span class="th-status th-status--approved">{{ t.status | statusLabel }}</span>
+            <span class="th-pill th-pill--outline">{{ t.tripType.replaceAll('_', ' ') }}</span>
+          </div>
+          <p class="meta">
+            {{ t.startDate | tripDate: t.endDate }}
+            @if (durationLabel()) {
+              · {{ durationLabel() }}
+            }
+            · {{ t.origin }} → {{ t.destination }}
+            · Organizer: {{ t.organizerName }}
+          </p>
+        </div>
+
+        <div class="avatars" aria-label="Members">
+          @for (m of memberPreview(); track m.id) {
+            <span [title]="m.name">{{ initials(m.name) }}</span>
+          }
+          @if (extraMembers() > 0) {
+            <span class="more">+{{ extraMembers() }}</span>
+          }
+        </div>
       </div>
-    </div>
+    </header>
 
     <nav class="detail__tabs" aria-label="Trip sections">
       @for (tab of tabs; track tab.path) {

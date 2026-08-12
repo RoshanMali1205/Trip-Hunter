@@ -2,13 +2,17 @@
   <header class="th-page-header">
     <div>
       <h1>Notifications</h1>
-      <p>Invites, approvals, tasks, bookings, and expense alerts.</p>
+      <p>{{ unread() }} unread</p>
     </div>
+    @if (unread() > 0) {
+      <button class="link-btn" type="button" (click)="markAll()">Mark all read</button>
+    }
   </header>
+
   <div class="th-panel">
     <ul>
-      @for (n of notifications; track n.id) {
-        <li [class.unread]="!n.read">
+      @for (n of notifications(); track n.id) {
+        <li [class.unread]="!n.read" (click)="markOne(n.id)">
           <mat-icon>{{ n.read ? 'notifications' : 'mark_email_unread' }}</mat-icon>
           <div>
             <strong>{{ n.title }}</strong>

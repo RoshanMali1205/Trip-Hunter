@@ -1,27 +1,17 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
-import { MatButtonModule } from '@angular/material/button';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
-import { MatStepperModule } from '@angular/material/stepper';
+import { Router, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { TripStore } from '../../../../core/services/trip.store';
 import { TripType } from '../../../../core/models/trip.model';
+import { lsGet, lsRemove, lsSet } from '../../../../core/services/local-storage.service';
+
+const DRAFT_KEY = 'trip-create-draft';
 
 @Component({
   selector: 'app-trip-create-page',
   standalone: true,
-  imports: [
-    ReactiveFormsModule,
-    MatButtonModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule,
-    MatStepperModule,
-    MatIconModule,
-  ],
+  imports: [ReactiveFormsModule, MatIconModule, RouterLink],
   templateUrl: './trip-create.page.html',
   styleUrl: './trip-create.page.scss',
 })
@@ -30,68 +20,93 @@ export class TripCreatePage {
   private readonly store = inject(TripStore);
   private readonly router = inject(Router);
 
+  readonly step = signal(lsGet(DRAFT_KEY + ':step', 0));
   readonly saving = signal(false);
-  readonly tripTypes: { value: TripType; label: string }[] = [
-    { value: 'TEAM_OUTING', label: 'Team outing' },
-    { value: 'BUSINESS', label: 'Business trip' },
-    { value: 'CORPORATE_OFFSITE', label: 'Corporate offsite' },
-    { value: 'TRAINING_CONFERENCE', label: 'Training / Conference' },
-    { value: 'PROJECT_VISIT', label: 'Project visit' },
+
+  readonly steps = [
+    'Basics',
+    'Location',
+    'Dates',
+    'Members',
+    'Budget',
+    'Approval',
+    'Review',
   ];
 
-  readonly basics = this.fb.nonNullable.group({
-    title: ['', Validators.required],
+  readonly tripTypes: { value: TripType; label: string }[] = [
+    { value: 'BUSINESS', label: 'Business Trip' },
+    { value: 'TEAM_OUTING', label: 'Team Outing' },
+    { value: 'CORPORATE_OFFSITE', label: 'Offsite' },
+    { value: 'TRAINING_CONFERENCE', label: 'Training' },
+    { value: 'PROJECT_VISIT', label: 'Project Visit' },
+  ];
+
+  readonly form = this.fb.nonNullable.group({
+    title: ['Pune Dev Team – Goa Trip 2026', Validators.required],
     tripType: ['TEAM_OUTING' as TripType, Validators.required],
-    description: [''],
-  });
-
-  readonly location = this.fb.nonNullable.group({
+    description: [
+      'Annual team outing for the Pune development team to unwind and plan for the next quarter.',
+    ],
     origin: ['Pune', Validators.required],
-    destination: ['', Validators.required],
-  });
-
-  readonly dates = this.fb.group({
+    destination: ['Goa', Validators.required],
     startDate: [''],
     endDate: [''],
-  });
-
-  readonly members = this.fb.nonNullable.group({
     maxMembers: [15, [Validators.required, Validators.min(2)]],
-  });
-
-  readonly budget = this.fb.nonNullable.group({
     currency: ['INR'],
-    estimatedBudget: [100000, [Validators.required, Validators.min(0)]],
-  });
-
-  readonly approval = this.fb.nonNullable.group({
+    estimatedBudget: [140000, [Validators.required, Validators.min(0)]],
     approvalRequired: ['yes'],
   });
 
+  constructor() {
+    const draft = lsGet<Record<string, unknown> | null>(DRAFT_KEY, null);
+    if (draft) {
+      this.form.patchValue(draft as never);
+    }
+    this.form.valueChanges.subscribe((v) => lsSet(DRAFT_KEY, v));
+  }
+
+  next(): void {
+    if (this.step() < this.steps.length - 1) {
+      this.step.update((s) => s + 1);
+      lsSet(DRAFT_KEY + ':step', this.step());
+    }
+  }
+
+  back(): void {
+    if (this.step() > 0) {
+      this.step.update((s) => s - 1);
+      lsSet(DRAFT_KEY + ':step', this.step());
+    }
+  }
+
+  selectType(type: TripType): void {
+    this.form.controls.tripType.setValue(type);
+  }
+
   create(): void {
-    if (
-      this.basics.invalid ||
-      this.location.invalid ||
-      this.members.invalid ||
-      this.budget.invalid
-    ) {
-      this.basics.markAllAsTouched();
-      this.location.markAllAsTouched();
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      this.step.set(0);
       return;
     }
-
     this.saving.set(true);
+    const v = this.form.getRawValue();
     const trip = this.store.createTrip({
-      ...this.basics.getRawValue(),
-      ...this.location.getRawValue(),
-      startDate: this.dates.value.startDate || null,
-      endDate: this.dates.value.endDate || null,
-      maxMembers: this.members.getRawValue().maxMembers,
-      estimatedBudget: this.budget.getRawValue().estimatedBudget,
-      currency: this.budget.getRawValue().currency,
-      approvalStatus: this.approval.value.approvalRequired === 'yes' ? 'PENDING' : 'NOT_REQUIRED',
+      title: v.title,
+      tripType: v.tripType,
+      description: v.description,
+      origin: v.origin,
+      destination: v.destination,
+      startDate: v.startDate || null,
+      endDate: v.endDate || null,
+      maxMembers: v.maxMembers,
+      estimatedBudget: v.estimatedBudget,
+      currency: v.currency,
+      approvalStatus: v.approvalRequired === 'yes' ? 'PENDING' : 'NOT_REQUIRED',
       memberCount: 1,
     });
+    lsRemove(DRAFT_KEY);
+    lsRemove(DRAFT_KEY + ':step');
     this.saving.set(false);
     void this.router.navigate(['/trips', trip.id]);
   }

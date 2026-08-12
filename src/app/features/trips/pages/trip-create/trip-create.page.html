@@ -1,135 +1,130 @@
 <section class="th-page create">
+  <nav class="crumbs">
+    <a routerLink="/trips">My Trips</a>
+    <span>/</span>
+    <span>New trip</span>
+  </nav>
+
   <header class="th-page-header">
     <div>
       <h1>Create a trip</h1>
-      <p>Use the wizard to capture basics, location, dates, members, budget, and approval.</p>
     </div>
   </header>
 
-  <div class="th-panel create__panel">
-    <mat-stepper linear orientation="vertical" animationDuration="250">
-      <mat-step [stepControl]="basics" label="Trip basics">
-        <form [formGroup]="basics" class="step-form">
-          <mat-form-field appearance="outline" class="full">
-            <mat-label>Trip name</mat-label>
-            <input matInput formControlName="title" placeholder="Pune Development Team – Goa Trip 2026" />
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="full">
-            <mat-label>Trip type</mat-label>
-            <mat-select formControlName="tripType">
-              @for (type of tripTypes; track type.value) {
-                <mat-option [value]="type.value">{{ type.label }}</mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="full">
-            <mat-label>Description</mat-label>
-            <textarea matInput rows="3" formControlName="description"></textarea>
-          </mat-form-field>
-          <button mat-flat-button color="primary" matStepperNext type="button">Continue</button>
-        </form>
-      </mat-step>
+  <ol class="stepper">
+    @for (label of steps; track label; let i = $index) {
+      <li [class.is-active]="step() === i" [class.is-done]="step() > i">
+        <span class="num">{{ i + 1 }}</span>
+        <span class="label">{{ label }}</span>
+      </li>
+    }
+  </ol>
 
-      <mat-step [stepControl]="location" label="Location">
-        <form [formGroup]="location" class="step-form">
-          <mat-form-field appearance="outline" class="full">
-            <mat-label>Starting location</mat-label>
-            <input matInput formControlName="origin" />
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="full">
-            <mat-label>Destination</mat-label>
-            <input matInput formControlName="destination" placeholder="Goa" />
-          </mat-form-field>
-          <div class="actions">
-            <button mat-button matStepperPrevious type="button">Back</button>
-            <button mat-flat-button color="primary" matStepperNext type="button">Continue</button>
-          </div>
-        </form>
-      </mat-step>
-
-      <mat-step [stepControl]="dates" label="Dates">
-        <form [formGroup]="dates" class="step-form">
-          <mat-form-field appearance="outline" class="full">
-            <mat-label>Start date</mat-label>
-            <input matInput type="date" formControlName="startDate" />
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="full">
-            <mat-label>End date</mat-label>
-            <input matInput type="date" formControlName="endDate" />
-          </mat-form-field>
-          <p class="hint">Leave blank if you’ll run an availability poll later.</p>
-          <div class="actions">
-            <button mat-button matStepperPrevious type="button">Back</button>
-            <button mat-flat-button color="primary" matStepperNext type="button">Continue</button>
-          </div>
-        </form>
-      </mat-step>
-
-      <mat-step [stepControl]="members" label="Members">
-        <form [formGroup]="members" class="step-form">
-          <mat-form-field appearance="outline" class="full">
-            <mat-label>Max members</mat-label>
-            <input matInput type="number" formControlName="maxMembers" />
-          </mat-form-field>
-          <p class="hint">You’ll invite individuals or whole teams after creation.</p>
-          <div class="actions">
-            <button mat-button matStepperPrevious type="button">Back</button>
-            <button mat-flat-button color="primary" matStepperNext type="button">Continue</button>
-          </div>
-        </form>
-      </mat-step>
-
-      <mat-step [stepControl]="budget" label="Budget">
-        <form [formGroup]="budget" class="step-form">
-          <mat-form-field appearance="outline" class="full">
-            <mat-label>Currency</mat-label>
-            <mat-select formControlName="currency">
-              <mat-option value="INR">INR</mat-option>
-              <mat-option value="USD">USD</mat-option>
-              <mat-option value="EUR">EUR</mat-option>
-            </mat-select>
-          </mat-form-field>
-          <mat-form-field appearance="outline" class="full">
-            <mat-label>Expected budget</mat-label>
-            <input matInput type="number" formControlName="estimatedBudget" />
-          </mat-form-field>
-          <div class="actions">
-            <button mat-button matStepperPrevious type="button">Back</button>
-            <button mat-flat-button color="primary" matStepperNext type="button">Continue</button>
-          </div>
-        </form>
-      </mat-step>
-
-      <mat-step [stepControl]="approval" label="Approval">
-        <form [formGroup]="approval" class="step-form">
-          <mat-form-field appearance="outline" class="full">
-            <mat-label>Approval required?</mat-label>
-            <mat-select formControlName="approvalRequired">
-              <mat-option value="yes">Yes — send to manager</mat-option>
-              <mat-option value="no">No — not required</mat-option>
-            </mat-select>
-          </mat-form-field>
-          <div class="actions">
-            <button mat-button matStepperPrevious type="button">Back</button>
-            <button mat-flat-button color="primary" matStepperNext type="button">Review</button>
-          </div>
-        </form>
-      </mat-step>
-
-      <mat-step label="Review">
-        <div class="review">
-          <h3>{{ basics.value.title || 'Untitled trip' }}</h3>
-          <p>{{ location.value.origin }} → {{ location.value.destination }}</p>
-          <p>{{ tripTypes.find((t) => t.value === basics.value.tripType)?.label }}</p>
-          <p>Budget: {{ budget.value.estimatedBudget }} {{ budget.value.currency }}</p>
-          <div class="actions">
-            <button mat-button matStepperPrevious type="button">Back</button>
-            <button mat-flat-button color="primary" type="button" (click)="create()" [disabled]="saving()">
-              {{ saving() ? 'Creating…' : 'Create trip' }}
-            </button>
+  <div class="th-panel form-panel" [formGroup]="form">
+    @switch (step()) {
+      @case (0) {
+        <label>
+          Trip name
+          <input formControlName="title" />
+        </label>
+        <div class="field">
+          <span class="field-label">Trip type</span>
+          <div class="chips">
+            @for (t of tripTypes; track t.value) {
+              <button
+                type="button"
+                [class.is-on]="form.controls.tripType.value === t.value"
+                (click)="selectType(t.value)"
+              >
+                {{ t.label }}
+              </button>
+            }
           </div>
         </div>
-      </mat-step>
-    </mat-stepper>
+        <label>
+          Description
+          <textarea rows="4" formControlName="description"></textarea>
+        </label>
+      }
+      @case (1) {
+        <label>
+          Starting location
+          <input formControlName="origin" />
+        </label>
+        <label>
+          Destination
+          <input formControlName="destination" />
+        </label>
+      }
+      @case (2) {
+        <label>
+          Start date
+          <input type="date" formControlName="startDate" />
+        </label>
+        <label>
+          End date
+          <input type="date" formControlName="endDate" />
+        </label>
+        <p class="hint">Leave blank to run an availability poll later.</p>
+      }
+      @case (3) {
+        <label>
+          Max members
+          <input type="number" formControlName="maxMembers" />
+        </label>
+        <p class="hint">Invite individuals or whole teams after creation.</p>
+      }
+      @case (4) {
+        <label>
+          Currency
+          <select formControlName="currency">
+            <option value="INR">INR</option>
+            <option value="USD">USD</option>
+            <option value="EUR">EUR</option>
+          </select>
+        </label>
+        <label>
+          Expected budget
+          <input type="number" formControlName="estimatedBudget" />
+        </label>
+      }
+      @case (5) {
+        <label>
+          Approval required?
+          <select formControlName="approvalRequired">
+            <option value="yes">Yes — send to manager</option>
+            <option value="no">No — not required</option>
+          </select>
+        </label>
+      }
+      @case (6) {
+        <div class="review">
+          <h3>{{ form.value.title }}</h3>
+          <p>{{ form.value.origin }} → {{ form.value.destination }}</p>
+          <p>{{ tripTypes.find((t) => t.value === form.value.tripType)?.label }}</p>
+          <p>Budget: {{ form.value.estimatedBudget }} {{ form.value.currency }}</p>
+          <p>{{ form.value.description }}</p>
+        </div>
+      }
+    }
+
+    <div class="actions">
+      @if (step() === 0) {
+        <a class="btn ghost" routerLink="/trips">Cancel</a>
+      } @else {
+        <button class="btn ghost" type="button" (click)="back()">Back</button>
+      }
+
+      @if (step() < steps.length - 1) {
+        <button class="btn primary" type="button" (click)="next()">
+          Next: {{ steps[step() + 1] }}
+          <mat-icon>chevron_right</mat-icon>
+        </button>
+      } @else {
+        <button class="btn primary" type="button" (click)="create()" [disabled]="saving()">
+          {{ saving() ? 'Creating…' : 'Create trip' }}
+        </button>
+      }
+    </div>
   </div>
 </section>

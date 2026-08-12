@@ -1,27 +1,14 @@
+import { DatePipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatSelectModule } from '@angular/material/select';
-import { MatInputModule } from '@angular/material/input';
 import { TripStore } from '../../../../core/services/trip.store';
-import { TripCardComponent } from '../../../../shared/components/trip-card/trip-card.component';
+import { StatusLabelPipe } from '../../../../shared/pipes/format.pipe';
 
 @Component({
   selector: 'app-trip-list-page',
   standalone: true,
-  imports: [
-    RouterLink,
-    FormsModule,
-    MatButtonModule,
-    MatIconModule,
-    MatFormFieldModule,
-    MatSelectModule,
-    MatInputModule,
-    TripCardComponent,
-  ],
+  imports: [RouterLink, FormsModule, DatePipe, StatusLabelPipe],
   templateUrl: './trip-list.page.html',
   styleUrl: './trip-list.page.scss',
 })
@@ -30,7 +17,6 @@ export class TripListPage {
 
   readonly search = signal('');
   readonly filter = signal<'all' | 'upcoming' | 'planning' | 'completed' | 'mine'>('all');
-  readonly sort = signal<'newest' | 'date' | 'budget'>('newest');
 
   readonly trips = computed(() => {
     let list = [...this.store.trips()];
@@ -47,7 +33,9 @@ export class TripListPage {
     }
 
     if (filter === 'upcoming') {
-      list = list.filter((t) => ['APPROVED', 'BOOKING', 'UPCOMING', 'IN_PROGRESS'].includes(t.status));
+      list = list.filter((t) =>
+        ['APPROVED', 'BOOKING', 'UPCOMING', 'IN_PROGRESS'].includes(t.status),
+      );
     } else if (filter === 'planning') {
       list = list.filter((t) =>
         ['DRAFT', 'PLANNING', 'VOTING', 'PENDING_APPROVAL'].includes(t.status),
@@ -58,12 +46,12 @@ export class TripListPage {
       list = list.filter((t) => t.organizerId === 'user-roshan');
     }
 
-    const sort = this.sort();
-    list.sort((a, b) => {
-      if (sort === 'budget') return b.estimatedBudget - a.estimatedBudget;
-      if (sort === 'date') return (a.startDate || '').localeCompare(b.startDate || '');
-      return b.createdAt.localeCompare(a.createdAt);
-    });
     return list;
   });
+
+  shortBudget(n: number): string {
+    if (n >= 100000) return `₹${(n / 100000).toFixed(1).replace(/\.0$/, '')}L`;
+    if (n >= 1000) return `₹${Math.round(n / 1000)}k`;
+    return `₹${n}`;
+  }
 }

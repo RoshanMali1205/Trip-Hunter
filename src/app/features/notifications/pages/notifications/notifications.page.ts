@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { Component, inject } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { TripStore } from '../../../../core/services/trip.store';
 
@@ -11,5 +11,15 @@ import { TripStore } from '../../../../core/services/trip.store';
   styleUrl: './notifications.page.scss',
 })
 export class NotificationsPage {
-  readonly notifications = inject(TripStore).getNotifications();
+  private readonly store = inject(TripStore);
+  readonly notifications = computed(() => this.store.getNotifications());
+  readonly unread = computed(() => this.notifications().filter((n) => !n.read).length);
+
+  markAll(): void {
+    this.store.markAllNotificationsRead();
+  }
+
+  markOne(id: string): void {
+    this.store.markNotificationRead(id);
+  }
 }

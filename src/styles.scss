@@ -148,7 +148,11 @@ select {
   border: 1px solid transparent;
 }
 
-.th-status--approved,
+.th-status--approved {
+  background: var(--th-primary);
+  color: white;
+}
+
 .th-status--completed {
   background: color-mix(in srgb, var(--th-success) 55%, var(--th-bg));
   color: #eafff2;

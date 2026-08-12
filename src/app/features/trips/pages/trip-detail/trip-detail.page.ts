@@ -2,10 +2,9 @@ import { Component, computed, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { map } from 'rxjs';
-import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { TripStore } from '../../../../core/services/trip.store';
-import { InrCurrencyPipe, StatusLabelPipe, TripDatePipe } from '../../../../shared/pipes/format.pipe';
+import { StatusLabelPipe, TripDatePipe } from '../../../../shared/pipes/format.pipe';
 
 @Component({
   selector: 'app-trip-detail-page',
@@ -14,9 +13,7 @@ import { InrCurrencyPipe, StatusLabelPipe, TripDatePipe } from '../../../../shar
     RouterOutlet,
     RouterLink,
     RouterLinkActive,
-    MatButtonModule,
     MatIconModule,
-    InrCurrencyPipe,
     TripDatePipe,
     StatusLabelPipe,
   ],
@@ -33,6 +30,28 @@ export class TripDetailPage {
   );
 
   readonly trip = computed(() => this.store.getById(this.tripId()));
+  readonly members = computed(() => this.store.getMembers(this.tripId()));
+  readonly memberPreview = computed(() => this.members().slice(0, 4));
+  readonly extraMembers = computed(() => Math.max(0, (this.trip()?.memberCount ?? 0) - 4));
+
+  readonly durationLabel = computed(() => {
+    const t = this.trip();
+    if (!t?.startDate || !t.endDate) return '';
+    const days =
+      Math.round(
+        (new Date(t.endDate).getTime() - new Date(t.startDate).getTime()) / 86400000,
+      ) + 1;
+    return `${days} days`;
+  });
+
+  initials(name: string): string {
+    return name
+      .split(' ')
+      .map((p) => p[0])
+      .join('')
+      .slice(0, 2)
+      .toUpperCase();
+  }
 
   readonly tabs = [
     { path: 'overview', label: 'Overview' },

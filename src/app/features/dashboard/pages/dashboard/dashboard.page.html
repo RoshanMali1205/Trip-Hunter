@@ -1,77 +1,81 @@
 <section class="th-page dashboard">
-  <header class="th-page-header">
+  <header class="dashboard__header">
     <div>
-      <h1>Welcome back, {{ user()?.firstName }}</h1>
-      <p>Here’s what needs your attention across team trips.</p>
+      <h1 class="desktop-only">{{ greeting() }}</h1>
+      <h1 class="mobile-only">Dashboard</h1>
+      <p class="desktop-only">{{ todayLabel }}</p>
+      <p class="mobile-only">{{ mobileDate }}</p>
     </div>
-    <a mat-flat-button color="primary" routerLink="/trips/create">
-      <mat-icon>add</mat-icon>
-      Create trip
-    </a>
+    <div class="dashboard__actions">
+      <a class="icon-btn desktop-only" routerLink="/trips" aria-label="Search trips"><mat-icon>search</mat-icon></a>
+      <a class="icon-btn desktop-only" routerLink="/notifications" aria-label="Notifications"><mat-icon>notifications</mat-icon></a>
+      <a class="avatar" routerLink="/profile" [attr.aria-label]="user()?.firstName">{{ initials() }}</a>
+    </div>
   </header>
 
-  <div class="th-grid th-grid-4 dashboard__stats">
-    <article class="stat">
-      <span>Pending approvals</span>
-      <strong>{{ summary.pendingApprovals }}</strong>
+  <div class="stats-row">
+    <article class="stat-card">
+      <span class="label">Pending approval</span>
+      <strong>{{ summary().pendingApprovals }} trips</strong>
+      <p>Waiting on manager sign-off</p>
     </article>
-    <article class="stat">
-      <span>Open tasks</span>
-      <strong>{{ summary.myTasks.length }}</strong>
-    </article>
-    <article class="stat">
-      <span>You paid</span>
-      <strong>{{ summary.expenseSummary.youPaid | inr }}</strong>
-    </article>
-    <article class="stat">
-      <span>You receive</span>
-      <strong>{{ summary.expenseSummary.youReceive | inr }}</strong>
-    </article>
-  </div>
-
-  <div class="dashboard__layout">
-    <section>
-      <div class="section-head">
-        <h2>Upcoming trips</h2>
-        <a routerLink="/trips">View all</a>
-      </div>
-      <div class="th-grid th-grid-2">
-        @for (trip of summary.upcomingTrips; track trip.id) {
-          <app-trip-card [trip]="trip" />
+    <article class="stat-card">
+      <span class="label">My tasks</span>
+      <strong>{{ summary().myTasks.length }} open</strong>
+      <p>
+        @for (t of summary().myTasks.slice(0, 3); track t.id; let last = $last) {
+          {{ t.title }}@if (!last) { · }
         }
-      </div>
-    </section>
-
-    <aside class="dashboard__side">
-      <div class="th-panel">
-        <h2>My tasks</h2>
-        <ul class="list">
-          @for (task of summary.myTasks; track task.id) {
-            <li>
-              <div>
-                <strong>{{ task.title }}</strong>
-                <span>{{ task.assignedToName }} · Due {{ task.dueDate }}</span>
-              </div>
-              <em>{{ task.status.replaceAll('_', ' ') }}</em>
-            </li>
-          }
-        </ul>
-      </div>
-
-      <div class="th-panel">
-        <h2>Recent activity</h2>
-        <ul class="list list--activity">
-          @for (item of summary.recentActivity; track item.id) {
-            <li>
-              <mat-icon>bolt</mat-icon>
-              <div>
-                <strong>{{ item.message }}</strong>
-                <span>{{ item.createdAt | date: 'mediumDate' }}</span>
-              </div>
-            </li>
-          }
-        </ul>
-      </div>
-    </aside>
+      </p>
+    </article>
+    <article class="stat-card">
+      <span class="label">Expense balance</span>
+      <strong>You receive {{ summary().expenseSummary.youReceive | inr }}</strong>
+      <p>
+        You paid {{ summary().expenseSummary.youPaid | inr }} · your share
+        {{ summary().expenseSummary.yourShare | inr }}
+      </p>
+    </article>
   </div>
+
+  <div class="section-head">
+    <h2>Upcoming trips</h2>
+    <a routerLink="/trips">View all</a>
+  </div>
+
+  <div class="trip-grid">
+    @for (trip of summary().upcomingTrips; track trip.id) {
+      <a class="trip-card" [routerLink]="['/trips', trip.id]">
+        <div class="trip-card__top">
+          <span class="type">{{ trip.tripType.replaceAll('_', ' ') }}</span>
+          <span class="th-status" [class]="'th-status th-status--' + trip.status.toLowerCase()">
+            {{ trip.status | statusLabel }}
+          </span>
+        </div>
+        <h3>{{ trip.title }}</h3>
+        <p>
+          @if (trip.startDate) {
+            {{ trip.startDate | date: 'd MMM' }} → {{ trip.endDate | date: 'd MMM' }}
+          } @else {
+            Dates TBD
+          }
+          · {{ trip.memberCount }} members · {{ shortBudget(trip.estimatedBudget) }} budget
+        </p>
+        <span class="countdown">{{ daysToGo(trip.startDate) }}</span>
+      </a>
+    }
+  </div>
+
+  <div class="section-head">
+    <h2>Recent activity</h2>
+  </div>
+  <ul class="activity">
+    @for (item of summary().recentActivity; track item.id) {
+      <li>
+        <i></i>
+        <span>{{ item.message }}</span>
+        <em>{{ item.createdAt | date: 'shortTime' }}</em>
+      </li>
+    }
+  </ul>
 </section>

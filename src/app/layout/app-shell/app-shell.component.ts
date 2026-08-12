@@ -41,19 +41,19 @@ export class AppShellComponent {
   });
 
   readonly navItems: NavItem[] = [
-    { label: 'Dashboard', path: '/dashboard', icon: 'dashboard' },
-    { label: 'My Trips', path: '/trips', icon: 'flight_takeoff' },
-    { label: 'Calendar', path: '/calendar', icon: 'calendar_month' },
-    { label: 'Tasks', path: '/tasks', icon: 'task_alt' },
-    { label: 'Expenses', path: '/expenses', icon: 'account_balance_wallet' },
+    { label: 'Dashboard', path: '/dashboard', icon: 'home' },
+    { label: 'My Trips', path: '/trips', icon: 'map' },
+    { label: 'Calendar', path: '/calendar', icon: 'calendar_today' },
+    { label: 'Tasks', path: '/tasks', icon: 'check_box' },
+    { label: 'Expenses', path: '/expenses', icon: 'credit_card' },
     { label: 'Notifications', path: '/notifications', icon: 'notifications' },
   ];
 
   readonly mobileNav: NavItem[] = [
     { label: 'Home', path: '/dashboard', icon: 'home' },
-    { label: 'Trips', path: '/trips', icon: 'flight_takeoff' },
-    { label: 'Create', path: '/trips/create', icon: 'add_circle' },
-    { label: 'Tasks', path: '/tasks', icon: 'task_alt' },
+    { label: 'Trips', path: '/trips', icon: 'map' },
+    { label: 'Create', path: '/trips/create', icon: 'add' },
+    { label: 'Tasks', path: '/tasks', icon: 'check_box' },
     { label: 'Profile', path: '/profile', icon: 'person' },
   ];
 

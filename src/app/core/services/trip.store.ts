@@ -16,7 +16,6 @@ import {
   MOCK_AVAILABILITY,
   MOCK_BOOKINGS,
   MOCK_BUDGET,
-  MOCK_DASHBOARD,
   MOCK_DESTINATIONS,
   MOCK_EXPENSES,
   MOCK_ITINERARY,
@@ -25,10 +24,35 @@ import {
   MOCK_TASKS,
   MOCK_TRIPS,
 } from '../data/mock-data';
+import { lsGet, lsSet } from './local-storage.service';
+
+const TRIPS_KEY = 'trips';
+const NOTIF_KEY = 'notifications';
+const TASKS_KEY = 'tasks';
+const SEED_KEY = 'seed-version';
+const SEED_VERSION = 2;
+
+function loadSeeded<T>(key: string, seed: T): T {
+  const version = lsGet<number>(SEED_KEY, 0);
+  if (version < SEED_VERSION) {
+    lsSet(TRIPS_KEY, MOCK_TRIPS);
+    lsSet(NOTIF_KEY, MOCK_NOTIFICATIONS);
+    lsSet(TASKS_KEY, MOCK_TASKS);
+    lsSet(SEED_KEY, SEED_VERSION);
+    if (key === TRIPS_KEY) return MOCK_TRIPS as T;
+    if (key === NOTIF_KEY) return MOCK_NOTIFICATIONS as T;
+    if (key === TASKS_KEY) return MOCK_TASKS as T;
+  }
+  return lsGet(key, seed);
+}
 
 @Injectable({ providedIn: 'root' })
 export class TripStore {
-  private readonly tripsSignal = signal<Trip[]>(MOCK_TRIPS);
+  private readonly tripsSignal = signal<Trip[]>(loadSeeded(TRIPS_KEY, MOCK_TRIPS));
+  private readonly notificationsSignal = signal<AppNotification[]>(
+    loadSeeded(NOTIF_KEY, MOCK_NOTIFICATIONS),
+  );
+  private readonly tasksSignal = signal<TripTask[]>(loadSeeded(TASKS_KEY, MOCK_TASKS));
   private readonly loadingSignal = signal(false);
 
   readonly trips = this.tripsSignal.asReadonly();
@@ -36,6 +60,18 @@ export class TripStore {
   readonly upcomingTrips = computed(() =>
     this.tripsSignal().filter((t) => !['COMPLETED', 'CANCELLED', 'ARCHIVED'].includes(t.status)),
   );
+
+  private persistTrips(): void {
+    lsSet(TRIPS_KEY, this.tripsSignal());
+  }
+
+  private persistNotifications(): void {
+    lsSet(NOTIF_KEY, this.notificationsSignal());
+  }
+
+  private persistTasks(): void {
+    lsSet(TASKS_KEY, this.tasksSignal());
+  }
 
   getById(id: string): Trip | undefined {
     return this.tripsSignal().find((t) => t.id === id);
@@ -60,11 +96,12 @@ export class TripStore {
       maxMembers: partial.maxMembers || 20,
       memberCount: partial.memberCount || 1,
       organizerId: 'user-roshan',
-      organizerName: 'Roshan Mali',
+      organizerName: 'Roshan Deshmukh',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
     this.tripsSignal.update((list) => [trip, ...list]);
+    this.persistTrips();
     return trip;
   }
 
@@ -97,17 +134,49 @@ export class TripStore {
   }
 
   getTasks(tripId?: string): TripTask[] {
-    return tripId ? MOCK_TASKS.filter((t) => t.tripId === tripId) : MOCK_TASKS;
+    const all = this.tasksSignal();
+    return tripId ? all.filter((t) => t.tripId === tripId) : all;
+  }
+
+  updateTaskStatus(taskId: string, status: TripTask['status']): void {
+    this.tasksSignal.update((list) =>
+      list.map((t) => (t.id === taskId ? { ...t, status } : t)),
+    );
+    this.persistTasks();
   }
 
   getNotifications(): AppNotification[] {
-    return MOCK_NOTIFICATIONS;
+    return this.notificationsSignal();
+  }
+
+  markNotificationRead(id: string): void {
+    this.notificationsSignal.update((list) =>
+      list.map((n) => (n.id === id ? { ...n, read: true } : n)),
+    );
+    this.persistNotifications();
+  }
+
+  markAllNotificationsRead(): void {
+    this.notificationsSignal.update((list) => list.map((n) => ({ ...n, read: true })));
+    this.persistNotifications();
   }
 
   getDashboard(): DashboardSummary {
+    const openTasks = this.getTasks().filter((t) => t.status !== 'COMPLETED');
     return {
-      ...MOCK_DASHBOARD,
-      upcomingTrips: this.upcomingTrips().slice(0, 3),
+      upcomingTrips: this.upcomingTrips().slice(0, 4),
+      pendingApprovals: this.tripsSignal().filter((t) => t.approvalStatus === 'PENDING').length,
+      myTasks: openTasks,
+      expenseSummary: {
+        youPaid: 18500,
+        yourShare: 12300,
+        youReceive: 6200,
+      },
+      recentActivity: [
+        { id: 'a1', message: 'Amit updated the hotel booking', createdAt: new Date(Date.now() - 2 * 3600000).toISOString() },
+        { id: 'a2', message: 'Ravi added a ₹2,500 expense', createdAt: new Date(Date.now() - 5 * 3600000).toISOString() },
+        { id: 'a3', message: 'Manager approved the Goa trip', createdAt: new Date(Date.now() - 86400000).toISOString() },
+      ],
     };
   }
 }

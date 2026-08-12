@@ -1,58 +1,226 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { map } from 'rxjs';
 import { MatIconModule } from '@angular/material/icon';
 import { TripStore } from '../../../../core/services/trip.store';
-import { InrCurrencyPipe, StatusLabelPipe } from '../../../../shared/pipes/format.pipe';
+import { InrCurrencyPipe } from '../../../../shared/pipes/format.pipe';
+import { AvailabilityOption, DestinationOption, TripMember } from '../../../../core/models/trip.model';
+
+function tripIdFromParent(route: ActivatedRoute) {
+  return toSignal(route.parent!.paramMap.pipe(map((p) => p.get('tripId') || '')), {
+    initialValue: '',
+  });
+}
+
+function initials(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase() ?? '')
+    .join('');
+}
+
+function formatShortDate(iso: string): string {
+  const d = new Date(iso.includes('T') ? iso : `${iso}T12:00:00`);
+  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+}
+
+function formatDateTime(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+}
+
+function formatTime(hhmm: string): string {
+  const [h, m] = hhmm.split(':').map(Number);
+  const d = new Date();
+  d.setHours(h, m, 0, 0);
+  return d.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true });
+}
+
+function dayPillLabel(date: string, index: number): string {
+  const d = new Date(`${date}T12:00:00`);
+  const weekday = d.toLocaleDateString('en-IN', { weekday: 'short' });
+  return `Day ${index + 1} · ${weekday}`;
+}
+
+function rangeLabel(start: string, end: string): string {
+  const s = new Date(`${start}T12:00:00`);
+  const e = new Date(`${end}T12:00:00`);
+  const sameMonth = s.getMonth() === e.getMonth();
+  const day = (d: Date) => d.getDate();
+  const mon = (d: Date) => d.toLocaleDateString('en-IN', { month: 'short' });
+  return sameMonth
+    ? `${day(s)}–${day(e)} ${mon(s)}`
+    : `${day(s)} ${mon(s)} – ${day(e)} ${mon(e)}`;
+}
+
+type AvailVote = 'available' | 'maybe' | 'not';
 
 @Component({
   selector: 'app-trip-overview',
   standalone: true,
-  imports: [MatIconModule, InrCurrencyPipe, StatusLabelPipe],
+  imports: [MatIconModule, RouterLink, InrCurrencyPipe],
   template: `
     @if (trip(); as t) {
-      <div class="th-grid th-grid-3">
-        <article class="th-panel">
-          <h3>Status</h3>
-          <p>
-            <span class="th-status" [class]="'th-status th-status--' + t.status.toLowerCase()">{{
-              t.status | statusLabel
-            }}</span>
-          </p>
-          <p class="muted">Approval: {{ t.approvalStatus | statusLabel }}</p>
-        </article>
-        <article class="th-panel">
-          <h3>Organizer</h3>
-          <p>{{ t.organizerName }}</p>
-          <p class="muted">{{ t.tripType.replaceAll('_', ' ') }}</p>
-        </article>
-        <article class="th-panel">
-          <h3>Budget</h3>
-          <p>{{ t.estimatedBudget | inr: t.currency }} planned</p>
-          <p class="muted">{{ t.actualBudget | inr: t.currency }} spent</p>
-        </article>
+      <div class="layout">
+        <div class="main">
+          <h2>Trip summary</h2>
+          <div class="stats">
+            <article class="th-panel card">
+              <span class="label">Estimated budget</span>
+              <strong>{{ t.estimatedBudget | inr: t.currency }}</strong>
+            </article>
+            <article class="th-panel card">
+              <span class="label">Actual spend so far</span>
+              <strong>{{ t.actualBudget | inr: t.currency }}</strong>
+            </article>
+            <article class="th-panel card">
+              <span class="label">Approval status</span>
+              <strong class="approve">{{ approvalLabel(t.approvalStatus) }}</strong>
+            </article>
+            <article class="th-panel card">
+              <span class="label">Next activity</span>
+              <strong>{{ nextActivity() }}</strong>
+            </article>
+          </div>
+          <article class="th-panel announce">
+            <span class="label">Announcement</span>
+            <p>Please upload your ID proof by 15 Aug. — Roshan</p>
+          </article>
+        </div>
+        <aside class="side">
+          <article class="th-panel countdown">
+            <span class="label">Countdown</span>
+            <strong>{{ daysUntil() }} days</strong>
+            <p>until departure from {{ t.origin || 'origin' }}</p>
+          </article>
+          <nav class="th-panel links">
+            <span class="label">Quick links</span>
+            <a routerLink="../members">
+              <span><mat-icon>group</mat-icon> Members</span>
+              <mat-icon>chevron_right</mat-icon>
+            </a>
+            <a routerLink="../itinerary">
+              <span><mat-icon>map</mat-icon> Itinerary</span>
+              <mat-icon>chevron_right</mat-icon>
+            </a>
+            <a routerLink="../budget">
+              <span><mat-icon>account_balance_wallet</mat-icon> Budget</span>
+              <mat-icon>chevron_right</mat-icon>
+            </a>
+          </nav>
+        </aside>
       </div>
-      <article class="th-panel desc">
-        <h3>About this trip</h3>
-        <p>{{ t.description || 'No description yet.' }}</p>
-      </article>
     }
   `,
   styles: [
     `
-      h3 {
-        margin: 0 0 0.5rem;
-        font-size: 0.95rem;
+      .layout {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: 1fr;
       }
-      p {
+      @media (min-width: 960px) {
+        .layout {
+          grid-template-columns: minmax(0, 1.6fr) minmax(240px, 0.9fr);
+          align-items: start;
+        }
+      }
+      h2 {
+        margin: 0 0 1rem;
+        font-family: var(--th-font-display);
+        font-size: 1.35rem;
+      }
+      .stats {
+        display: grid;
+        gap: 0.85rem;
+        grid-template-columns: 1fr;
+        margin-bottom: 0.85rem;
+      }
+      @media (min-width: 600px) {
+        .stats {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+      .label {
+        display: block;
+        margin-bottom: 0.45rem;
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--th-primary-light);
+      }
+      .card strong {
+        font-size: 1.2rem;
+        font-weight: 700;
+      }
+      .approve {
+        color: var(--th-success);
+      }
+      .announce {
+        border-top: 3px solid var(--th-primary);
+      }
+      .announce p {
+        margin: 0;
+        color: var(--th-text);
+        line-height: 1.45;
+      }
+      .countdown {
+        text-align: center;
+        padding: 1.75rem 1.25rem;
+        margin-bottom: 0.85rem;
+        background: linear-gradient(
+          160deg,
+          color-mix(in srgb, var(--th-primary) 28%, var(--th-surface)),
+          var(--th-surface)
+        );
+      }
+      .countdown strong {
+        display: block;
+        font-family: var(--th-font-display);
+        font-size: 2.6rem;
+        line-height: 1.1;
         margin: 0.25rem 0;
       }
-      .muted {
+      .countdown p {
+        margin: 0;
         color: var(--th-text-secondary);
       }
-      .desc {
-        margin-top: 1rem;
+      .links {
+        display: grid;
+        gap: 0.35rem;
+      }
+      .links a {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.65rem 0.35rem;
+        border-bottom: 1px solid var(--th-border);
+        color: var(--th-text);
+        text-decoration: none;
+      }
+      .links a:last-of-type {
+        border-bottom: 0;
+      }
+      .links a span {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .links mat-icon {
+        font-size: 1.15rem;
+        width: 1.15rem;
+        height: 1.15rem;
+        color: var(--th-primary-light);
       }
     `,
   ],
@@ -60,11 +228,36 @@ import { InrCurrencyPipe, StatusLabelPipe } from '../../../../shared/pipes/forma
 export class TripOverviewPage {
   private readonly route = inject(ActivatedRoute);
   private readonly store = inject(TripStore);
-  private readonly tripId = toSignal(
-    this.route.parent!.paramMap.pipe(map((p) => p.get('tripId') || '')),
-    { initialValue: '' },
-  );
+  private readonly tripId = tripIdFromParent(this.route);
   readonly trip = computed(() => this.store.getById(this.tripId()));
+
+  readonly daysUntil = computed(() => {
+    const start = this.trip()?.startDate;
+    if (!start) return 0;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const dep = new Date(`${start}T00:00:00`);
+    return Math.max(0, Math.ceil((dep.getTime() - today.getTime()) / 86400000));
+  });
+
+  readonly nextActivity = computed(() => {
+    const days = this.store.getItinerary(this.tripId());
+    const hotel = days.flatMap((d) => d.items).find((i) => i.type === 'HOTEL');
+    if (hotel) {
+      const day = days.find((d) => d.id === hotel.dayId);
+      const datePart = day ? formatShortDate(day.date) : '';
+      return `${hotel.title} · ${datePart}, ${formatTime(hotel.startTime)}`;
+    }
+    const first = days[0]?.items[0];
+    return first ? first.title : 'TBD';
+  });
+
+  approvalLabel(status: string) {
+    return status
+      .replaceAll('_', ' ')
+      .toLowerCase()
+      .replace(/\b\w/g, (c) => c.toUpperCase());
+  }
 }
 
 @Component({
@@ -72,59 +265,181 @@ export class TripOverviewPage {
   standalone: true,
   imports: [MatIconModule],
   template: `
-    <div class="th-panel">
-      <h3>Members</h3>
-      <ul>
-        @for (m of members(); track m.id) {
-          <li>
-            <div class="who">
-              <mat-icon>person</mat-icon>
-              <div>
-                <strong>{{ m.name }}</strong>
-                <span>{{ m.role }}</span>
-              </div>
-            </div>
-            <em
-              class="th-pill"
-              [class.th-pill--solid]="m.inviteStatus === 'ACCEPTED'"
-              [class.th-pill--outline]="m.inviteStatus === 'INVITED' || m.inviteStatus === 'MAYBE'"
-              [class.th-pill--muted]="m.inviteStatus === 'DECLINED'"
-              >{{ m.inviteStatus }}</em
-            >
-          </li>
-        } @empty {
-          <li>No members yet.</li>
-        }
-      </ul>
+    <div class="head">
+      <div>
+        <h2>Members</h2>
+        <p class="meta">
+          {{ stats().accepted }} accepted · {{ stats().invited }} invited ·
+          {{ stats().declined }} declined
+        </p>
+      </div>
+      <button type="button" class="outline-btn">Invite members +</button>
     </div>
+
+    <div class="th-panel table-wrap desktop">
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th>Attendance</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (m of members(); track m.id) {
+            <tr>
+              <td>
+                <div class="who">
+                  <span class="avatar">{{ initials(m.name) }}</span>
+                  <div>
+                    <strong>{{ m.name }}</strong>
+                    <small>{{ m.email }}</small>
+                  </div>
+                </div>
+              </td>
+              <td class="cap">{{ m.role.toLowerCase() }}</td>
+              <td>
+                <em
+                  class="th-pill"
+                  [class.th-pill--solid]="m.inviteStatus === 'ACCEPTED'"
+                  [class.th-pill--outline]="m.inviteStatus === 'INVITED' || m.inviteStatus === 'MAYBE'"
+                  [class.th-pill--muted]="m.inviteStatus === 'DECLINED'"
+                  >{{ statusLabel(m.inviteStatus) }}</em
+                >
+              </td>
+              <td>{{ attendanceLabel(m) }}</td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="4">No members yet.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <ul class="mobile list">
+      @for (m of members(); track m.id) {
+        <li class="th-panel">
+          <div class="who">
+            <span class="avatar">{{ initials(m.name) }}</span>
+            <div>
+              <strong>{{ m.name }}</strong>
+              <small>{{ m.role.toLowerCase() }} · {{ attendanceLabel(m) }}</small>
+            </div>
+          </div>
+          <em
+            class="th-pill"
+            [class.th-pill--solid]="m.inviteStatus === 'ACCEPTED'"
+            [class.th-pill--outline]="m.inviteStatus === 'INVITED' || m.inviteStatus === 'MAYBE'"
+            [class.th-pill--muted]="m.inviteStatus === 'DECLINED'"
+            >{{ statusLabel(m.inviteStatus) }}</em
+          >
+        </li>
+      }
+    </ul>
   `,
   styles: [
     `
-      h3 {
-        margin-top: 0;
-      }
-      ul {
-        list-style: none;
-        margin: 0;
-        padding: 0;
-        display: grid;
-        gap: 0.75rem;
-      }
-      li {
+      .head {
         display: flex;
-        gap: 0.65rem;
-        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.75rem;
         justify-content: space-between;
+        align-items: flex-end;
+        margin-bottom: 1rem;
+      }
+      h2 {
+        margin: 0;
+        font-family: var(--th-font-display);
+      }
+      .meta {
+        margin: 0.25rem 0 0;
+        color: var(--th-text-secondary);
+        font-size: 0.9rem;
+      }
+      .outline-btn {
+        background: transparent;
+        color: var(--th-primary-light);
+        border: 1px solid var(--th-primary);
+        border-radius: 999px;
+        padding: 0.55rem 1rem;
+        font-weight: 650;
+        cursor: pointer;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th {
+        text-align: left;
+        font-size: 0.68rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--th-primary-light);
+        padding: 0.35rem 0.5rem 0.85rem;
+        border-bottom: 1px solid var(--th-border);
+      }
+      td {
+        padding: 0.85rem 0.5rem;
+        border-bottom: 1px solid var(--th-border);
+        vertical-align: middle;
+      }
+      tr:last-child td {
+        border-bottom: 0;
       }
       .who {
         display: flex;
-        gap: 0.65rem;
+        gap: 0.7rem;
         align-items: center;
       }
-      span {
+      .avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        background: color-mix(in srgb, var(--th-primary) 28%, var(--th-surface));
+        color: var(--th-primary-light);
+        font-size: 0.75rem;
+        font-weight: 700;
+        flex-shrink: 0;
+      }
+      strong {
         display: block;
+      }
+      small {
         color: var(--th-text-muted);
-        font-size: 0.82rem;
+        font-size: 0.78rem;
+      }
+      .cap {
+        text-transform: capitalize;
+        color: var(--th-text-secondary);
+      }
+      .list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: none;
+        gap: 0.75rem;
+      }
+      .list li {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.75rem;
+      }
+      .desktop {
+        display: block;
+      }
+      @media (max-width: 759px) {
+        .desktop {
+          display: none;
+        }
+        .list {
+          display: grid;
+        }
       }
     `,
   ],
@@ -132,75 +447,263 @@ export class TripOverviewPage {
 export class TripMembersPage {
   private readonly route = inject(ActivatedRoute);
   private readonly store = inject(TripStore);
-  private readonly tripId = toSignal(
-    this.route.parent!.paramMap.pipe(map((p) => p.get('tripId') || '')),
-    { initialValue: '' },
-  );
+  private readonly tripId = tripIdFromParent(this.route);
   readonly members = computed(() => this.store.getMembers(this.tripId()));
+  readonly stats = computed(() => {
+    const list = this.members();
+    return {
+      accepted: list.filter((m) => m.inviteStatus === 'ACCEPTED').length,
+      invited: list.filter((m) => m.inviteStatus === 'INVITED' || m.inviteStatus === 'MAYBE').length,
+      declined: list.filter((m) => m.inviteStatus === 'DECLINED').length,
+    };
+  });
+  initials = initials;
+  statusLabel(s: string) {
+    return s.charAt(0) + s.slice(1).toLowerCase();
+  }
+  attendanceLabel(m: TripMember) {
+    if (m.attendanceStatus === 'CONFIRMED') return 'Going';
+    if (m.attendanceStatus === 'DECLINED') return 'Not going';
+    return '—';
+  }
 }
 
 @Component({
   selector: 'app-trip-voting',
   standalone: true,
-  imports: [],
+  imports: [MatIconModule, InrCurrencyPipe],
   template: `
-    <div class="th-grid th-grid-2">
-      <section class="th-panel">
-        <h3>Availability poll</h3>
+    <div class="subtabs">
+      <button type="button" [class.active]="tab() === 'availability'" (click)="tab.set('availability')">
+        Availability
+      </button>
+      <button type="button" [class.active]="tab() === 'destination'" (click)="tab.set('destination')">
+        Destination
+      </button>
+    </div>
+
+    @if (tab() === 'availability') {
+      <div class="head">
+        <div>
+          <h2>When should we go?</h2>
+          <p class="meta">Voting closes 14 Aug · 15/15 responded</p>
+        </div>
+        <button type="button" class="outline-btn">+ Add option</button>
+      </div>
+      <div class="options">
         @for (opt of availability(); track opt.id) {
-          <div class="row">
-            <div>
-              <strong>{{ opt.startDate }} → {{ opt.endDate }}</strong>
-              <span>{{ opt.availableCount }}/{{ opt.totalVotes }} available</span>
+          <article class="th-panel opt" [class.leading]="isLeadingAvail(opt)">
+            <div class="opt-top">
+              <strong>{{ rangeLabel(opt.startDate, opt.endDate) }}</strong>
+              @if (isLeadingAvail(opt)) {
+                <em class="th-pill th-pill--solid">Leading</em>
+              }
             </div>
+            <p class="meta">{{ opt.availableCount }}/{{ opt.totalVotes }} available</p>
             <div class="bar">
               <i [style.width.%]="(opt.availableCount / opt.totalVotes) * 100"></i>
             </div>
-          </div>
-        } @empty {
-          <p>No availability options yet.</p>
-        }
-      </section>
-      <section class="th-panel">
-        <h3>Destination votes</h3>
-        @for (d of destinations(); track d.id) {
-          <div class="row">
-            <div>
-              <strong>{{ d.destinationName }}</strong>
-              <span>{{ d.voteCount }} votes · ~₹{{ d.estimatedCost }}/person</span>
+            <div class="chips">
+              <span class="chip-label">Your response</span>
+              <button
+                type="button"
+                class="chip"
+                [class.on]="availVote()[opt.id] === 'available'"
+                (click)="setAvail(opt.id, 'available')"
+              >
+                Available
+              </button>
+              <button
+                type="button"
+                class="chip"
+                [class.on]="availVote()[opt.id] === 'maybe'"
+                (click)="setAvail(opt.id, 'maybe')"
+              >
+                Maybe
+              </button>
+              <button
+                type="button"
+                class="chip"
+                [class.on]="availVote()[opt.id] === 'not'"
+                (click)="setAvail(opt.id, 'not')"
+              >
+                Not available
+              </button>
             </div>
-          </div>
+          </article>
         } @empty {
-          <p>No destination options yet.</p>
+          <div class="th-panel">No availability options yet.</div>
         }
-      </section>
-    </div>
+      </div>
+    } @else {
+      <div class="head">
+        <div>
+          <h2>Where should we go?</h2>
+          <p class="meta">12 of 15 voted · closes 16 Aug</p>
+        </div>
+      </div>
+      <div class="dest-grid">
+        @for (d of destinations(); track d.id) {
+          <article class="th-panel dest" [class.leading]="isLeadingDest(d)">
+            <div class="img-ph" aria-hidden="true"></div>
+            <div class="opt-top">
+              <strong>{{ d.destinationName }}</strong>
+              @if (isLeadingDest(d)) {
+                <em class="th-pill th-pill--solid">Leading</em>
+              }
+            </div>
+            <p class="meta">{{ d.voteCount }} votes · ~{{ d.estimatedCost | inr }}/person</p>
+            <div class="bar">
+              <i [style.width.%]="destPct(d)"></i>
+            </div>
+            <button
+              type="button"
+              class="vote-btn"
+              [class.voted]="destVote() === d.id"
+              (click)="setDest(d.id)"
+            >
+              {{ destVote() === d.id ? '✓ Your vote' : 'Vote' }}
+            </button>
+          </article>
+        } @empty {
+          <div class="th-panel">No destination options yet.</div>
+        }
+      </div>
+    }
   `,
   styles: [
     `
-      h3 {
-        margin-top: 0;
-      }
-      .row {
-        display: grid;
+      .subtabs {
+        display: inline-flex;
         gap: 0.35rem;
-        margin-bottom: 0.9rem;
+        padding: 0.25rem;
+        border-radius: 999px;
+        background: var(--th-surface-muted);
+        margin-bottom: 1rem;
       }
-      span {
-        display: block;
+      .subtabs button {
+        border: 0;
+        background: transparent;
+        color: var(--th-text-secondary);
+        padding: 0.45rem 0.95rem;
+        border-radius: 999px;
+        cursor: pointer;
+        font-weight: 650;
+      }
+      .subtabs button.active {
+        background: var(--th-primary);
+        color: white;
+      }
+      .head {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 0.75rem;
+        align-items: flex-end;
+        margin-bottom: 1rem;
+      }
+      h2 {
+        margin: 0;
+        font-family: var(--th-font-display);
+      }
+      .meta {
+        margin: 0.3rem 0 0;
         color: var(--th-text-muted);
-        font-size: 0.82rem;
+        font-size: 0.85rem;
+      }
+      .outline-btn {
+        background: transparent;
+        color: var(--th-primary-light);
+        border: 1px solid var(--th-primary);
+        border-radius: 999px;
+        padding: 0.5rem 0.95rem;
+        font-weight: 650;
+        cursor: pointer;
+      }
+      .options {
+        display: grid;
+        gap: 0.85rem;
+      }
+      .opt-top {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.5rem;
+        align-items: center;
       }
       .bar {
         height: 8px;
         background: var(--th-surface-muted);
         border-radius: 999px;
         overflow: hidden;
+        margin: 0.65rem 0;
       }
       .bar i {
         display: block;
         height: 100%;
         background: var(--th-primary);
+      }
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+        align-items: center;
+      }
+      .chip-label {
+        width: 100%;
+        font-size: 0.68rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--th-primary-light);
+        font-weight: 700;
+      }
+      .chip {
+        border: 1px solid var(--th-border-strong);
+        background: transparent;
+        color: var(--th-text-secondary);
+        border-radius: 999px;
+        padding: 0.35rem 0.75rem;
+        cursor: pointer;
+        font-size: 0.82rem;
+      }
+      .chip.on {
+        background: var(--th-primary);
+        border-color: var(--th-primary);
+        color: white;
+      }
+      .dest-grid {
+        display: grid;
+        gap: 0.85rem;
+        grid-template-columns: 1fr;
+      }
+      @media (min-width: 700px) {
+        .dest-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+      .img-ph {
+        height: 110px;
+        border-radius: var(--th-radius);
+        border: 1px dashed var(--th-border-strong);
+        background: color-mix(in srgb, var(--th-primary) 10%, var(--th-surface-muted));
+        margin-bottom: 0.75rem;
+      }
+      .vote-btn {
+        width: 100%;
+        margin-top: 0.35rem;
+        border: 1px solid var(--th-primary);
+        background: transparent;
+        color: var(--th-primary-light);
+        border-radius: 999px;
+        padding: 0.55rem;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .vote-btn.voted {
+        background: var(--th-primary);
+        color: white;
+      }
+      .leading {
+        border-color: color-mix(in srgb, var(--th-primary) 55%, var(--th-border));
       }
     `,
   ],
@@ -208,12 +711,58 @@ export class TripMembersPage {
 export class TripVotingPage {
   private readonly route = inject(ActivatedRoute);
   private readonly store = inject(TripStore);
-  private readonly tripId = toSignal(
-    this.route.parent!.paramMap.pipe(map((p) => p.get('tripId') || '')),
-    { initialValue: '' },
-  );
+  private readonly tripId = tripIdFromParent(this.route);
+  readonly tab = signal<'availability' | 'destination'>('availability');
   readonly availability = computed(() => this.store.getAvailability(this.tripId()));
   readonly destinations = computed(() => this.store.getDestinations(this.tripId()));
+  readonly availVote = signal<Record<string, AvailVote>>({});
+  readonly destVote = signal<string | null>(null);
+  rangeLabel = rangeLabel;
+
+  constructor() {
+    effect(() => {
+      const id = this.tripId();
+      if (!id || typeof localStorage === 'undefined') return;
+      try {
+        const a = localStorage.getItem(`th-vote-avail-${id}`);
+        this.availVote.set(a ? JSON.parse(a) : {});
+        this.destVote.set(localStorage.getItem(`th-vote-dest-${id}`));
+      } catch {
+        this.availVote.set({});
+        this.destVote.set(null);
+      }
+    });
+  }
+
+  setAvail(optionId: string, vote: AvailVote) {
+    const next = { ...this.availVote(), [optionId]: vote };
+    this.availVote.set(next);
+    const id = this.tripId();
+    if (id) localStorage.setItem(`th-vote-avail-${id}`, JSON.stringify(next));
+  }
+
+  setDest(destId: string) {
+    this.destVote.set(destId);
+    const id = this.tripId();
+    if (id) localStorage.setItem(`th-vote-dest-${id}`, destId);
+  }
+
+  isLeadingAvail(opt: AvailabilityOption) {
+    const list = this.availability();
+    const max = Math.max(0, ...list.map((o) => o.availableCount));
+    return opt.availableCount === max && max > 0;
+  }
+
+  isLeadingDest(d: DestinationOption) {
+    const list = this.destinations();
+    const max = Math.max(0, ...list.map((o) => o.voteCount));
+    return d.voteCount === max && max > 0;
+  }
+
+  destPct(d: DestinationOption) {
+    const total = this.destinations().reduce((s, x) => s + x.voteCount, 0) || 1;
+    return Math.round((d.voteCount / total) * 100);
+  }
 }
 
 @Component({
@@ -221,75 +770,99 @@ export class TripVotingPage {
   standalone: true,
   imports: [MatIconModule],
   template: `
-    @for (day of days(); track day.id) {
-      <section class="th-panel day">
-        <h3>{{ day.title }}</h3>
-        <p class="muted">{{ day.notes }}</p>
-        <ol>
-          @for (item of day.items; track item.id) {
-            <li>
-              <time>{{ item.startTime }}</time>
-              <div>
-                <em class="th-pill th-pill--outline">{{ item.type }}</em>
-                <strong>{{ item.title }}</strong>
-                <span>{{ item.locationName }}</span>
-              </div>
-            </li>
-          }
-        </ol>
-      </section>
-    } @empty {
+    <h2>Itinerary</h2>
+    <div class="pills">
+      @for (day of days(); track day.id; let i = $index) {
+        <button type="button" class="pill" [class.on]="selected() === day.id" (click)="selected.set(day.id)">
+          {{ dayPill(day.date, i) }}
+        </button>
+      }
+    </div>
+    @if (activeDay(); as day) {
+      <ol class="timeline">
+        @for (item of day.items; track item.id; let i = $index) {
+          <li>
+            <time>{{ formatTime(item.startTime) }}</time>
+            <article class="th-panel item">
+              <em class="th-pill" [class.th-pill--solid]="i % 2 === 0" [class.th-pill--outline]="i % 2 === 1">{{
+                item.type
+              }}</em>
+              <strong>{{ item.title }}</strong>
+              <span>{{ item.locationName }}</span>
+            </article>
+          </li>
+        }
+      </ol>
+    } @else {
       <div class="th-panel">Itinerary not created yet.</div>
     }
   `,
   styles: [
     `
-      .day {
+      h2 {
+        margin: 0 0 1rem;
+        font-family: var(--th-font-display);
+      }
+      .pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
         margin-bottom: 1rem;
       }
-      h3 {
-        margin: 0 0 0.25rem;
-      }
-      .muted {
+      .pill {
+        border: 1px solid var(--th-border-strong);
+        background: transparent;
         color: var(--th-text-secondary);
-        margin-top: 0;
+        border-radius: 999px;
+        padding: 0.4rem 0.85rem;
+        cursor: pointer;
+        font-weight: 650;
+        font-size: 0.85rem;
       }
-      ol {
+      .pill.on {
+        background: var(--th-primary);
+        border-color: var(--th-primary);
+        color: white;
+      }
+      .timeline {
         list-style: none;
-        margin: 1rem 0 0;
+        margin: 0;
         padding: 0;
         display: grid;
-        gap: 0.75rem;
+        gap: 0.85rem;
       }
       li {
         display: grid;
-        grid-template-columns: 64px 1fr;
+        grid-template-columns: 88px minmax(0, 1fr);
         gap: 0.75rem;
-        padding-left: 0.75rem;
-        border-left: 2px solid var(--th-primary);
       }
       time {
         font-weight: 700;
         color: var(--th-primary-light);
+        padding-top: 1.1rem;
+        font-size: 0.88rem;
       }
-      li > div {
-        display: flex;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 0.5rem;
+      .item {
+        display: grid;
+        gap: 0.35rem;
       }
-      .th-pill--outline {
+      .item .th-pill {
+        width: fit-content;
         text-transform: uppercase;
         font-size: 0.65rem;
-        letter-spacing: 0.04em;
+        letter-spacing: 0.05em;
       }
-      strong {
-        width: 100%;
-      }
-      span {
-        display: block;
+      .item span {
         color: var(--th-text-muted);
-        font-size: 0.82rem;
+        font-size: 0.85rem;
+      }
+      @media (max-width: 520px) {
+        li {
+          grid-template-columns: 1fr;
+        }
+        time {
+          padding-top: 0;
+        }
       }
     `,
   ],
@@ -297,11 +870,17 @@ export class TripVotingPage {
 export class TripItineraryPage {
   private readonly route = inject(ActivatedRoute);
   private readonly store = inject(TripStore);
-  private readonly tripId = toSignal(
-    this.route.parent!.paramMap.pipe(map((p) => p.get('tripId') || '')),
-    { initialValue: '' },
-  );
+  private readonly tripId = tripIdFromParent(this.route);
   readonly days = computed(() => this.store.getItinerary(this.tripId()));
+  readonly selected = signal('');
+  readonly activeDay = computed(() => {
+    const list = this.days();
+    if (!list.length) return undefined;
+    const id = this.selected() || list[0].id;
+    return list.find((d) => d.id === id) ?? list[0];
+  });
+  dayPill = dayPillLabel;
+  formatTime = formatTime;
 }
 
 @Component({
@@ -309,17 +888,25 @@ export class TripItineraryPage {
   standalone: true,
   imports: [InrCurrencyPipe],
   template: `
-    <div class="th-grid th-grid-2">
+    <div class="head">
+      <h2>Bookings</h2>
+      <button type="button" class="outline-btn">Add booking +</button>
+    </div>
+    <div class="grid">
       @for (b of bookings(); track b.id) {
-        <article class="th-panel">
+        <article class="th-panel card">
+          @if (b.bookingType === 'HOTEL') {
+            <div class="img-ph" aria-hidden="true"></div>
+          }
           <div class="top">
             <em class="th-pill th-pill--outline">{{ b.bookingType }}</em>
             <strong>{{ b.amount | inr: b.currency }}</strong>
           </div>
           <h3>{{ b.provider }}</h3>
           <p>Booking #: {{ b.bookingReference }}</p>
-          <p>{{ b.startDatetime }} → {{ b.endDatetime }}</p>
-          <p class="muted">{{ b.status }}</p>
+          <p class="status">{{ b.status }}</p>
+          <p class="when">{{ formatWhen(b.startDatetime) }}</p>
+          <a href="#" class="view" (click)="$event.preventDefault()">View booking →</a>
         </article>
       } @empty {
         <div class="th-panel">No bookings yet.</div>
@@ -328,23 +915,72 @@ export class TripItineraryPage {
   `,
   styles: [
     `
+      .head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+      }
+      h2 {
+        margin: 0;
+        font-family: var(--th-font-display);
+      }
+      .outline-btn {
+        background: transparent;
+        color: var(--th-primary-light);
+        border: 1px solid var(--th-primary);
+        border-radius: 999px;
+        padding: 0.5rem 0.95rem;
+        font-weight: 650;
+        cursor: pointer;
+      }
+      .grid {
+        display: grid;
+        gap: 0.85rem;
+        grid-template-columns: 1fr;
+      }
+      @media (min-width: 700px) {
+        .grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+      .img-ph {
+        height: 100px;
+        border: 1px dashed var(--th-border-strong);
+        border-radius: var(--th-radius);
+        margin-bottom: 0.75rem;
+        background: color-mix(in srgb, var(--th-primary) 8%, var(--th-surface-muted));
+      }
       .top {
         display: flex;
-        align-items: center;
         justify-content: space-between;
-        margin-bottom: 0.35rem;
+        align-items: center;
+        gap: 0.5rem;
       }
       .th-pill--outline {
         text-transform: uppercase;
-        font-size: 0.68rem;
-        letter-spacing: 0.04em;
+        font-size: 0.65rem;
+        letter-spacing: 0.05em;
       }
       h3 {
-        margin: 0.15rem 0 0.35rem;
+        margin: 0.45rem 0 0.25rem;
       }
-      .muted {
-        color: var(--th-text-muted);
-        font-size: 0.85rem;
+      p {
+        margin: 0.2rem 0;
+        color: var(--th-text-secondary);
+        font-size: 0.88rem;
+      }
+      .status {
+        text-transform: capitalize;
+        color: var(--th-success);
+      }
+      .view {
+        display: inline-block;
+        margin-top: 0.65rem;
+        color: var(--th-primary-light);
+        text-decoration: none;
+        font-weight: 650;
       }
     `,
   ],
@@ -352,11 +988,9 @@ export class TripItineraryPage {
 export class TripBookingsPage {
   private readonly route = inject(ActivatedRoute);
   private readonly store = inject(TripStore);
-  private readonly tripId = toSignal(
-    this.route.parent!.paramMap.pipe(map((p) => p.get('tripId') || '')),
-    { initialValue: '' },
-  );
+  private readonly tripId = tripIdFromParent(this.route);
   readonly bookings = computed(() => this.store.getBookings(this.tripId()));
+  formatWhen = formatDateTime;
 }
 
 @Component({
@@ -364,13 +998,40 @@ export class TripBookingsPage {
   standalone: true,
   imports: [InrCurrencyPipe],
   template: `
-    <div class="th-grid th-grid-2">
+    @if (trip(); as t) {
+      <div class="top-grid">
+        <article class="th-panel total">
+          <span class="label">Total budget</span>
+          <strong>{{ t.estimatedBudget | inr: t.currency }}</strong>
+          <div class="row">
+            <span>Planned</span>
+            <em
+              class="th-pill"
+              [class.th-pill--solid]="variance() >= 0"
+              [class.th-pill--muted]="variance() < 0"
+              >{{ variance() >= 0 ? 'Under' : 'Over' }}</em
+            >
+          </div>
+        </article>
+        <article class="th-panel">
+          <span class="label">Utilization</span>
+          <strong>{{ utilization() }}%</strong>
+        </article>
+        <article class="th-panel">
+          <span class="label">Remaining</span>
+          <strong>{{ remaining() | inr: t.currency }}</strong>
+        </article>
+      </div>
+    }
+    <div class="cats">
       @for (b of budget(); track b.id) {
         <article class="th-panel">
-          <h3>{{ b.category }}</h3>
-          <p>{{ b.actualAmount | inr: b.currency }} / {{ b.plannedAmount | inr: b.currency }}</p>
+          <div class="row">
+            <h3>{{ b.category }}</h3>
+            <span>{{ b.actualAmount | inr: b.currency }} / {{ b.plannedAmount | inr: b.currency }}</span>
+          </div>
           <div class="bar">
-            <i [style.width.%]="Math.min(100, (b.actualAmount / b.plannedAmount) * 100)"></i>
+            <i [style.width.%]="pct(b.actualAmount, b.plannedAmount)"></i>
           </div>
         </article>
       } @empty {
@@ -380,33 +1041,80 @@ export class TripBookingsPage {
   `,
   styles: [
     `
+      .top-grid {
+        display: grid;
+        gap: 0.85rem;
+        grid-template-columns: 1fr;
+        margin-bottom: 0.85rem;
+      }
+      @media (min-width: 800px) {
+        .top-grid {
+          grid-template-columns: 1.4fr 1fr 1fr;
+        }
+      }
+      .label {
+        display: block;
+        margin-bottom: 0.4rem;
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--th-primary-light);
+      }
+      .total strong,
+      .top-grid strong {
+        font-size: 1.45rem;
+        font-family: var(--th-font-display);
+      }
+      .row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 0.55rem;
+      }
+      .cats {
+        display: grid;
+        gap: 0.85rem;
+      }
       h3 {
-        margin-top: 0;
+        margin: 0;
       }
       .bar {
         height: 8px;
         background: var(--th-surface-muted);
         border-radius: 999px;
         overflow: hidden;
-        margin-top: 0.5rem;
+        margin-top: 0.65rem;
       }
       .bar i {
         display: block;
         height: 100%;
-        background: var(--th-accent);
+        background: var(--th-primary);
       }
     `,
   ],
 })
 export class TripBudgetPage {
-  readonly Math = Math;
   private readonly route = inject(ActivatedRoute);
   private readonly store = inject(TripStore);
-  private readonly tripId = toSignal(
-    this.route.parent!.paramMap.pipe(map((p) => p.get('tripId') || '')),
-    { initialValue: '' },
-  );
+  private readonly tripId = tripIdFromParent(this.route);
+  readonly trip = computed(() => this.store.getById(this.tripId()));
   readonly budget = computed(() => this.store.getBudget(this.tripId()));
+  readonly utilization = computed(() => {
+    const t = this.trip();
+    if (!t?.estimatedBudget) return 0;
+    return Math.round((t.actualBudget / t.estimatedBudget) * 100);
+  });
+  readonly remaining = computed(() => {
+    const t = this.trip();
+    return t ? t.estimatedBudget - t.actualBudget : 0;
+  });
+  readonly variance = computed(() => this.remaining());
+  pct(actual: number, planned: number) {
+    if (!planned) return 0;
+    return Math.min(100, Math.round((actual / planned) * 100));
+  }
 }
 
 @Component({
@@ -414,8 +1122,8 @@ export class TripBudgetPage {
   standalone: true,
   imports: [InrCurrencyPipe],
   template: `
+    <h2>Expenses</h2>
     <div class="th-panel">
-      <h3>Expenses</h3>
       <ul>
         @for (e of expenses(); track e.id) {
           <li>
@@ -430,9 +1138,23 @@ export class TripBudgetPage {
         }
       </ul>
     </div>
+    @if (settlements().length) {
+      <h3 class="settle-title">Settlements</h3>
+      <div class="settle-grid">
+        @for (s of settlements(); track s) {
+          <article class="th-panel settle">
+            <p>{{ s }}</p>
+          </article>
+        }
+      </div>
+    }
   `,
   styles: [
     `
+      h2 {
+        margin: 0 0 1rem;
+        font-family: var(--th-font-display);
+      }
       ul {
         list-style: none;
         margin: 0;
@@ -454,25 +1176,40 @@ export class TripBudgetPage {
         font-style: normal;
         font-weight: 700;
       }
+      .settle-title {
+        margin: 1.25rem 0 0.75rem;
+        font-size: 1rem;
+      }
+      .settle-grid {
+        display: grid;
+        gap: 0.75rem;
+      }
+      .settle p {
+        margin: 0;
+        color: var(--th-text);
+      }
+      .settle {
+        border-left: 3px solid var(--th-primary);
+      }
     `,
   ],
 })
 export class TripExpensesPage {
   private readonly route = inject(ActivatedRoute);
   private readonly store = inject(TripStore);
-  private readonly tripId = toSignal(
-    this.route.parent!.paramMap.pipe(map((p) => p.get('tripId') || '')),
-    { initialValue: '' },
-  );
+  private readonly tripId = tripIdFromParent(this.route);
   readonly expenses = computed(() => this.store.getExpenses(this.tripId()));
+  readonly settlements = computed(() =>
+    this.expenses().length ? ['Rahul owes Roshan ₹2,450'] : [],
+  );
 }
 
 @Component({
   selector: 'app-trip-tasks',
   standalone: true,
   template: `
+    <h2>Tasks</h2>
     <div class="th-panel">
-      <h3>Tasks</h3>
       <ul>
         @for (t of tasks(); track t.id) {
           <li>
@@ -496,6 +1233,10 @@ export class TripExpensesPage {
   `,
   styles: [
     `
+      h2 {
+        margin: 0 0 1rem;
+        font-family: var(--th-font-display);
+      }
       ul {
         list-style: none;
         margin: 0;
@@ -524,42 +1265,146 @@ export class TripExpensesPage {
 export class TripTasksTabPage {
   private readonly route = inject(ActivatedRoute);
   private readonly store = inject(TripStore);
-  private readonly tripId = toSignal(
-    this.route.parent!.paramMap.pipe(map((p) => p.get('tripId') || '')),
-    { initialValue: '' },
-  );
+  private readonly tripId = tripIdFromParent(this.route);
   readonly tasks = computed(() => this.store.getTasks(this.tripId()));
 }
 
 @Component({
   selector: 'app-trip-documents',
   standalone: true,
+  imports: [MatIconModule],
   template: `
+    <h2>Documents</h2>
     <div class="th-panel">
-      <h3>Documents</h3>
-      <p>Hotel confirmations, tickets, invoices, and ID proofs will appear here.</p>
+      <p class="lead">Hotel confirmations, tickets, invoices, and ID proofs.</p>
       <ul>
-        <li>Taj Resort booking PDF</li>
-        <li>Neeta Travels bus tickets</li>
+        @for (doc of docs; track doc) {
+          <li>
+            <span class="icon"><mat-icon>description</mat-icon></span>
+            <div>
+              <strong>{{ doc }}</strong>
+              <small>PDF · uploaded recently</small>
+            </div>
+            <em class="th-pill th-pill--outline">View</em>
+          </li>
+        }
       </ul>
     </div>
   `,
+  styles: [
+    `
+      h2 {
+        margin: 0 0 1rem;
+        font-family: var(--th-font-display);
+      }
+      .lead {
+        margin: 0 0 1rem;
+        color: var(--th-text-secondary);
+      }
+      ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: 0.75rem;
+      }
+      li {
+        display: flex;
+        gap: 0.75rem;
+        align-items: center;
+        padding: 0.65rem 0;
+        border-bottom: 1px solid var(--th-border);
+      }
+      li:last-child {
+        border-bottom: 0;
+      }
+      .icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: grid;
+        place-items: center;
+        background: color-mix(in srgb, var(--th-primary) 18%, var(--th-surface));
+        color: var(--th-primary-light);
+      }
+      strong {
+        display: block;
+      }
+      small {
+        color: var(--th-text-muted);
+      }
+      em {
+        margin-left: auto;
+        font-style: normal;
+      }
+    `,
+  ],
 })
-export class TripDocumentsPage {}
+export class TripDocumentsPage {
+  readonly docs = ['Taj Resort booking PDF', 'Neeta Travels bus tickets', 'ID proof checklist'];
+}
 
 @Component({
   selector: 'app-trip-activity',
   standalone: true,
+  imports: [MatIconModule],
   template: `
+    <h2>Activity</h2>
     <div class="th-panel">
-      <h3>Activity</h3>
       <ul>
-        <li>Roshan created the trip</li>
-        <li>Manager approved Goa Trip 2026</li>
-        <li>Rahul uploaded hotel booking</li>
-        <li>Mayuri added an expense</li>
+        @for (a of activity; track a) {
+          <li>
+            <span class="dot"></span>
+            <div>
+              <strong>{{ a }}</strong>
+              <small>Recently</small>
+            </div>
+          </li>
+        }
       </ul>
     </div>
   `,
+  styles: [
+    `
+      h2 {
+        margin: 0 0 1rem;
+        font-family: var(--th-font-display);
+      }
+      ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: 0.85rem;
+      }
+      li {
+        display: flex;
+        gap: 0.75rem;
+        align-items: flex-start;
+      }
+      .dot {
+        width: 10px;
+        height: 10px;
+        margin-top: 0.4rem;
+        border-radius: 50%;
+        background: var(--th-primary);
+        box-shadow: 0 0 0 4px color-mix(in srgb, var(--th-primary) 22%, transparent);
+        flex-shrink: 0;
+      }
+      strong {
+        display: block;
+      }
+      small {
+        color: var(--th-text-muted);
+      }
+    `,
+  ],
 })
-export class TripActivityPage {}
+export class TripActivityPage {
+  readonly activity = [
+    'Roshan created the trip',
+    'Manager approved Goa Trip 2026',
+    'Rahul uploaded hotel booking',
+    'Mayuri added an expense',
+  ];
+}
