@@ -75,9 +75,11 @@ supabase db push
 # or apply files in supabase/migrations/ in order
 ```
 
-## Netlify
+## Netlify (free — no always-on Node server)
 
 Build installs and compiles `server/`, then esbuild bundles `netlify/functions/api.ts`. Configure the same Supabase secrets in the Netlify UI (never commit them).
+
+This is how production “keeps the server running” without renting a VM: each `/api` request wakes a Function. See [free-live-hosting.md](./free-live-hosting.md).
 
 ## Near-term follow-ups
 

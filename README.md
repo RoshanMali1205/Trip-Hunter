@@ -63,15 +63,22 @@ trip-hunter/
 
 The linked Claude artifact requires sign-in, so the first UI pass follows the LLD (clean travel dashboard, Material + custom SCSS). Share exported screens/Figma and we can align pixel-perfect.
 
-## Deploy
+## Deploy live for free (team URL)
 
-Configured for Netlify:
+You do **not** need a paid Node host. Netlify serves Angular **and** runs the Express API as **serverless Functions** (only when `/api` is called). Supabase free tier holds Auth + Postgres.
 
-- Build: `npm run build`
-- Publish: `dist/trip-hunter/browser`
-- API: `/api/*` → `/.netlify/functions/api`
+```text
+Netlify free  →  Angular SPA + /api (Express via Functions)
+Supabase free →  Auth + database
+```
 
-Connect the GitHub repo [RoshanMali1205/Trip-Hunter](https://github.com/RoshanMali1205/Trip-Hunter) to Netlify for CI/CD.
+Step-by-step: [docs/api/free-live-hosting.md](docs/api/free-live-hosting.md).
+
+**Short path**
+
+1. Connect [RoshanMali1205/Trip-Hunter](https://github.com/RoshanMali1205/Trip-Hunter) to [Netlify](https://app.netlify.com) (import from GitHub).
+2. Deploy — teammates open `https://….netlify.app` (UI works with local mocks immediately).
+3. Optional shared DB: create free Supabase project, apply `supabase/migrations/`, add `SUPABASE_*` env vars in Netlify, redeploy.
 
 ## License
 
