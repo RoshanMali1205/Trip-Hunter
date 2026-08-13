@@ -26,6 +26,7 @@ export interface DestinationOption {
   id: string;
   tripId: string;
   destinationName: string;
+  city: string;
   country: string;
   description: string;
   estimatedCost: number;
@@ -38,40 +39,85 @@ export interface MyVotes {
   destinationId: string | null;
 }
 
+export interface CreateDestinationInput {
+  tripId: string;
+  destinationName: string;
+  city: string;
+  country: string;
+  description: string;
+  estimatedCostCents: number;
+  imageUrl: string | null;
+}
+
+export interface CreateAvailabilityOptionInput {
+  tripId: string;
+  startDate: string;
+  endDate: string;
+  label?: string | null;
+  createdBy: string | null;
+}
+
 interface AvailabilityRow {
   start_date: string;
   end_date: string;
   status: DbAvailStatus;
 }
 
+interface AvailabilityOptionRow {
+  start_date: string;
+  end_date: string;
+}
+
 interface DestinationRow {
   id: string;
   trip_id: string;
   name: string;
+  city: string | null;
+  region: string | null;
   country: string | null;
   description: string | null;
   estimated_cost_cents: number | null;
   currency: string;
+  image_url: string | null;
   metadata: Record<string, unknown> | null;
 }
 
-function aggregateAvailability(tripId: string, rows: AvailabilityRow[]): AvailabilityOption[] {
+function emptyAvailabilityOption(
+  tripId: string,
+  startDate: string,
+  endDate: string,
+): AvailabilityOption {
+  return {
+    id: `${startDate}_${endDate}`,
+    tripId,
+    startDate,
+    endDate,
+    availableCount: 0,
+    maybeCount: 0,
+    notAvailableCount: 0,
+    totalVotes: 0,
+  };
+}
+
+function aggregateAvailability(
+  tripId: string,
+  voteRows: AvailabilityRow[],
+  optionRows: AvailabilityOptionRow[],
+): AvailabilityOption[] {
   const byRange = new Map<string, AvailabilityOption>();
 
-  for (const row of rows) {
+  for (const row of optionRows) {
+    const key = `${row.start_date}_${row.end_date}`;
+    if (!byRange.has(key)) {
+      byRange.set(key, emptyAvailabilityOption(tripId, row.start_date, row.end_date));
+    }
+  }
+
+  for (const row of voteRows) {
     const key = `${row.start_date}_${row.end_date}`;
     let option = byRange.get(key);
     if (!option) {
-      option = {
-        id: key,
-        tripId,
-        startDate: row.start_date,
-        endDate: row.end_date,
-        availableCount: 0,
-        maybeCount: 0,
-        notAvailableCount: 0,
-        totalVotes: 0,
-      };
+      option = emptyAvailabilityOption(tripId, row.start_date, row.end_date);
       byRange.set(key, option);
     }
     if (row.status === 'available') option.availableCount += 1;
@@ -80,21 +126,27 @@ function aggregateAvailability(tripId: string, rows: AvailabilityRow[]): Availab
     option.totalVotes += 1;
   }
 
-  return [...byRange.values()];
+  return [...byRange.values()].sort((a, b) => a.startDate.localeCompare(b.startDate));
 }
 
 function mapDestination(row: DestinationRow, voteCount: number): DestinationOption {
+  const metaImage =
+    typeof row.metadata?.['imageUrl'] === 'string' ? (row.metadata['imageUrl'] as string) : undefined;
   return {
     id: row.id,
     tripId: row.trip_id,
     destinationName: row.name,
+    city: row.city || row.region || '',
     country: row.country ?? '',
     description: row.description ?? '',
     estimatedCost: (row.estimated_cost_cents ?? 0) / 100,
     voteCount,
-    imageUrl: typeof row.metadata?.['imageUrl'] === 'string' ? (row.metadata['imageUrl'] as string) : undefined,
+    imageUrl: row.image_url || metaImage || undefined,
   };
 }
+
+const DESTINATION_SELECT =
+  'id, trip_id, name, city, region, country, description, estimated_cost_cents, currency, image_url, metadata';
 
 export class PlanningRepository {
   async findAvailabilityByTrip(tripId: string): Promise<AvailabilityOption[]> {
@@ -102,16 +154,44 @@ export class PlanningRepository {
       return [];
     }
 
-    const { data, error } = await getSupabaseAdmin()
-      .from('availability')
-      .select('start_date, end_date, status')
-      .eq('trip_id', tripId);
+    const db = getSupabaseAdmin();
+    const [{ data: votes, error: voteError }, { data: options, error: optError }] = await Promise.all([
+      db.from('availability').select('start_date, end_date, status').eq('trip_id', tripId),
+      db.from('availability_options').select('start_date, end_date').eq('trip_id', tripId),
+    ]);
+
+    if (voteError) throw new AppError(502, 'DB_ERROR', voteError.message);
+    // Table may not exist until migration 011 is applied — fall back to vote-only.
+    const optionRows = optError ? [] : ((options ?? []) as AvailabilityOptionRow[]);
+
+    return aggregateAvailability(tripId, (votes ?? []) as AvailabilityRow[], optionRows);
+  }
+
+  async createAvailabilityOption(input: CreateAvailabilityOptionInput): Promise<AvailabilityOption> {
+    if (assertDbOrMock('availability') === 'memory') {
+      throw new AppError(503, 'SUPABASE_NOT_CONFIGURED', 'Supabase is required to add availability options');
+    }
+
+    const { error } = await getSupabaseAdmin()
+      .from('availability_options')
+      .upsert(
+        {
+          trip_id: input.tripId,
+          start_date: input.startDate,
+          end_date: input.endDate,
+          label: input.label ?? null,
+          created_by: input.createdBy,
+        },
+        { onConflict: 'trip_id,start_date,end_date' },
+      );
 
     if (error) {
       throw new AppError(502, 'DB_ERROR', error.message);
     }
 
-    return aggregateAvailability(tripId, (data ?? []) as AvailabilityRow[]);
+    const all = await this.findAvailabilityByTrip(input.tripId);
+    const created = all.find((o) => o.startDate === input.startDate && o.endDate === input.endDate);
+    return created ?? emptyAvailabilityOption(input.tripId, input.startDate, input.endDate);
   }
 
   async findDestinationsByTrip(tripId: string): Promise<DestinationOption[]> {
@@ -121,13 +201,30 @@ export class PlanningRepository {
 
     const db = getSupabaseAdmin();
 
-    const [{ data: destinations, error: destError }, { data: votes, error: voteError }] = await Promise.all([
-      db
+    let destinations: DestinationRow[] | null = null;
+    let destError: { message: string } | null = null;
+
+    const primary = await db.from('destinations').select(DESTINATION_SELECT).eq('trip_id', tripId);
+    if (primary.error) {
+      // Pre-migration 011: columns image_url / city may be missing.
+      const legacy = await db
         .from('destinations')
-        .select('id, trip_id, name, country, description, estimated_cost_cents, currency, metadata')
-        .eq('trip_id', tripId),
-      db.from('destination_votes').select('destination_id').eq('trip_id', tripId),
-    ]);
+        .select('id, trip_id, name, region, country, description, estimated_cost_cents, currency, metadata')
+        .eq('trip_id', tripId);
+      destError = legacy.error;
+      destinations = ((legacy.data ?? []) as Omit<DestinationRow, 'city' | 'image_url'>[]).map((row) => ({
+        ...row,
+        city: row.region,
+        image_url: null,
+      }));
+    } else {
+      destinations = (primary.data ?? []) as DestinationRow[];
+    }
+
+    const { data: votes, error: voteError } = await db
+      .from('destination_votes')
+      .select('destination_id')
+      .eq('trip_id', tripId);
 
     if (destError) throw new AppError(502, 'DB_ERROR', destError.message);
     if (voteError) throw new AppError(502, 'DB_ERROR', voteError.message);
@@ -137,9 +234,61 @@ export class PlanningRepository {
       counts.set(v.destination_id, (counts.get(v.destination_id) ?? 0) + 1);
     }
 
-    return ((destinations ?? []) as DestinationRow[])
+    return (destinations ?? [])
       .map((row) => mapDestination(row, counts.get(row.id) ?? 0))
       .sort((a, b) => b.voteCount - a.voteCount);
+  }
+
+  async createDestination(input: CreateDestinationInput): Promise<DestinationOption> {
+    if (assertDbOrMock('destinations') === 'memory') {
+      throw new AppError(503, 'SUPABASE_NOT_CONFIGURED', 'Supabase is required to add destinations');
+    }
+
+    const metadata = input.imageUrl ? { imageUrl: input.imageUrl } : {};
+    const baseRow = {
+      trip_id: input.tripId,
+      name: input.destinationName,
+      region: input.city || null,
+      country: input.country || null,
+      description: input.description || null,
+      estimated_cost_cents: input.estimatedCostCents,
+      currency: 'INR',
+      metadata,
+    };
+
+    let data: DestinationRow | null = null;
+    let error: { message: string } | null = null;
+
+    const withNewCols = await getSupabaseAdmin()
+      .from('destinations')
+      .insert({
+        ...baseRow,
+        city: input.city || null,
+        image_url: input.imageUrl,
+      })
+      .select(DESTINATION_SELECT)
+      .single();
+
+    if (withNewCols.error) {
+      const legacy = await getSupabaseAdmin()
+        .from('destinations')
+        .insert(baseRow)
+        .select('id, trip_id, name, region, country, description, estimated_cost_cents, currency, metadata')
+        .single();
+      error = legacy.error;
+      if (legacy.data) {
+        const row = legacy.data as Omit<DestinationRow, 'city' | 'image_url'>;
+        data = { ...row, city: row.region, image_url: input.imageUrl };
+      }
+    } else {
+      data = withNewCols.data as DestinationRow;
+    }
+
+    if (error || !data) {
+      throw new AppError(502, 'DB_ERROR', error?.message ?? 'Failed to create destination');
+    }
+
+    return mapDestination(data, 0);
   }
 
   async findMyVotes(tripId: string, userId: string): Promise<MyVotes> {

@@ -78,6 +78,7 @@ export interface DestinationOption {
   id: string;
   tripId: string;
   destinationName: string;
+  city: string;
   country: string;
   description: string;
   estimatedCost: number;

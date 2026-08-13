@@ -11,6 +11,7 @@ import { AvailabilityOption, DestinationOption, TripMember } from '../../../../c
 import { ApiItineraryItem, CreateBookingType, ExpenseCategory } from '../../../../core/services/trip-api.service';
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
 import { bookingImageUrl } from '../../../../core/constants/booking-images';
+import { destinationImageUrl } from '../../../../core/constants/destination-images';
 
 function tripIdFromParent(route: ActivatedRoute) {
   return toSignal(route.parent!.paramMap.pipe(map((p) => p.get('tripId') || '')), {
@@ -609,7 +610,7 @@ export class TripMembersPage {
 @Component({
   selector: 'app-trip-voting',
   standalone: true,
-  imports: [MatIconModule, InrCurrencyPipe],
+  imports: [MatIconModule, InrCurrencyPipe, FormsModule, ButtonComponent],
   template: `
     <div class="subtabs">
       <button type="button" [class.active]="tab() === 'availability'" (click)="tab.set('availability')">
@@ -624,9 +625,30 @@ export class TripMembersPage {
       <div class="head">
         <div>
           <h2>When should we go?</h2>
-          <p class="meta">Voting closes 14 Aug · 15/15 responded</p>
+          <p class="meta">Add date ranges, then vote Available / Maybe / Not</p>
         </div>
+        <app-button variant="secondary" (click)="showAvailForm.set(!showAvailForm())">
+          Add dates +
+        </app-button>
       </div>
+
+      @if (showAvailForm()) {
+        <form class="th-panel add-form" (ngSubmit)="submitAvail()">
+          <label>
+            Starts
+            <input type="date" required [(ngModel)]="availStart" name="availStart" />
+          </label>
+          <label>
+            Ends
+            <input type="date" required [(ngModel)]="availEnd" name="availEnd" />
+          </label>
+          <app-button type="submit" [loading]="addingAvail()">Add range</app-button>
+          @if (availError()) {
+            <p class="add-error">{{ availError() }}</p>
+          }
+        </form>
+      }
+
       <div class="options">
         @for (opt of availability(); track opt.id) {
           <article class="th-panel opt" [class.leading]="isLeadingAvail(opt)">
@@ -636,9 +658,14 @@ export class TripMembersPage {
                 <em class="th-pill th-pill--solid">Leading</em>
               }
             </div>
-            <p class="meta">{{ opt.availableCount }}/{{ opt.totalVotes }} available</p>
+            <p class="meta">
+              {{ opt.availableCount }}/{{ opt.totalVotes || '—' }} available
+              @if (!opt.totalVotes) {
+                <span>· no votes yet</span>
+              }
+            </p>
             <div class="bar">
-              <i [style.width.%]="(opt.availableCount / opt.totalVotes) * 100"></i>
+              <i [style.width.%]="availPct(opt)"></i>
             </div>
             <div class="chips">
               <span class="chip-label">Your response</span>
@@ -669,46 +696,100 @@ export class TripMembersPage {
             </div>
           </article>
         } @empty {
-          <div class="th-panel">No availability options yet.</div>
+          <div class="th-panel empty">No date options yet — add a range to start the poll.</div>
         }
       </div>
     } @else {
       <div class="head">
         <div>
           <h2>Where should we go?</h2>
-          <p class="meta">12 of 15 voted · closes 16 Aug</p>
+          <p class="meta">Photo cards with place + city — vote for your favorite</p>
         </div>
+        <app-button variant="secondary" (click)="showDestForm.set(!showDestForm())">
+          Add place +
+        </app-button>
       </div>
+
+      @if (showDestForm()) {
+        <form class="th-panel add-form" (ngSubmit)="submitDest()">
+          <label>
+            Place
+            <input
+              type="text"
+              required
+              [(ngModel)]="destName"
+              name="destName"
+              placeholder="North Goa"
+            />
+          </label>
+          <label>
+            City / region
+            <input type="text" [(ngModel)]="destCity" name="destCity" placeholder="Goa" />
+          </label>
+          <label>
+            Country
+            <input type="text" [(ngModel)]="destCountry" name="destCountry" placeholder="India" />
+          </label>
+          <label>
+            Est. cost / person
+            <input type="number" min="0" step="100" [(ngModel)]="destCost" name="destCost" />
+          </label>
+          <label class="wide">
+            Photo URL <span class="hint">(optional — we pick a matching place photo)</span>
+            <input
+              type="url"
+              [(ngModel)]="destImageUrl"
+              name="destImageUrl"
+              placeholder="https://…"
+            />
+          </label>
+          <label class="wide">
+            Why this place?
+            <input
+              type="text"
+              [(ngModel)]="destDescription"
+              name="destDescription"
+              placeholder="Beaches and easy flights"
+            />
+          </label>
+          <app-button type="submit" [loading]="addingDest()">Add destination</app-button>
+          @if (destError()) {
+            <p class="add-error">{{ destError() }}</p>
+          }
+        </form>
+      }
+
       <div class="dest-grid">
         @for (d of destinations(); track d.id) {
-          <article class="th-panel dest" [class.leading]="isLeadingDest(d)">
+          <article class="dest-card" [class.leading]="isLeadingDest(d)">
             <div
               class="dest-photo"
-              [class.dest-photo--fallback]="!d.imageUrl"
-              [style.--dest-image]="d.imageUrl ? 'url(' + d.imageUrl + ')' : 'none'"
-              aria-hidden="true"
-            ></div>
-            <div class="opt-top">
-              <strong>{{ d.destinationName }}</strong>
-              @if (isLeadingDest(d)) {
-                <em class="th-pill th-pill--solid">Leading</em>
-              }
-            </div>
-            <p class="meta">{{ d.voteCount }} votes · ~{{ d.estimatedCost | inr }}/person</p>
-            <div class="bar">
-              <i [style.width.%]="destPct(d)"></i>
-            </div>
-            <button
-              type="button"
-              class="vote-btn"
-              [class.voted]="destVote() === d.id"
-              (click)="setDest(d.id)"
+              [style.--dest-image]="'url(' + imageFor(d) + ')'"
             >
-              {{ destVote() === d.id ? '✓ Your vote' : 'Vote' }}
-            </button>
+              @if (isLeadingDest(d)) {
+                <em class="th-pill th-pill--solid leading-pill">Leading</em>
+              }
+              <div class="dest-overlay">
+                <div class="dest-copy">
+                  <h3>{{ d.destinationName }}</h3>
+                  <p class="place">
+                    {{ placeLine(d) }}
+                  </p>
+                  <p class="votes">{{ d.voteCount }} votes · ~{{ d.estimatedCost | inr }}/person</p>
+                </div>
+                <button
+                  type="button"
+                  class="vote-btn"
+                  [class.voted]="destVote() === d.id"
+                  (click)="setDest(d.id); $event.stopPropagation()"
+                >
+                  {{ destVote() === d.id ? '✓ Your vote' : 'Vote' }}
+                </button>
+              </div>
+            </div>
           </article>
         } @empty {
-          <div class="th-panel">No destination options yet.</div>
+          <div class="th-panel empty">No destination options yet — add a place to start voting.</div>
         }
       </div>
     }
@@ -753,14 +834,41 @@ export class TripMembersPage {
         color: var(--th-text-muted);
         font-size: 0.85rem;
       }
-      .outline-btn {
-        background: transparent;
-        color: var(--th-primary-light);
-        border: 1px solid var(--th-primary);
-        border-radius: 999px;
-        padding: 0.5rem 0.95rem;
-        font-weight: 650;
-        cursor: pointer;
+      .add-form {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+      }
+      .add-form label {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+        font-size: 0.85rem;
+        color: var(--th-text-secondary);
+      }
+      .add-form label.wide {
+        grid-column: 1 / -1;
+      }
+      .add-form .hint {
+        font-weight: 500;
+        color: var(--th-text-muted);
+        font-size: 0.75rem;
+      }
+      .add-form input {
+        padding: 0.6rem 0.75rem;
+        border-radius: var(--th-radius);
+        border: 1px solid var(--th-border);
+        background: var(--th-surface);
+      }
+      .add-error {
+        margin: 0;
+        color: #dc2626;
+        font-size: 0.85rem;
+        grid-column: 1 / -1;
+      }
+      .empty {
+        color: var(--th-text-secondary);
       }
       .options {
         display: grid;
@@ -814,7 +922,7 @@ export class TripMembersPage {
       }
       .dest-grid {
         display: grid;
-        gap: 0.85rem;
+        gap: 0.95rem;
         grid-template-columns: 1fr;
       }
       @media (min-width: 700px) {
@@ -822,41 +930,88 @@ export class TripMembersPage {
           grid-template-columns: repeat(2, minmax(0, 1fr));
         }
       }
-      .img-ph {
-        height: 110px;
-        border-radius: var(--th-radius);
-        border: 1px dashed var(--th-border-strong);
-        background: color-mix(in srgb, var(--th-primary) 10%, var(--th-surface-muted));
-        margin-bottom: 0.75rem;
+      .dest-card {
+        position: relative;
+        border-radius: calc(var(--th-radius) + 4px);
+        overflow: hidden;
+        min-height: 280px;
+        box-shadow: var(--th-shadow);
+        transition:
+          transform 0.28s ease,
+          box-shadow 0.28s ease;
+      }
+      .dest-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
+      }
+      .dest-card.leading {
+        outline: 2px solid color-mix(in srgb, var(--th-primary) 70%, white);
       }
       .dest-photo {
-        height: 140px;
-        border-radius: var(--th-radius);
-        margin: -0.15rem -0.15rem 0.85rem;
+        position: relative;
+        min-height: 280px;
+        height: 100%;
         background:
-          linear-gradient(180deg, transparent 40%, rgba(15, 23, 42, 0.35)),
+          linear-gradient(180deg, rgba(15, 23, 42, 0.05) 20%, rgba(15, 23, 42, 0.78) 100%),
           var(--dest-image) center/cover no-repeat;
-        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
       }
-      .dest-photo--fallback {
-        background: var(--th-gradient-hero);
+      .leading-pill {
+        position: absolute;
+        top: 0.85rem;
+        left: 0.85rem;
+        z-index: 1;
+      }
+      .dest-overlay {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        padding: 1.15rem 1.1rem 1.15rem;
+        color: #fff;
+      }
+      .dest-copy h3 {
+        margin: 0;
+        font-family: var(--th-font-display);
+        font-size: 1.45rem;
+        letter-spacing: -0.02em;
+        text-shadow: 0 1px 8px rgba(0, 0, 0, 0.35);
+      }
+      .dest-copy .place {
+        margin: 0.2rem 0 0;
+        font-size: 0.95rem;
+        font-weight: 600;
+        opacity: 0.95;
+      }
+      .dest-copy .votes {
+        margin: 0.35rem 0 0;
+        font-size: 0.82rem;
+        opacity: 0.85;
       }
       .vote-btn {
-        width: 100%;
-        margin-top: 0.35rem;
-        border: 1px solid var(--th-primary);
-        background: transparent;
-        color: var(--th-primary-dark);
+        align-self: stretch;
+        border: 1px solid rgba(255, 255, 255, 0.55);
+        background: rgba(255, 255, 255, 0.14);
+        backdrop-filter: blur(10px);
+        color: #fff;
         border-radius: 999px;
-        padding: 0.55rem;
+        padding: 0.6rem;
         font-weight: 700;
         cursor: pointer;
+        transition:
+          background 0.2s ease,
+          border-color 0.2s ease;
+      }
+      .vote-btn:hover {
+        background: rgba(255, 255, 255, 0.28);
       }
       .vote-btn.voted {
         background: var(--th-primary);
-        color: white;
+        border-color: var(--th-primary);
       }
-      .leading {
+      .leading .opt,
+      .opt.leading {
         border-color: color-mix(in srgb, var(--th-primary) 55%, var(--th-border));
         box-shadow: 0 12px 28px rgba(15, 118, 110, 0.12);
       }
@@ -873,6 +1028,23 @@ export class TripVotingPage {
   readonly availVote = computed(() => this.store.getMyVotes(this.tripId()).availability as Record<string, AvailVote>);
   readonly destVote = computed(() => this.store.getMyVotes(this.tripId()).destinationId);
   rangeLabel = rangeLabel;
+  imageFor = destinationImageUrl;
+
+  readonly showAvailForm = signal(false);
+  readonly availStart = signal('');
+  readonly availEnd = signal('');
+  readonly addingAvail = signal(false);
+  readonly availError = signal('');
+
+  readonly showDestForm = signal(false);
+  readonly destName = signal('');
+  readonly destCity = signal('');
+  readonly destCountry = signal('India');
+  readonly destCost = signal<number | null>(null);
+  readonly destImageUrl = signal('');
+  readonly destDescription = signal('');
+  readonly addingDest = signal(false);
+  readonly destError = signal('');
 
   constructor() {
     effect(() => {
@@ -885,6 +1057,11 @@ export class TripVotingPage {
     });
   }
 
+  placeLine(d: DestinationOption): string {
+    const parts = [d.city, d.country].map((p) => p?.trim()).filter(Boolean);
+    return parts.length ? parts.join(', ') : 'Suggested destination';
+  }
+
   setAvail(optionId: string, vote: AvailVote) {
     const id = this.tripId();
     if (id) void this.store.castAvailabilityVote(id, optionId, vote);
@@ -893,6 +1070,55 @@ export class TripVotingPage {
   setDest(destId: string) {
     const id = this.tripId();
     if (id) void this.store.castDestinationVote(id, destId);
+  }
+
+  async submitAvail(): Promise<void> {
+    const id = this.tripId();
+    const startDate = this.availStart().trim();
+    const endDate = this.availEnd().trim();
+    if (!id || !startDate || !endDate) return;
+
+    this.addingAvail.set(true);
+    this.availError.set('');
+    try {
+      await this.store.addAvailabilityOption(id, { startDate, endDate });
+      this.availStart.set('');
+      this.availEnd.set('');
+      this.showAvailForm.set(false);
+    } catch {
+      this.availError.set('Could not add that date range. Apply migration 011 if this is a new poll.');
+    } finally {
+      this.addingAvail.set(false);
+    }
+  }
+
+  async submitDest(): Promise<void> {
+    const id = this.tripId();
+    const destinationName = this.destName().trim();
+    if (!id || !destinationName) return;
+
+    this.addingDest.set(true);
+    this.destError.set('');
+    try {
+      await this.store.addDestination(id, {
+        destinationName,
+        city: this.destCity().trim(),
+        country: this.destCountry().trim() || 'India',
+        description: this.destDescription().trim(),
+        estimatedCost: this.destCost() ?? 0,
+        imageUrl: this.destImageUrl().trim() || undefined,
+      });
+      this.destName.set('');
+      this.destCity.set('');
+      this.destCost.set(null);
+      this.destImageUrl.set('');
+      this.destDescription.set('');
+      this.showDestForm.set(false);
+    } catch {
+      this.destError.set('Could not add that destination. Please try again.');
+    } finally {
+      this.addingDest.set(false);
+    }
   }
 
   isLeadingAvail(opt: AvailabilityOption) {
@@ -905,6 +1131,11 @@ export class TripVotingPage {
     const list = this.destinations();
     const max = Math.max(0, ...list.map((o) => o.voteCount));
     return d.voteCount === max && max > 0;
+  }
+
+  availPct(opt: AvailabilityOption) {
+    if (!opt.totalVotes) return 0;
+    return Math.round((opt.availableCount / opt.totalVotes) * 100);
   }
 
   destPct(d: DestinationOption) {

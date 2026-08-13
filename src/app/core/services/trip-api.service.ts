@@ -71,6 +71,7 @@ export interface ApiDestinationOption {
   id: string;
   tripId: string;
   destinationName: string;
+  city: string;
   country: string;
   description: string;
   estimatedCost: number;
@@ -179,6 +180,21 @@ export interface CreateItineraryItemPayload {
   locationName?: string;
 }
 
+export interface CreateDestinationPayload {
+  destinationName: string;
+  city?: string;
+  country?: string;
+  description?: string;
+  estimatedCost?: number;
+  imageUrl?: string;
+}
+
+export interface CreateAvailabilityOptionPayload {
+  startDate: string;
+  endDate: string;
+  label?: string;
+}
+
 export interface CreateBudgetCategoryPayload {
   category: string;
   plannedAmount: number;
@@ -278,9 +294,24 @@ export class TripApiService {
       .pipe(map((res) => res.data));
   }
 
+  createAvailabilityOption(
+    tripId: string,
+    payload: CreateAvailabilityOptionPayload,
+  ): Observable<ApiAvailabilityOption> {
+    return this.http
+      .post<ApiEnvelope<ApiAvailabilityOption>>(`${this.base}/${tripId}/availability`, payload)
+      .pipe(map((res) => res.data));
+  }
+
   destinations(tripId: string): Observable<ApiDestinationOption[]> {
     return this.http
       .get<ApiEnvelope<ApiDestinationOption[]>>(`${this.base}/${tripId}/destinations`)
+      .pipe(map((res) => res.data));
+  }
+
+  createDestination(tripId: string, payload: CreateDestinationPayload): Observable<ApiDestinationOption> {
+    return this.http
+      .post<ApiEnvelope<ApiDestinationOption>>(`${this.base}/${tripId}/destinations`, payload)
       .pipe(map((res) => res.data));
   }
 

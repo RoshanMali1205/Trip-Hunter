@@ -18,14 +18,17 @@ import { AuthService } from '../auth/auth.service';
 import {
   ApiAvailVote,
   ApiBooking,
+  ApiDestinationOption,
   ApiMyVotes,
   ApiPendingInvite,
   ApiTrip,
   ApiTripMember,
   ApiTripStatus,
   ApiTripTask,
+  CreateAvailabilityOptionPayload,
   CreateBookingPayload,
   CreateBudgetCategoryPayload,
+  CreateDestinationPayload,
   CreateExpensePayload,
   CreateItineraryItemPayload,
   CreateTripPayload,
@@ -34,6 +37,7 @@ import {
 } from './trip-api.service';
 import { NotificationApiService } from './notification-api.service';
 import { bookingImageUrl } from '../constants/booking-images';
+import { destinationImageUrl } from '../constants/destination-images';
 
 const API_STATUS_TO_TRIP_STATUS: Record<ApiTripStatus, TripStatus> = {
   draft: 'DRAFT',
@@ -85,6 +89,20 @@ function mapBooking(api: ApiBooking): Booking {
     endDatetime: api.endDatetime ?? '',
   };
   return { ...booking, imageUrl: bookingImageUrl(booking) };
+}
+
+function mapDestination(api: ApiDestinationOption): DestinationOption {
+  const city = api.city ?? '';
+  return {
+    ...api,
+    city,
+    imageUrl: destinationImageUrl({
+      imageUrl: api.imageUrl,
+      destinationName: api.destinationName,
+      city,
+      country: api.country,
+    }),
+  };
 }
 
 function mapTask(api: ApiTripTask): TripTask {
@@ -244,7 +262,30 @@ export class TripStore {
 
   async loadDestinations(tripId: string): Promise<void> {
     const destinations = await firstValueFrom(this.tripApi.destinations(tripId));
-    this.destinationsByTrip.update((d) => ({ ...d, [tripId]: destinations }));
+    this.destinationsByTrip.update((d) => ({
+      ...d,
+      [tripId]: destinations.map(mapDestination),
+    }));
+  }
+
+  async addDestination(tripId: string, payload: CreateDestinationPayload): Promise<void> {
+    const withImage: CreateDestinationPayload = {
+      ...payload,
+      imageUrl:
+        payload.imageUrl?.trim() ||
+        destinationImageUrl({
+          destinationName: payload.destinationName,
+          city: payload.city,
+          country: payload.country,
+        }),
+    };
+    await firstValueFrom(this.tripApi.createDestination(tripId, withImage));
+    await this.loadDestinations(tripId);
+  }
+
+  async addAvailabilityOption(tripId: string, payload: CreateAvailabilityOptionPayload): Promise<void> {
+    await firstValueFrom(this.tripApi.createAvailabilityOption(tripId, payload));
+    await this.loadAvailability(tripId);
   }
 
   getMyVotes(tripId: string): ApiMyVotes {
