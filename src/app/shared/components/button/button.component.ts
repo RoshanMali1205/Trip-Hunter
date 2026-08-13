@@ -1,26 +1,37 @@
+import { NgTemplateOutlet } from '@angular/common';
 import { Component, Input, booleanAttribute } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'link' | 'link-danger';
+export type ButtonVariant =
+  | 'primary'
+  | 'secondary'
+  | 'ghost'
+  | 'ghost-inverted'
+  | 'danger'
+  | 'link'
+  | 'link-danger';
 export type ButtonSize = 'sm' | 'md';
 
 /**
  * Standard button across the app. Variants: primary/danger are gradient-filled
- * CTAs, secondary is outlined, ghost is a quiet neutral action, link/link-danger
+ * CTAs, secondary is outlined, ghost is a quiet neutral action, ghost-inverted
+ * is a translucent action for use over photos/dark hero sections, link/link-danger
  * are inline text actions (e.g. row-level "Edit"/"Reject"). Pass `routerLink`
  * to render as a navigable `<a>` instead of a `<button>` (e.g. CTA cards).
  */
 @Component({
   selector: 'app-button',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, NgTemplateOutlet],
   template: `
+    <ng-template #projected><ng-content /></ng-template>
+
     @if (routerLink) {
       <a
         [routerLink]="routerLink"
         [class]="'th-btn th-btn--' + variant + ' th-btn--' + size + (fullWidth ? ' th-btn--block' : '')"
       >
-        <ng-content />
+        <ng-container [ngTemplateOutlet]="projected" />
       </a>
     } @else {
       <button
@@ -31,7 +42,7 @@ export type ButtonSize = 'sm' | 'md';
         @if (loading) {
           <span class="th-btn__spinner" aria-hidden="true"></span>
         }
-        <ng-content />
+        <ng-container [ngTemplateOutlet]="projected" />
       </button>
     }
   `,
@@ -111,6 +122,16 @@ export type ButtonSize = 'sm' | 'md';
       .th-btn--ghost:hover:not(:disabled) {
         background: var(--th-surface-muted);
         color: var(--th-text);
+      }
+
+      .th-btn--ghost-inverted {
+        background: rgba(255, 255, 255, 0.12);
+        border-color: rgba(255, 255, 255, 0.45);
+        color: #fff;
+        backdrop-filter: blur(8px);
+      }
+      .th-btn--ghost-inverted:hover:not(:disabled) {
+        background: rgba(255, 255, 255, 0.2);
       }
 
       .th-btn--danger {

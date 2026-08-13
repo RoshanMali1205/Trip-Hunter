@@ -55,25 +55,6 @@
   margin-top: 1.25rem;
 }
 
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.35rem;
-  min-height: 44px;
-  padding: 0.65rem 1.15rem;
-  border-radius: 999px;
-  font-weight: 750;
-  border: 1px solid transparent;
-}
-
-.btn.ghost {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.45);
-  color: white;
-  backdrop-filter: blur(8px);
-}
-
 .hero__float {
   position: absolute;
   right: 1.25rem;
