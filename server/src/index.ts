@@ -1,7 +1,6 @@
 import cors from 'cors';
 import express from 'express';
-import { pathToFileURL } from 'node:url';
-import { loadEnv, getEnv, allowMockData } from './config/env.js';
+import { loadEnv, allowMockData } from './config/env.js';
 import {
   isSupabaseAdminConfigured,
   isSupabaseConfigured,
@@ -17,6 +16,7 @@ import {
 } from './modules/trips/trip.controller.js';
 import { ok } from './types/api.js';
 
+// Safe to import from Netlify Functions (no import.meta / listen side effects).
 loadEnv();
 
 export function createApp() {
@@ -64,25 +64,5 @@ export function createApp() {
 }
 
 export const app = createApp();
-
-const isDirectRun =
-  process.argv[1] !== undefined &&
-  import.meta.url === pathToFileURL(process.argv[1]).href;
-
-if (isDirectRun && !process.env['NETLIFY']) {
-  const { PORT } = getEnv();
-  app.listen(PORT, () => {
-    console.log(`Trip Hunter API listening on http://localhost:${PORT}`);
-    console.log(
-      `  auth=${isSupabaseConfigured() ? 'supabase' : 'mock'} data=${
-        isSupabaseAdminConfigured()
-          ? 'supabase'
-          : allowMockData()
-            ? 'memory'
-            : 'unavailable'
-      }`,
-    );
-  });
-}
 
 export default app;

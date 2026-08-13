@@ -2,11 +2,7 @@
 
 Collaborative trip planning and trip management for office teams — from idea and availability voting through approvals, itinerary, bookings, expenses, and settlement.
 
-<<<<<<< HEAD
 **Stack:** Angular 22 · Angular Material · Signals · PWA · Node.js/Express (Netlify Functions) · Supabase Auth/Postgres
-=======
-**Stack:** Angular 22 · Angular Material · Signals · PWA · Node.js/Express (Netlify Functions) · Supabase Postgres/Auth
->>>>>>> origin/main
 
 ## Quick start
 
