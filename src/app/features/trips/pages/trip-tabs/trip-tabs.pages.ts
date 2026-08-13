@@ -9,6 +9,7 @@ import { TripStore } from '../../../../core/services/trip.store';
 import { InrCurrencyPipe } from '../../../../shared/pipes/format.pipe';
 import { AvailabilityOption, DestinationOption, TripMember } from '../../../../core/models/trip.model';
 import { ApiItineraryItem, ExpenseCategory } from '../../../../core/services/trip-api.service';
+import { ButtonComponent } from '../../../../shared/components/button/button.component';
 
 function tripIdFromParent(route: ActivatedRoute) {
   return toSignal(route.parent!.paramMap.pipe(map((p) => p.get('tripId') || '')), {
@@ -273,7 +274,7 @@ export class TripOverviewPage {
 @Component({
   selector: 'app-trip-members',
   standalone: true,
-  imports: [MatIconModule, FormsModule],
+  imports: [MatIconModule, FormsModule, ButtonComponent],
   template: `
     <div class="head">
       <div>
@@ -284,9 +285,9 @@ export class TripOverviewPage {
         </p>
       </div>
       @if (isOwner()) {
-        <button type="button" class="outline-btn" (click)="showInviteForm.set(!showInviteForm())">
+        <app-button variant="secondary" (click)="showInviteForm.set(!showInviteForm())">
           Invite members +
-        </button>
+        </app-button>
       }
     </div>
 
@@ -296,9 +297,7 @@ export class TripOverviewPage {
           Email of a registered teammate
           <input type="email" required [(ngModel)]="inviteEmail" name="inviteEmail" placeholder="name@company.com" />
         </label>
-        <button type="submit" class="btn primary" [disabled]="inviting()">
-          {{ inviting() ? 'Inviting…' : 'Send invite' }}
-        </button>
+        <app-button type="submit" [loading]="inviting()">Send invite</app-button>
         @if (inviteError()) {
           <p class="invite-error">{{ inviteError() }}</p>
         }
@@ -309,8 +308,8 @@ export class TripOverviewPage {
       <div class="th-panel invite-banner">
         <span>You've been invited to this trip as {{ mine.role.toLowerCase() }}.</span>
         <div class="invite-actions">
-          <button type="button" class="btn primary" (click)="respond('accepted')">Accept</button>
-          <button type="button" class="btn ghost" (click)="respond('declined')">Decline</button>
+          <app-button size="sm" (click)="respond('accepted')">Accept</app-button>
+          <app-button variant="secondary" size="sm" (click)="respond('declined')">Decline</app-button>
         </div>
       </div>
     }
@@ -616,7 +615,6 @@ export class TripMembersPage {
           <h2>When should we go?</h2>
           <p class="meta">Voting closes 14 Aug · 15/15 responded</p>
         </div>
-        <button type="button" class="outline-btn">+ Add option</button>
       </div>
       <div class="options">
         @for (opt of availability(); track opt.id) {
@@ -907,11 +905,11 @@ export class TripVotingPage {
 @Component({
   selector: 'app-trip-itinerary',
   standalone: true,
-  imports: [MatIconModule, FormsModule],
+  imports: [MatIconModule, FormsModule, ButtonComponent],
   template: `
     <div class="head">
       <h2>Itinerary</h2>
-      <button type="button" class="outline-btn" (click)="showForm.set(!showForm())">Add item +</button>
+      <app-button variant="secondary" (click)="showForm.set(!showForm())">Add item +</app-button>
     </div>
 
     @if (showForm()) {
@@ -947,9 +945,7 @@ export class TripVotingPage {
           Location
           <input type="text" [(ngModel)]="locationName" name="locationName" placeholder="Curlies, Anjuna" />
         </label>
-        <button type="submit" class="btn primary" [disabled]="adding()">
-          {{ adding() ? 'Adding…' : 'Add to itinerary' }}
-        </button>
+        <app-button type="submit" [loading]="adding()">Add to itinerary</app-button>
         @if (addError()) {
           <p class="add-error">{{ addError() }}</p>
         }
@@ -1171,7 +1167,6 @@ export class TripItineraryPage {
   template: `
     <div class="head">
       <h2>Bookings</h2>
-      <button type="button" class="outline-btn">Add booking +</button>
     </div>
     <div class="grid">
       @for (b of bookings(); track b.id) {
@@ -1191,7 +1186,6 @@ export class TripItineraryPage {
           <h3>{{ b.provider }}</h3>
           <p>Booking #: {{ b.bookingReference }}</p>
           <p class="when">{{ formatWhen(b.startDatetime) }}</p>
-          <a href="#" class="view" (click)="$event.preventDefault()">View booking →</a>
         </article>
       } @empty {
         <div class="th-panel">No bookings yet.</div>
@@ -1308,7 +1302,7 @@ export class TripBookingsPage {
 @Component({
   selector: 'app-trip-budget',
   standalone: true,
-  imports: [InrCurrencyPipe, FormsModule],
+  imports: [InrCurrencyPipe, FormsModule, ButtonComponent],
   template: `
     @if (trip(); as t) {
       <div class="top-grid">
@@ -1338,7 +1332,7 @@ export class TripBookingsPage {
 
     <div class="head">
       <h2>Categories</h2>
-      <button type="button" class="outline-btn" (click)="showForm.set(!showForm())">Add category +</button>
+      <app-button variant="secondary" (click)="showForm.set(!showForm())">Add category +</app-button>
     </div>
 
     @if (showForm()) {
@@ -1351,9 +1345,7 @@ export class TripBookingsPage {
           Planned amount
           <input type="number" required min="0" [(ngModel)]="plannedAmount" name="plannedAmount" />
         </label>
-        <button type="submit" class="btn primary" [disabled]="adding()">
-          {{ adding() ? 'Adding…' : 'Add category' }}
-        </button>
+        <app-button type="submit" [loading]="adding()">Add category</app-button>
         @if (addError()) {
           <p class="add-error">{{ addError() }}</p>
         }
@@ -1368,13 +1360,13 @@ export class TripBookingsPage {
             @if (editingId() === b.id) {
               <span class="edit-row">
                 <input type="number" min="0" [(ngModel)]="editAmount" name="editAmount-{{ b.id }}" />
-                <button type="button" class="btn primary" (click)="saveEdit(b.id)">Save</button>
-                <button type="button" class="btn ghost" (click)="editingId.set('')">Cancel</button>
+                <app-button size="sm" (click)="saveEdit(b.id)">Save</app-button>
+                <app-button variant="ghost" size="sm" (click)="editingId.set('')">Cancel</app-button>
               </span>
             } @else {
               <span>
                 {{ b.actualAmount | inr: b.currency }} / {{ b.plannedAmount | inr: b.currency }}
-                <button type="button" class="link-btn" (click)="startEdit(b.id, b.plannedAmount)">Edit</button>
+                <app-button variant="link" size="sm" (click)="startEdit(b.id, b.plannedAmount)">Edit</app-button>
               </span>
             }
           </div>
@@ -1588,11 +1580,11 @@ export class TripBudgetPage {
 @Component({
   selector: 'app-trip-expenses',
   standalone: true,
-  imports: [InrCurrencyPipe, FormsModule],
+  imports: [InrCurrencyPipe, FormsModule, ButtonComponent],
   template: `
     <div class="head">
       <h2>Expenses</h2>
-      <button type="button" class="outline-btn" (click)="showForm.set(!showForm())">Add expense +</button>
+      <app-button variant="secondary" (click)="showForm.set(!showForm())">Add expense +</app-button>
     </div>
 
     @if (showForm()) {
@@ -1620,9 +1612,7 @@ export class TripBudgetPage {
           Date
           <input type="date" [(ngModel)]="expenseDate" name="expenseDate" />
         </label>
-        <button type="submit" class="btn primary" [disabled]="adding()">
-          {{ adding() ? 'Adding…' : 'Add expense' }}
-        </button>
+        <app-button type="submit" [loading]="adding()">Add expense</app-button>
         @if (addError()) {
           <p class="add-error">{{ addError() }}</p>
         }
@@ -1638,8 +1628,8 @@ export class TripBudgetPage {
               <span>{{ e.paidByName }} · {{ e.category }} · {{ e.expenseDate }}</span>
               @if (e.status === 'PENDING') {
                 <span class="pending-actions">
-                  <button type="button" class="link-btn" (click)="respond(e.id, 'APPROVED')">Approve</button>
-                  <button type="button" class="link-btn danger" (click)="respond(e.id, 'REJECTED')">Reject</button>
+                  <app-button variant="link" size="sm" (click)="respond(e.id, 'APPROVED')">Approve</app-button>
+                  <app-button variant="link-danger" size="sm" (click)="respond(e.id, 'REJECTED')">Reject</app-button>
                 </span>
               }
             </div>

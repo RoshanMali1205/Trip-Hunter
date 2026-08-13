@@ -5,7 +5,7 @@
       <p>{{ unread() }} unread</p>
     </div>
     @if (unread() > 0) {
-      <button class="link-btn" type="button" (click)="markAll()">Mark all read</button>
+      <app-button variant="link" (click)="markAll()">Mark all read</app-button>
     }
   </header>
 

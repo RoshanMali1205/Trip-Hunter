@@ -114,20 +114,18 @@
 
     <div class="actions">
       @if (step() === 0) {
-        <a class="btn ghost" routerLink="/trips">Cancel</a>
+        <app-button variant="ghost" routerLink="/trips">Cancel</app-button>
       } @else {
-        <button class="btn ghost" type="button" (click)="back()">Back</button>
+        <app-button variant="ghost" (click)="back()">Back</app-button>
       }
 
       @if (step() < steps.length - 1) {
-        <button class="btn primary" type="button" (click)="next()">
+        <app-button (click)="next()">
           Next: {{ steps[step() + 1] }}
           <mat-icon>chevron_right</mat-icon>
-        </button>
+        </app-button>
       } @else {
-        <button class="btn primary" type="button" (click)="create()" [disabled]="saving()">
-          {{ saving() ? 'Creating…' : 'Create trip' }}
-        </button>
+        <app-button [loading]="saving()" (click)="create()">Create trip</app-button>
       }
     </div>
   </div>

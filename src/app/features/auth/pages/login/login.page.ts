@@ -7,13 +7,14 @@ import {
   normalizePhone,
   validateAvatarFile,
 } from '../../../../core/auth/auth.service';
+import { ButtonComponent } from '../../../../shared/components/button/button.component';
 
 type AuthPanel = 'signin' | 'signup';
 
 @Component({
   selector: 'app-login-page',
   standalone: true,
-  imports: [ReactiveFormsModule, MatIconModule],
+  imports: [ReactiveFormsModule, MatIconModule, ButtonComponent],
   templateUrl: './login.page.html',
   styleUrl: './login.page.scss',
 })

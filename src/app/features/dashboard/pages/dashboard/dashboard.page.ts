@@ -7,13 +7,14 @@ import { AuthService } from '../../../../core/auth/auth.service';
 import { Trip } from '../../../../core/models/trip.model';
 import { TripStore } from '../../../../core/services/trip.store';
 import { InrCurrencyPipe, StatusLabelPipe } from '../../../../shared/pipes/format.pipe';
+import { ButtonComponent } from '../../../../shared/components/button/button.component';
 
 type TripCategory = 'all' | 'beaches' | 'hills' | 'cities' | 'adventure';
 
 @Component({
   selector: 'app-dashboard-page',
   standalone: true,
-  imports: [RouterLink, MatIconModule, FormsModule, InrCurrencyPipe, StatusLabelPipe, DatePipe],
+  imports: [RouterLink, MatIconModule, FormsModule, InrCurrencyPipe, StatusLabelPipe, DatePipe, ButtonComponent],
   templateUrl: './dashboard.page.html',
   styleUrl: './dashboard.page.scss',
 })

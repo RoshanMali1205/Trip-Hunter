@@ -2,11 +2,12 @@ import { DatePipe } from '@angular/common';
 import { Component, computed, inject } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { TripStore } from '../../../../core/services/trip.store';
+import { ButtonComponent } from '../../../../shared/components/button/button.component';
 
 @Component({
   selector: 'app-notifications-page',
   standalone: true,
-  imports: [MatIconModule, DatePipe],
+  imports: [MatIconModule, DatePipe, ButtonComponent],
   templateUrl: './notifications.page.html',
   styleUrl: './notifications.page.scss',
 })
