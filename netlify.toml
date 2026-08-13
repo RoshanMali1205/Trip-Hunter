@@ -5,7 +5,10 @@
 
 [build.environment]
   NODE_VERSION = "22"
-  NPM_FLAGS = "--no-fund --no-audit"
+  # --include=dev: build needs @angular/cli and server's typescript, both
+  # devDependencies. Without this, setting NODE_ENV=production (used for
+  # server runtime behavior) makes npm skip devDependencies during install.
+  NPM_FLAGS = "--no-fund --no-audit --include=dev"
 
 [functions]
   node_bundler = "esbuild"
