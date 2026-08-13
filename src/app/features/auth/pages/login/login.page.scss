@@ -199,6 +199,98 @@
   gap: 0.75rem;
 }
 
+.login__photo {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.75rem;
+  border-radius: var(--th-radius);
+  border: 1px solid var(--th-border);
+  background: var(--th-surface-muted);
+}
+
+.login__photo-preview {
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--th-primary) 18%, white), white);
+  background-size: cover;
+  background-position: center;
+  border: 2px solid color-mix(in srgb, var(--th-primary) 35%, white);
+  color: var(--th-primary-dark);
+  overflow: hidden;
+
+  mat-icon {
+    font-size: 32px;
+    width: 32px;
+    height: 32px;
+  }
+}
+
+.login__photo--has .login__photo-preview {
+  border-color: var(--th-primary);
+}
+
+.login__photo-actions {
+  min-width: 0;
+  flex: 1;
+
+  p {
+    margin: 0.15rem 0 0.55rem;
+    font-size: 0.78rem;
+    color: var(--th-text-muted);
+  }
+}
+
+.login__photo-label {
+  font-weight: 700;
+  color: var(--th-text);
+  font-size: 0.9rem;
+}
+
+.login__photo-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.login__photo-pick {
+  display: inline-flex;
+  align-items: center;
+  height: 34px;
+  padding: 0 0.85rem;
+  border-radius: 999px;
+  background: var(--th-primary);
+  color: white;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+
+  input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    overflow: hidden;
+  }
+}
+
+.login__photo-clear {
+  height: 34px;
+  padding: 0 0.85rem;
+  border-radius: 999px;
+  border: 1px solid var(--th-border-strong);
+  background: white;
+  color: var(--th-text-secondary);
+  font-size: 0.82rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
 .login__eyebrow {
   margin: 0;
   color: var(--th-primary);

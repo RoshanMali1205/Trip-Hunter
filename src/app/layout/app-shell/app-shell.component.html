@@ -19,7 +19,11 @@
 
     <div class="shell__footer">
       <a class="shell__profile" routerLink="/profile">
-        <span class="shell__avatar">{{ initials() }}</span>
+        @if (user()?.avatarUrl; as photo) {
+          <img class="shell__avatar shell__avatar--photo" [src]="photo" alt="" />
+        } @else {
+          <span class="shell__avatar">{{ initials() }}</span>
+        }
         <div>
           <strong>{{ user()?.firstName }} {{ user()?.lastName }}</strong>
           <span>{{ roleLabel() }}</span>
