@@ -16,12 +16,18 @@ import {
   listTrips,
 } from './modules/trips/trip.controller.js';
 import { listMembers } from './modules/members/member.controller.js';
-import { listAvailability, listDestinations } from './modules/planning/planning.controller.js';
+import {
+  castAvailabilityVote,
+  castDestinationVote,
+  getMyVotes,
+  listAvailability,
+  listDestinations,
+} from './modules/planning/planning.controller.js';
 import { listItinerary } from './modules/itinerary/itinerary.controller.js';
 import { listBookings } from './modules/bookings/booking.controller.js';
 import { listBudgetCategories } from './modules/budgets/budget.controller.js';
 import { listExpenses } from './modules/expenses/expense.controller.js';
-import { listTasks, updateTaskStatus } from './modules/tasks/task.controller.js';
+import { listMyOrgTasks, listTasks, updateTaskStatus } from './modules/tasks/task.controller.js';
 import {
   listNotifications,
   markAllNotificationsRead,
@@ -73,11 +79,15 @@ export function createApp() {
   v1.get('/trips/:tripId/members', authenticate, listMembers);
   v1.get('/trips/:tripId/availability', authenticate, listAvailability);
   v1.get('/trips/:tripId/destinations', authenticate, listDestinations);
+  v1.get('/trips/:tripId/votes/me', authenticate, getMyVotes);
+  v1.post('/trips/:tripId/availability/vote', authenticate, castAvailabilityVote);
+  v1.post('/trips/:tripId/destinations/:destinationId/vote', authenticate, castDestinationVote);
   v1.get('/trips/:tripId/itinerary', authenticate, listItinerary);
   v1.get('/trips/:tripId/bookings', authenticate, listBookings);
   v1.get('/trips/:tripId/budget', authenticate, listBudgetCategories);
   v1.get('/trips/:tripId/expenses', authenticate, listExpenses);
   v1.get('/trips/:tripId/tasks', authenticate, listTasks);
+  v1.get('/tasks', authenticate, listMyOrgTasks);
   v1.patch('/tasks/:id', authenticate, updateTaskStatus);
 
   v1.get('/notifications', authenticate, listNotifications);

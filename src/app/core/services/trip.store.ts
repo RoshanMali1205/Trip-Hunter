@@ -14,10 +14,11 @@ import {
   TripTask,
   AppNotification,
 } from '../models/trip.model';
-import { MOCK_TASKS } from '../data/mock-data';
 import { AuthService } from '../auth/auth.service';
 import {
+  ApiAvailVote,
   ApiBooking,
+  ApiMyVotes,
   ApiTrip,
   ApiTripMember,
   ApiTripStatus,
@@ -26,21 +27,6 @@ import {
   TripApiService,
 } from './trip-api.service';
 import { NotificationApiService } from './notification-api.service';
-import { lsGet, lsSet } from './local-storage.service';
-
-const TASKS_KEY = 'tasks';
-const SEED_KEY = 'seed-version';
-const SEED_VERSION = 4;
-
-function loadSeededTasks(): TripTask[] {
-  const version = lsGet<number>(SEED_KEY, 0);
-  if (version < SEED_VERSION) {
-    lsSet(TASKS_KEY, MOCK_TASKS);
-    lsSet(SEED_KEY, SEED_VERSION);
-    return MOCK_TASKS;
-  }
-  return lsGet(TASKS_KEY, MOCK_TASKS);
-}
 
 const API_STATUS_TO_TRIP_STATUS: Record<ApiTripStatus, TripStatus> = {
   draft: 'DRAFT',
@@ -102,7 +88,7 @@ export class TripStore {
 
   private readonly tripsSignal = signal<Trip[]>([]);
   private readonly notificationsSignal = signal<AppNotification[]>([]);
-  private readonly tasksSignal = signal<TripTask[]>(loadSeededTasks());
+  private readonly tasksSignal = signal<TripTask[]>([]);
   private readonly loadingSignal = signal(false);
 
   private readonly membersByTrip = signal<Record<string, TripMember[]>>({});
@@ -112,7 +98,7 @@ export class TripStore {
   private readonly bookingsByTrip = signal<Record<string, Booking[]>>({});
   private readonly budgetByTrip = signal<Record<string, BudgetCategory[]>>({});
   private readonly expensesByTrip = signal<Record<string, Expense[]>>({});
-  private readonly tasksByTrip = signal<Record<string, TripTask[]>>({});
+  private readonly myVotesByTrip = signal<Record<string, ApiMyVotes>>({});
 
   readonly trips = this.tripsSignal.asReadonly();
   readonly loading = this.loadingSignal.asReadonly();
@@ -123,6 +109,7 @@ export class TripStore {
   constructor() {
     void this.loadTrips();
     void this.loadNotifications();
+    void this.loadAllTasks();
   }
 
   private mapApiTrip(api: ApiTrip): Trip {
@@ -164,10 +151,6 @@ export class TripStore {
     } finally {
       this.loadingSignal.set(false);
     }
-  }
-
-  private persistTasks(): void {
-    lsSet(TASKS_KEY, this.tasksSignal());
   }
 
   getById(id: string): Trip | undefined {
@@ -217,6 +200,27 @@ export class TripStore {
     this.destinationsByTrip.update((d) => ({ ...d, [tripId]: destinations }));
   }
 
+  getMyVotes(tripId: string): ApiMyVotes {
+    return this.myVotesByTrip()[tripId] ?? { availability: {}, destinationId: null };
+  }
+
+  async loadMyVotes(tripId: string): Promise<void> {
+    const votes = await firstValueFrom(this.tripApi.myVotes(tripId));
+    this.myVotesByTrip.update((v) => ({ ...v, [tripId]: votes }));
+  }
+
+  /** optionId is `${startDate}_${endDate}`, as produced by the availability list endpoint. */
+  async castAvailabilityVote(tripId: string, optionId: string, vote: ApiAvailVote): Promise<void> {
+    const [startDate, endDate] = optionId.split('_');
+    await firstValueFrom(this.tripApi.castAvailabilityVote(tripId, startDate, endDate, vote));
+    await Promise.all([this.loadAvailability(tripId), this.loadMyVotes(tripId)]);
+  }
+
+  async castDestinationVote(tripId: string, destinationId: string): Promise<void> {
+    await firstValueFrom(this.tripApi.castDestinationVote(tripId, destinationId));
+    await Promise.all([this.loadDestinations(tripId), this.loadMyVotes(tripId)]);
+  }
+
   getItinerary(tripId: string): ItineraryDay[] {
     return this.itineraryByTrip()[tripId] ?? [];
   }
@@ -253,24 +257,22 @@ export class TripStore {
     this.expensesByTrip.update((e) => ({ ...e, [tripId]: expenses }));
   }
 
-  /** With a tripId: real API-backed per-trip tasks. Without: local task board (cross-trip, mock-backed). */
   getTasks(tripId?: string): TripTask[] {
-    if (tripId) {
-      return this.tasksByTrip()[tripId] ?? [];
-    }
-    return this.tasksSignal();
+    const all = this.tasksSignal();
+    return tripId ? all.filter((t) => t.tripId === tripId) : all;
   }
 
-  async loadTripTasks(tripId: string): Promise<void> {
-    const tasks = await firstValueFrom(this.tripApi.tasks(tripId));
-    this.tasksByTrip.update((t) => ({ ...t, [tripId]: tasks.map(mapTask) }));
+  /** Cross-trip task board (dashboard + Tasks page): all tasks across the caller's org. */
+  async loadAllTasks(): Promise<void> {
+    const tasks = await firstValueFrom(this.tripApi.allTasks());
+    this.tasksSignal.set(tasks.map(mapTask));
   }
 
-  updateTaskStatus(taskId: string, status: TripTask['status']): void {
+  async updateTaskStatus(taskId: string, status: TripTask['status']): Promise<void> {
     this.tasksSignal.update((list) =>
       list.map((t) => (t.id === taskId ? { ...t, status } : t)),
     );
-    this.persistTasks();
+    await firstValueFrom(this.tripApi.updateTaskStatus(taskId, status));
   }
 
   getNotifications(): AppNotification[] {

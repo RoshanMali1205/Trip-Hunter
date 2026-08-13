@@ -89,6 +89,40 @@ export class TaskRepository {
     return ((data ?? []) as unknown as TaskRow[]).map(mapRow);
   }
 
+  async findByOrganization(organizationId: string): Promise<TripTask[]> {
+    if (assertDbOrMock('tasks') === 'memory') {
+      return [];
+    }
+
+    const db = getSupabaseAdmin();
+
+    const { data: trips, error: tripsError } = await db
+      .from('trips')
+      .select('id')
+      .eq('organization_id', organizationId);
+
+    if (tripsError) {
+      throw new AppError(502, 'DB_ERROR', tripsError.message);
+    }
+
+    const tripIds = ((trips ?? []) as { id: string }[]).map((t) => t.id);
+    if (tripIds.length === 0) {
+      return [];
+    }
+
+    const { data, error } = await db
+      .from('tasks')
+      .select(TASK_SELECT)
+      .in('trip_id', tripIds)
+      .order('due_at', { ascending: true, nullsFirst: false });
+
+    if (error) {
+      throw new AppError(502, 'DB_ERROR', error.message);
+    }
+
+    return ((data ?? []) as unknown as TaskRow[]).map(mapRow);
+  }
+
   async updateStatus(id: string, status: TaskStatus): Promise<TripTask> {
     if (assertDbOrMock('tasks') === 'memory') {
       throw new AppError(503, 'SUPABASE_NOT_CONFIGURED', 'Supabase is required to update tasks');

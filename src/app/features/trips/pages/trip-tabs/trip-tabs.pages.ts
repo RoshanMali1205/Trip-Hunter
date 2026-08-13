@@ -747,8 +747,8 @@ export class TripVotingPage {
   readonly tab = signal<'availability' | 'destination'>('availability');
   readonly availability = computed(() => this.store.getAvailability(this.tripId()));
   readonly destinations = computed(() => this.store.getDestinations(this.tripId()));
-  readonly availVote = signal<Record<string, AvailVote>>({});
-  readonly destVote = signal<string | null>(null);
+  readonly availVote = computed(() => this.store.getMyVotes(this.tripId()).availability as Record<string, AvailVote>);
+  readonly destVote = computed(() => this.store.getMyVotes(this.tripId()).destinationId);
   rangeLabel = rangeLabel;
 
   constructor() {
@@ -757,34 +757,19 @@ export class TripVotingPage {
       if (id) {
         void this.store.loadAvailability(id);
         void this.store.loadDestinations(id);
-      }
-    });
-
-    effect(() => {
-      const id = this.tripId();
-      if (!id || typeof localStorage === 'undefined') return;
-      try {
-        const a = localStorage.getItem(`th-vote-avail-${id}`);
-        this.availVote.set(a ? JSON.parse(a) : {});
-        this.destVote.set(localStorage.getItem(`th-vote-dest-${id}`));
-      } catch {
-        this.availVote.set({});
-        this.destVote.set(null);
+        void this.store.loadMyVotes(id);
       }
     });
   }
 
   setAvail(optionId: string, vote: AvailVote) {
-    const next = { ...this.availVote(), [optionId]: vote };
-    this.availVote.set(next);
     const id = this.tripId();
-    if (id) localStorage.setItem(`th-vote-avail-${id}`, JSON.stringify(next));
+    if (id) void this.store.castAvailabilityVote(id, optionId, vote);
   }
 
   setDest(destId: string) {
-    this.destVote.set(destId);
     const id = this.tripId();
-    if (id) localStorage.setItem(`th-vote-dest-${id}`, destId);
+    if (id) void this.store.castDestinationVote(id, destId);
   }
 
   isLeadingAvail(opt: AvailabilityOption) {
@@ -1359,13 +1344,6 @@ export class TripTasksTabPage {
   private readonly store = inject(TripStore);
   private readonly tripId = tripIdFromParent(this.route);
   readonly tasks = computed(() => this.store.getTasks(this.tripId()));
-
-  constructor() {
-    effect(() => {
-      const id = this.tripId();
-      if (id) void this.store.loadTripTasks(id);
-    });
-  }
 }
 
 @Component({

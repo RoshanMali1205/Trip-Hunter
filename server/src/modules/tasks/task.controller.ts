@@ -16,6 +16,20 @@ export const listTasks: RequestHandler = async (req, res, next) => {
   }
 };
 
+export const listMyOrgTasks: RequestHandler = async (req, res, next) => {
+  try {
+    if (!req.user) {
+      throw new AppError(401, 'UNAUTHORIZED', 'Missing or invalid Bearer token');
+    }
+    const tasks = req.user.organizationId
+      ? await repo.findByOrganization(req.user.organizationId)
+      : [];
+    res.json(ok(tasks, 'Tasks retrieved successfully'));
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const updateTaskStatus: RequestHandler = async (req, res, next) => {
   try {
     const id = String(req.params['id']);

@@ -147,6 +147,13 @@ export interface ApiTripTask {
   dueDate: string | null;
 }
 
+export type ApiAvailVote = 'available' | 'maybe' | 'not';
+
+export interface ApiMyVotes {
+  availability: Record<string, ApiAvailVote>;
+  destinationId: string | null;
+}
+
 @Injectable({ providedIn: 'root' })
 export class TripApiService {
   private readonly http = inject(HttpClient);
@@ -216,5 +223,40 @@ export class TripApiService {
     return this.http
       .get<ApiEnvelope<ApiTripTask[]>>(`${this.base}/${tripId}/tasks`)
       .pipe(map((res) => res.data));
+  }
+
+  allTasks(): Observable<ApiTripTask[]> {
+    return this.http
+      .get<ApiEnvelope<ApiTripTask[]>>(`${getAppConfig().apiBaseUrl}/tasks`)
+      .pipe(map((res) => res.data));
+  }
+
+  updateTaskStatus(taskId: string, status: ApiTripTask['status']): Observable<ApiTripTask> {
+    return this.http
+      .patch<ApiEnvelope<ApiTripTask>>(`${getAppConfig().apiBaseUrl}/tasks/${taskId}`, { status })
+      .pipe(map((res) => res.data));
+  }
+
+  myVotes(tripId: string): Observable<ApiMyVotes> {
+    return this.http
+      .get<ApiEnvelope<ApiMyVotes>>(`${this.base}/${tripId}/votes/me`)
+      .pipe(map((res) => res.data));
+  }
+
+  castAvailabilityVote(
+    tripId: string,
+    startDate: string,
+    endDate: string,
+    vote: ApiAvailVote,
+  ): Observable<void> {
+    return this.http
+      .post<ApiEnvelope<null>>(`${this.base}/${tripId}/availability/vote`, { startDate, endDate, vote })
+      .pipe(map(() => undefined));
+  }
+
+  castDestinationVote(tripId: string, destinationId: string): Observable<void> {
+    return this.http
+      .post<ApiEnvelope<null>>(`${this.base}/${tripId}/destinations/${destinationId}/vote`, {})
+      .pipe(map(() => undefined));
   }
 }
