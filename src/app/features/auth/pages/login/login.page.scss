@@ -7,20 +7,104 @@
 
 .login__visual {
   position: relative;
-  background:
-    linear-gradient(160deg, rgba(10, 12, 20, 0.55), rgba(20, 16, 40, 0.72)),
-    url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1600&q=80')
-      center/cover no-repeat;
+  overflow: hidden;
   color: white;
   min-height: 100vh;
+  background: #0a1018;
+}
+
+.login__tiles {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
+  grid-template-rows: 1.35fr 0.85fr 1fr;
+  gap: 0.55rem;
+  padding: 0.55rem;
+}
+
+.login__tile {
+  position: relative;
+  margin: 0;
+  border-radius: calc(var(--th-radius) + 2px);
+  overflow: hidden;
+  background:
+    linear-gradient(160deg, rgba(8, 12, 22, 0.15), rgba(8, 12, 22, 0.55)),
+    var(--tile-image) center/cover no-repeat;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  animation: th-fade-up 0.7s ease both;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, transparent 45%, rgba(6, 8, 14, 0.72));
+    pointer-events: none;
+  }
+
+  figcaption {
+    position: absolute;
+    left: 0.85rem;
+    bottom: 0.7rem;
+    z-index: 1;
+    margin: 0;
+    font-size: 0.72rem;
+    font-weight: 650;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.88);
+  }
+
+  &:nth-child(1) {
+    animation-delay: 0.05s;
+  }
+  &:nth-child(2) {
+    animation-delay: 0.12s;
+  }
+  &:nth-child(3) {
+    animation-delay: 0.18s;
+  }
+  &:nth-child(4) {
+    animation-delay: 0.24s;
+  }
+  &:nth-child(5) {
+    animation-delay: 0.3s;
+  }
+}
+
+.login__tile--hero {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+}
+
+.login__tile--tall {
+  grid-column: 2 / span 2;
+  grid-row: 1;
+}
+
+.login__tile--wide {
+  grid-column: 1 / span 2;
+  grid-row: 3;
+}
+
+.login__tile--square:nth-child(4) {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+.login__tile--square:nth-child(5) {
+  grid-column: 3;
+  grid-row: 2 / span 2;
 }
 
 .login__visual-overlay {
   position: absolute;
   inset: auto 0 0 0;
+  z-index: 2;
   padding: 3rem;
-  background: linear-gradient(180deg, transparent, rgba(8, 10, 18, 0.92));
-  animation: th-fade-up 0.6s ease both;
+  background: linear-gradient(180deg, transparent, rgba(8, 10, 18, 0.92) 55%);
+  animation: th-fade-up 0.6s ease 0.15s both;
+  pointer-events: none;
 
   h2 {
     margin: 0.5rem 0 0.75rem;
@@ -158,10 +242,30 @@
   }
 
   .login__visual {
-    min-height: 34vh;
+    min-height: 42vh;
+  }
+
+  .login__tiles {
+    gap: 0.4rem;
+    padding: 0.4rem;
+    grid-template-columns: 1.2fr 1fr 1fr;
+    grid-template-rows: 1.1fr 0.75fr 0.9fr;
+  }
+
+  .login__tile figcaption {
+    display: none;
   }
 
   .login__visual-overlay {
-    padding: 1.5rem;
+    padding: 1.35rem 1.5rem 1.5rem;
+
+    h2 {
+      font-size: 1.35rem;
+      max-width: 22ch;
+    }
+
+    p:last-child {
+      display: none;
+    }
   }
 }

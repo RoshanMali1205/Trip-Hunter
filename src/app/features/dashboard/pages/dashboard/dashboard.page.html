@@ -45,24 +45,48 @@
 
   <div class="trip-grid">
     @for (trip of summary().upcomingTrips; track trip.id) {
-      <a class="trip-card" [routerLink]="['/trips', trip.id]">
-        <div class="trip-card__top">
-          <span class="type">{{ trip.tripType.replaceAll('_', ' ') }}</span>
-          <span class="th-status" [class]="'th-status th-status--' + trip.status.toLowerCase()">
-            {{ trip.status | statusLabel }}
-          </span>
+      <a
+        class="trip-tile"
+        [routerLink]="['/trips', trip.id]"
+        [style.--cover]="coverStyle(trip.coverImageUrl)"
+        [class.trip-tile--fallback]="!trip.coverImageUrl"
+      >
+        <div class="trip-tile__media" aria-hidden="true"></div>
+        <div class="trip-tile__body">
+          <div class="trip-tile__top">
+            <span class="type">{{ trip.tripType.replaceAll('_', ' ') }}</span>
+            <span class="th-status" [class]="'th-status th-status--' + trip.status.toLowerCase()">
+              {{ trip.status | statusLabel }}
+            </span>
+          </div>
+          <h3>{{ trip.title }}</h3>
+          <p class="trip-tile__route">{{ trip.origin }} → {{ trip.destination }}</p>
+          <p>
+            @if (trip.startDate) {
+              {{ trip.startDate | date: 'd MMM' }} → {{ trip.endDate | date: 'd MMM' }}
+            } @else {
+              Dates TBD
+            }
+            · {{ trip.memberCount }} members · {{ shortBudget(trip.estimatedBudget) }} budget
+          </p>
+          <span class="countdown">{{ daysToGo(trip.startDate) }}</span>
         </div>
-        <h3>{{ trip.title }}</h3>
-        <p>
-          @if (trip.startDate) {
-            {{ trip.startDate | date: 'd MMM' }} → {{ trip.endDate | date: 'd MMM' }}
-          } @else {
-            Dates TBD
-          }
-          · {{ trip.memberCount }} members · {{ shortBudget(trip.estimatedBudget) }} budget
-        </p>
-        <span class="countdown">{{ daysToGo(trip.startDate) }}</span>
       </a>
+    }
+  </div>
+
+  <div class="section-head">
+    <h2>Inspiration</h2>
+  </div>
+  <div class="inspire-grid">
+    @for (tile of inspirationTiles; track tile.label) {
+      <article
+        class="inspire-tile"
+        [style.--tile-image]="'url(' + tile.imageUrl + ')'"
+      >
+        <span class="inspire-tile__label">{{ tile.label }}</span>
+        <p>{{ tile.caption }}</p>
+      </article>
     }
   </div>
 

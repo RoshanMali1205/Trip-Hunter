@@ -22,6 +22,40 @@ export class LoginPage {
     password: ['demo1234', [Validators.required, Validators.minLength(6)]],
   });
 
+  /** Destination photo mosaic for the login half-screen. */
+  readonly visualTiles = [
+    {
+      label: 'Goa beach',
+      size: 'hero',
+      imageUrl:
+        'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80',
+    },
+    {
+      label: 'Coastal cliffs',
+      size: 'tall',
+      imageUrl:
+        'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=800&q=80',
+    },
+    {
+      label: 'Hill station',
+      size: 'wide',
+      imageUrl:
+        'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=900&q=80',
+    },
+    {
+      label: 'City lights',
+      size: 'square',
+      imageUrl:
+        'https://images.unsplash.com/photo-1596176530529-78163a4f7af2?auto=format&fit=crop&w=700&q=80',
+    },
+    {
+      label: 'Palm shore',
+      size: 'square',
+      imageUrl:
+        'https://images.unsplash.com/photo-1512343879784-a96011150555?auto=format&fit=crop&w=700&q=80',
+    },
+  ] as const;
+
   submit(): void {
     this.error.set('');
     if (this.form.invalid) {

@@ -45,6 +45,37 @@ export class DashboardPage {
     month: 'short',
   });
 
+  readonly inspirationTiles = [
+    {
+      label: 'Beach escapes',
+      caption: 'Coastal team outings',
+      imageUrl:
+        'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=900&q=80',
+    },
+    {
+      label: 'Hill retreats',
+      caption: 'Quiet planning weekends',
+      imageUrl:
+        'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=900&q=80',
+    },
+    {
+      label: 'City workshops',
+      caption: 'On-site delivery trips',
+      imageUrl:
+        'https://images.unsplash.com/photo-1596176530529-78163a4f7af2?auto=format&fit=crop&w=900&q=80',
+    },
+    {
+      label: 'Palm shores',
+      caption: 'Goa-style bonding days',
+      imageUrl:
+        'https://images.unsplash.com/photo-1512343879784-a96011150555?auto=format&fit=crop&w=900&q=80',
+    },
+  ] as const;
+
+  coverStyle(url?: string): string {
+    return url ? `url(${url})` : 'none';
+  }
+
   daysToGo(start: string | null): string {
     if (!start) return 'Dates TBD';
     const diff = Math.ceil((new Date(start).getTime() - Date.now()) / 86400000);
