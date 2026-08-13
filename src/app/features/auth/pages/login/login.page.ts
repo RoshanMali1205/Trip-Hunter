@@ -4,7 +4,9 @@ import { Router } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import {
   AuthService,
+  fileToDataUrl,
   normalizePhone,
+  prepareAvatarFile,
   validateAvatarFile,
 } from '../../../../core/auth/auth.service';
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
@@ -92,7 +94,7 @@ export class LoginPage {
     this.info.set('');
   }
 
-  onAvatarSelected(event: Event): void {
+  async onAvatarSelected(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0] ?? null;
     if (!file) return;
@@ -105,10 +107,19 @@ export class LoginPage {
     }
 
     this.error.set('');
-    this.avatarFile.set(file);
-    const reader = new FileReader();
-    reader.onload = () => this.avatarPreview.set(String(reader.result ?? ''));
-    reader.readAsDataURL(file);
+    this.busy.set(true);
+    try {
+      const prepared = await prepareAvatarFile(file);
+      this.avatarFile.set(prepared);
+      this.avatarPreview.set(await fileToDataUrl(prepared));
+    } catch (e) {
+      this.avatarFile.set(null);
+      this.avatarPreview.set(null);
+      this.error.set(e instanceof Error ? e.message : 'Could not process photo.');
+      input.value = '';
+    } finally {
+      this.busy.set(false);
+    }
   }
 
   clearAvatar(input?: HTMLInputElement): void {
