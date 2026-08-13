@@ -4,6 +4,15 @@
   align-items: center;
 }
 
+.profile__avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid color-mix(in srgb, var(--th-primary) 40%, white);
+  flex-shrink: 0;
+}
+
 mat-icon {
   font-size: 64px;
   width: 64px;

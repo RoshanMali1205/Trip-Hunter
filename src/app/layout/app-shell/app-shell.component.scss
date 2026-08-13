@@ -143,6 +143,12 @@
   font-size: 0.85rem;
 }
 
+.shell__avatar--photo {
+  object-fit: cover;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--th-primary) 30%, white);
+}
+
 .shell__logout {
   flex-shrink: 0;
   width: 36px;

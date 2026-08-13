@@ -2,7 +2,11 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
-import { AuthService } from '../../../../core/auth/auth.service';
+import {
+  AuthService,
+  normalizePhone,
+  validateAvatarFile,
+} from '../../../../core/auth/auth.service';
 
 type AuthPanel = 'signin' | 'signup';
 
@@ -24,6 +28,9 @@ export class LoginPage {
   readonly busy = signal(false);
   readonly isDemo = computed(() => this.auth.authMode() === 'demo');
 
+  readonly avatarPreview = signal<string | null>(null);
+  readonly avatarFile = signal<File | null>(null);
+
   readonly signInForm = this.fb.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(6)]],
@@ -32,6 +39,7 @@ export class LoginPage {
   readonly signUpForm = this.fb.nonNullable.group({
     firstName: ['', [Validators.required, Validators.minLength(1)]],
     lastName: [''],
+    phone: ['', [Validators.required, Validators.minLength(10)]],
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(6)]],
     confirmPassword: ['', [Validators.required]],
@@ -83,6 +91,31 @@ export class LoginPage {
     this.info.set('');
   }
 
+  onAvatarSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+    if (!file) return;
+
+    const err = validateAvatarFile(file);
+    if (err) {
+      this.error.set(err);
+      input.value = '';
+      return;
+    }
+
+    this.error.set('');
+    this.avatarFile.set(file);
+    const reader = new FileReader();
+    reader.onload = () => this.avatarPreview.set(String(reader.result ?? ''));
+    reader.readAsDataURL(file);
+  }
+
+  clearAvatar(input?: HTMLInputElement): void {
+    this.avatarFile.set(null);
+    this.avatarPreview.set(null);
+    if (input) input.value = '';
+  }
+
   async submitSignIn(): Promise<void> {
     this.error.set('');
     this.info.set('');
@@ -111,11 +144,15 @@ export class LoginPage {
     this.info.set('');
     if (this.signUpForm.invalid) {
       this.signUpForm.markAllAsTouched();
-      this.error.set('Fill in your name, email, and a password (6+ characters).');
+      this.error.set('Fill in name, phone, email, and a password (6+ characters).');
       return;
     }
 
     const raw = this.signUpForm.getRawValue();
+    if (!normalizePhone(raw.phone)) {
+      this.error.set('Enter a valid phone number (at least 10 digits).');
+      return;
+    }
     if (raw.password !== raw.confirmPassword) {
       this.error.set('Passwords do not match.');
       return;
@@ -128,6 +165,8 @@ export class LoginPage {
         password: raw.password,
         firstName: raw.firstName,
         lastName: raw.lastName,
+        phone: raw.phone,
+        avatarFile: this.avatarFile(),
       });
 
       if (!result.ok) {
@@ -137,6 +176,7 @@ export class LoginPage {
 
       if (result.needsEmailConfirmation) {
         this.info.set(result.message ?? 'Check your email to confirm your account.');
+        this.clearAvatar();
         this.showSignIn();
         this.signInForm.patchValue({ email: raw.email, password: '' });
         return;
