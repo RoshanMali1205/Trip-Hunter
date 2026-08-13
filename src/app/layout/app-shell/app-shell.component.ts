@@ -6,7 +6,7 @@ import { AuthService } from '../../core/auth/auth.service';
 import { TripStore } from '../../core/services/trip.store';
 import { ThemeService } from '../../core/theme/theme.service';
 import { ToastService } from '../../core/ui/toast.service';
-import { IndependenceDayBadgeComponent } from '../../shared/components/independence-day-badge/independence-day-badge.component';
+import { brandIconFor } from '../../core/theme/seasonal-icons';
 import { TripAdvisorComponent } from '../../shared/components/trip-advisor/trip-advisor.component';
 
 interface NavItem {
@@ -24,7 +24,6 @@ interface NavItem {
     RouterLinkActive,
     MatIconModule,
     MatTooltipModule,
-    IndependenceDayBadgeComponent,
     TripAdvisorComponent,
   ],
   templateUrl: './app-shell.component.html',
@@ -43,6 +42,7 @@ export class AppShellComponent implements OnInit, OnDestroy {
 
   readonly user = this.auth.user;
   readonly themeMode = this.theme.mode;
+  readonly brandIcon = brandIconFor();
   readonly unreadCount = computed(
     () => this.store.getNotifications().filter((n) => !n.read).length,
   );

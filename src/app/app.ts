@@ -3,6 +3,7 @@ import { RouterOutlet } from '@angular/router';
 import { PwaInstallService } from './core/pwa/pwa-install.service';
 import { PwaUpdateService } from './core/pwa/pwa-update.service';
 import { ThemeService } from './core/theme/theme.service';
+import { applySeasonalDocumentIcons } from './core/theme/seasonal-icons';
 import { ButtonComponent } from './shared/components/button/button.component';
 import { ToastHostComponent } from './shared/components/toast-host/toast-host.component';
 
@@ -77,6 +78,7 @@ export class App implements OnInit {
 
   ngOnInit(): void {
     void this.theme.mode();
+    applySeasonalDocumentIcons();
     this.updates.start();
     this.install.start();
   }

@@ -9,9 +9,12 @@
       "resources": {
         "files": [
           "/favicon.ico",
+          "/favicon.svg",
+          "/favicon-tiranga.svg",
           "/index.csr.html",
           "/index.html",
           "/manifest.webmanifest",
+          "/manifest-tiranga.webmanifest",
           "/*.css",
           "/*.js",
           "!/env.js",

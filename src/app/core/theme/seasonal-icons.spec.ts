@@ -1,11 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { isIndependenceDayWindow } from './independence-day-badge.component';
+import { brandIconFor, isIndependenceDayWindow } from './seasonal-icons';
 
 describe('isIndependenceDayWindow', () => {
   it('shows through 15 August EOD IST', () => {
-    // 15 Aug 2026 18:29:59 UTC == 15 Aug 23:59:59 IST
     expect(isIndependenceDayWindow(new Date('2026-08-15T18:29:59.000Z'))).toBe(true);
-    // 15 Aug 2026 18:30:00 UTC == 16 Aug 00:00:00 IST
     expect(isIndependenceDayWindow(new Date('2026-08-15T18:30:00.000Z'))).toBe(false);
   });
 
@@ -14,11 +12,19 @@ describe('isIndependenceDayWindow', () => {
   });
 
   it('shows from 1 August IST and hides outside the window', () => {
-    // 31 Jul 18:30 UTC == 1 Aug 00:00 IST
     expect(isIndependenceDayWindow(new Date('2026-07-31T18:30:00.000Z'))).toBe(true);
-    // Still 31 Jul IST
     expect(isIndependenceDayWindow(new Date('2026-07-31T18:29:59.000Z'))).toBe(false);
     expect(isIndependenceDayWindow(new Date('2026-08-16T00:00:00.000Z'))).toBe(false);
     expect(isIndependenceDayWindow(new Date('2026-08-01T00:00:00.000Z'))).toBe(true);
+  });
+});
+
+describe('brandIconFor', () => {
+  it('returns Tiranga brand icon during the window', () => {
+    expect(brandIconFor(new Date('2026-08-13T12:00:00.000Z'))).toBe('/icons/tiranga-brand-48.png');
+  });
+
+  it('returns default brand icon after the window', () => {
+    expect(brandIconFor(new Date('2026-08-16T00:00:00.000Z'))).toBe('/icons/brand-48.png');
   });
 });

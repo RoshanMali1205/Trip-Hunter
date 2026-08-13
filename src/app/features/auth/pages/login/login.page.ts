@@ -10,14 +10,14 @@ import {
   validateAvatarFile,
 } from '../../../../core/auth/auth.service';
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
-import { IndependenceDayBadgeComponent } from '../../../../shared/components/independence-day-badge/independence-day-badge.component';
+import { brandIconFor } from '../../../../core/theme/seasonal-icons';
 
 type AuthPanel = 'signin' | 'signup';
 
 @Component({
   selector: 'app-login-page',
   standalone: true,
-  imports: [ReactiveFormsModule, MatIconModule, ButtonComponent, IndependenceDayBadgeComponent],
+  imports: [ReactiveFormsModule, MatIconModule, ButtonComponent],
   templateUrl: './login.page.html',
   styleUrl: './login.page.scss',
 })
@@ -26,6 +26,7 @@ export class LoginPage {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
 
+  readonly brandIcon = brandIconFor();
   readonly panel = signal<AuthPanel>('signin');
   readonly error = signal('');
   readonly info = signal('');
