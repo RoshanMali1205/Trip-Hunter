@@ -5,7 +5,7 @@
       <p>{{ unread() }} unread · {{ pendingInvites().length }} pending invite(s)</p>
     </div>
     @if (unread() > 0) {
-      <button class="link-btn" type="button" (click)="markAll()">Mark all read</button>
+      <app-button variant="link" (click)="markAll()">Mark all read</app-button>
     }
   </header>
 
@@ -21,23 +21,29 @@
               <p>{{ invite.destination || 'Destination TBD' }} · role {{ invite.role }}</p>
             </div>
             <div class="invite-actions">
-              <a class="ghost-link" [routerLink]="['/trips', invite.tripId, 'members']">View</a>
-              <button
-                type="button"
-                class="btn primary"
+              <app-button
+                variant="ghost"
+                size="sm"
+                [routerLink]="['/trips', invite.tripId, 'members']"
+              >
+                View
+              </app-button>
+              <app-button
+                size="sm"
                 [disabled]="respondingId() === invite.tripId"
+                [loading]="respondingId() === invite.tripId"
                 (click)="respond(invite.tripId, 'accepted')"
               >
                 Accept
-              </button>
-              <button
-                type="button"
-                class="btn ghost"
+              </app-button>
+              <app-button
+                variant="secondary"
+                size="sm"
                 [disabled]="respondingId() === invite.tripId"
                 (click)="respond(invite.tripId, 'declined')"
               >
                 Decline
-              </button>
+              </app-button>
             </div>
           </article>
         }

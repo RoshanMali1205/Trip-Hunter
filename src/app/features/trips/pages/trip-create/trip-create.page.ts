@@ -5,13 +5,14 @@ import { MatIconModule } from '@angular/material/icon';
 import { TripStore } from '../../../../core/services/trip.store';
 import { TripType } from '../../../../core/models/trip.model';
 import { lsGet, lsRemove, lsSet } from '../../../../core/services/local-storage.service';
+import { ButtonComponent } from '../../../../shared/components/button/button.component';
 
 const DRAFT_KEY = 'trip-create-draft';
 
 @Component({
   selector: 'app-trip-create-page',
   standalone: true,
-  imports: [ReactiveFormsModule, MatIconModule, RouterLink],
+  imports: [ReactiveFormsModule, MatIconModule, RouterLink, ButtonComponent],
   templateUrl: './trip-create.page.html',
   styleUrl: './trip-create.page.scss',
 })

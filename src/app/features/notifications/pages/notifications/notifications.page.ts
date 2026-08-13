@@ -3,11 +3,12 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { TripStore } from '../../../../core/services/trip.store';
+import { ButtonComponent } from '../../../../shared/components/button/button.component';
 
 @Component({
   selector: 'app-notifications-page',
   standalone: true,
-  imports: [MatIconModule, DatePipe, RouterLink],
+  imports: [MatIconModule, DatePipe, RouterLink, ButtonComponent],
   templateUrl: './notifications.page.html',
   styleUrl: './notifications.page.scss',
 })

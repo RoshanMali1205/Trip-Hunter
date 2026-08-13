@@ -5,11 +5,12 @@ import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { TripStore } from '../../../../core/services/trip.store';
 import { StatusLabelPipe } from '../../../../shared/pipes/format.pipe';
+import { ButtonComponent } from '../../../../shared/components/button/button.component';
 
 @Component({
   selector: 'app-trip-list-page',
   standalone: true,
-  imports: [RouterLink, FormsModule, DatePipe, StatusLabelPipe],
+  imports: [RouterLink, FormsModule, DatePipe, StatusLabelPipe, ButtonComponent],
   templateUrl: './trip-list.page.html',
   styleUrl: './trip-list.page.scss',
 })
