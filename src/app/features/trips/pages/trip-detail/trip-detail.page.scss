@@ -22,6 +22,20 @@
   align-items: flex-start;
 }
 
+.detail__heading {
+  min-width: 0;
+  flex: 1;
+}
+
+.detail__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
 .title-line {
   display: flex;
   flex-wrap: wrap;
@@ -38,6 +52,42 @@
   margin: 0.55rem 0 0;
   color: var(--th-text-secondary);
   font-size: 0.92rem;
+}
+
+.detail__delete {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  height: 40px;
+  padding: 0 1rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--th-error) 35%, white);
+  background: color-mix(in srgb, var(--th-error) 8%, white);
+  color: var(--th-error);
+  font-weight: 700;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+
+  &:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--th-error) 14%, white);
+    border-color: color-mix(in srgb, var(--th-error) 55%, white);
+    box-shadow: 0 8px 18px rgba(220, 38, 38, 0.12);
+  }
+
+  &:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+  }
 }
 
 .avatars {
@@ -70,18 +120,18 @@
 
 .detail__tabs {
   display: flex;
-  gap: 0.15rem;
-  overflow-x: auto;
+  flex-wrap: wrap;
+  gap: 0.15rem 0.05rem;
   border-bottom: 1px solid var(--th-border);
   margin-bottom: 1.25rem;
-  scrollbar-width: thin;
+  overflow: visible;
 
   a {
     white-space: nowrap;
-    padding: 0.75rem 0.9rem;
+    padding: 0.7rem 0.85rem;
     color: var(--th-text-muted);
     font-weight: 650;
-    font-size: 0.92rem;
+    font-size: 0.9rem;
     border-bottom: 2px solid transparent;
     margin-bottom: -1px;
 
@@ -97,11 +147,29 @@
 }
 
 @media (max-width: 759px) {
+  .detail__title-row {
+    flex-direction: column;
+  }
+
+  .detail__actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
   .avatars {
     display: none;
   }
 
+  .detail__delete {
+    margin-left: auto;
+  }
+
   .title-line .th-pill {
     display: none;
+  }
+
+  .detail__tabs a {
+    padding: 0.55rem 0.65rem;
+    font-size: 0.84rem;
   }
 }
