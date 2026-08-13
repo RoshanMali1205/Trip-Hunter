@@ -1,43 +1,48 @@
 :root {
-  /* Horizon — travel marketplace (Agoda/Goibibo energy, not a copy) */
-  --th-primary: #0f766e;
-  --th-primary-dark: #0d5c56;
-  --th-primary-light: #14b8a6;
-  --th-accent: #f97316;
-  --th-accent-soft: #ffedd5;
-  --th-success: #059669;
-  --th-warning: #d97706;
+  /* Wander — travel product UI inspired by modern OTAs (orange energy, light canvas) */
+  --th-primary: #ff6a1a;
+  --th-primary-dark: #e85a0f;
+  --th-primary-light: #ff8a4c;
+  --th-accent: #ff6a1a;
+  --th-accent-soft: #fff1e8;
+  --th-success: #16a34a;
+  --th-warning: #ca8a04;
   --th-error: #dc2626;
-  --th-info: #0284c7;
+  --th-info: #0ea5e9;
 
-  --th-bg: #eef6f8;
+  /* Soft warm-white canvas (not cream #F4F1EA) */
+  --th-bg: #f7f8fc;
   --th-bg-elevated: #ffffff;
   --th-surface: #ffffff;
-  --th-surface-muted: #f1f5f9;
-  --th-border: #d8e4ea;
-  --th-border-strong: #b6c9d2;
+  --th-surface-muted: #f1f3f8;
+  --th-border: #e6e9f0;
+  --th-border-strong: #c5cad6;
 
-  --th-text: #0f172a;
-  --th-text-secondary: #475569;
-  --th-text-muted: #64748b;
+  --th-text: #14181f;
+  --th-text-secondary: #4b5563;
+  --th-text-muted: #6b7280;
   --th-text-inverse: #ffffff;
 
   --th-sidebar-width: 260px;
   --th-header-height: 64px;
   --th-radius-sm: 10px;
-  --th-radius: 14px;
-  --th-radius-lg: 22px;
-  --th-shadow: 0 18px 40px rgba(15, 55, 70, 0.12);
-  --th-shadow-sm: 0 8px 22px rgba(15, 55, 70, 0.08);
+  --th-radius: 16px;
+  --th-radius-lg: 24px;
+  --th-shadow: 0 20px 44px rgba(20, 24, 31, 0.1);
+  --th-shadow-sm: 0 10px 24px rgba(20, 24, 31, 0.06);
 
   --th-font-display: 'Sora', system-ui, sans-serif;
   --th-font-body: 'Manrope', system-ui, sans-serif;
 
-  --th-gradient-hero: linear-gradient(135deg, #0f766e 0%, #0e7490 42%, #f97316 160%);
+  --th-gradient-hero: linear-gradient(
+    120deg,
+    rgba(15, 18, 28, 0.55) 0%,
+    rgba(15, 18, 28, 0.25) 45%,
+    rgba(255, 106, 26, 0.35) 100%
+  );
   --th-gradient-page:
-    radial-gradient(ellipse 90% 55% at 8% -10%, rgba(20, 184, 166, 0.22), transparent 55%),
-    radial-gradient(ellipse 70% 45% at 100% 0%, rgba(249, 115, 22, 0.14), transparent 50%),
-    radial-gradient(ellipse 50% 40% at 70% 100%, rgba(14, 116, 144, 0.1), transparent 55%),
-    linear-gradient(180deg, #eef6f8 0%, #f7fafb 48%, #eef4f6 100%);
-  --th-pattern: url("data:image/svg+xml,%3Csvg width='64' height='64' viewBox='0 0 64 64' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%230f766e' fill-opacity='0.045'%3E%3Cpath d='M32 6l2.2 6.6H41l-5.4 4 2.1 6.6L32 19.4l-5.7 3.8 2.1-6.6-5.4-4h6.8z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    radial-gradient(ellipse 80% 50% at 0% 0%, rgba(255, 106, 26, 0.12), transparent 55%),
+    radial-gradient(ellipse 60% 40% at 100% 0%, rgba(14, 165, 233, 0.08), transparent 50%),
+    linear-gradient(180deg, #f7f8fc 0%, #f3f5fa 55%, #eef1f7 100%);
+  --th-pattern: url("data:image/svg+xml,%3Csvg width='72' height='72' viewBox='0 0 72 72' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ff6a1a' fill-opacity='0.035'%3E%3Ccircle cx='6' cy='6' r='2'/%3E%3Ccircle cx='42' cy='30' r='1.5'/%3E%3Ccircle cx='66' cy='58' r='2'/%3E%3C/g%3E%3C/svg%3E");
 }
