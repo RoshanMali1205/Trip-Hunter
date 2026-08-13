@@ -4,10 +4,11 @@ import { PwaInstallService } from './core/pwa/pwa-install.service';
 import { PwaUpdateService } from './core/pwa/pwa-update.service';
 import { ThemeService } from './core/theme/theme.service';
 import { ButtonComponent } from './shared/components/button/button.component';
+import { ToastHostComponent } from './shared/components/toast-host/toast-host.component';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, ButtonComponent],
+  imports: [RouterOutlet, ButtonComponent, ToastHostComponent],
   template: `
     @if (updates.updateAvailable()) {
       <div class="pwa-banner pwa-banner--update" role="status">
@@ -28,6 +29,7 @@ import { ButtonComponent } from './shared/components/button/button.component';
       </div>
     }
     <router-outlet />
+    <app-toast-host />
   `,
   styles: [
     `
