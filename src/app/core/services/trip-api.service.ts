@@ -160,6 +160,15 @@ export interface InviteMemberPayload {
   role?: 'organizer' | 'traveler' | 'viewer';
 }
 
+export interface ApiPendingInvite {
+  tripId: string;
+  tripName: string;
+  destination: string;
+  role: 'organizer' | 'traveler' | 'viewer';
+  rsvpStatus: 'pending' | 'accepted' | 'declined' | 'maybe';
+  invitedAt: string;
+}
+
 export interface CreateItineraryItemPayload {
   title: string;
   description?: string;
@@ -235,6 +244,12 @@ export class TripApiService {
   respondToInvite(tripId: string, rsvpStatus: ApiTripMember['rsvpStatus']): Observable<ApiTripMember> {
     return this.http
       .patch<ApiEnvelope<ApiTripMember>>(`${this.base}/${tripId}/members/me`, { rsvpStatus })
+      .pipe(map((res) => res.data));
+  }
+
+  myInvites(): Observable<ApiPendingInvite[]> {
+    return this.http
+      .get<ApiEnvelope<ApiPendingInvite[]>>(`${getAppConfig().apiBaseUrl}/me/invites`)
       .pipe(map((res) => res.data));
   }
 

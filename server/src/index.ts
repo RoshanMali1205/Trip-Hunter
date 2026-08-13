@@ -19,6 +19,7 @@ import {
 import {
   inviteMember,
   listMembers,
+  listMyInvites,
   respondToInvite,
 } from './modules/members/member.controller.js';
 import {
@@ -84,6 +85,7 @@ export function createApp() {
   v1.get('/me', authenticate, (req, res) => {
     res.json(ok(req.user, 'Current user'));
   });
+  v1.get('/me/invites', authenticate, listMyInvites);
 
   v1.get('/trips', authenticate, listTrips);
   v1.get('/trips/:id', authenticate, getTrip);

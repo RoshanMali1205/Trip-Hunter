@@ -235,6 +235,56 @@ export class TripRepository {
     return attachActualSpend(db, ((data ?? []) as TripRow[]).map(mapRow));
   }
 
+  /** Org trips plus any trip the user was invited to / joined as a member. */
+  async findVisibleToUser(userId: string, organizationId?: string): Promise<Trip[]> {
+    if (assertDbOrMock() === 'memory') {
+      if (organizationId) {
+        return memoryTrips.filter((t) => t.organizationId === organizationId);
+      }
+      return [...memoryTrips];
+    }
+
+    const db = getSupabaseAdmin();
+    const byId = new Map<string, TripRow>();
+
+    if (organizationId) {
+      const { data, error } = await db
+        .from('trips')
+        .select(TRIP_SELECT)
+        .eq('organization_id', organizationId)
+        .order('created_at', { ascending: false });
+      if (error) throw new AppError(502, 'DB_ERROR', error.message);
+      for (const row of (data ?? []) as TripRow[]) byId.set(row.id, row);
+    }
+
+    const { data: memberships, error: membershipError } = await db
+      .from('trip_members')
+      .select('trip_id')
+      .eq('user_id', userId);
+
+    if (membershipError) {
+      throw new AppError(502, 'DB_ERROR', membershipError.message);
+    }
+
+    const memberTripIds = (memberships ?? [])
+      .map((row) => String((row as { trip_id: string }).trip_id))
+      .filter((id) => id && !byId.has(id));
+
+    if (memberTripIds.length > 0) {
+      const { data, error } = await db
+        .from('trips')
+        .select(TRIP_SELECT)
+        .in('id', memberTripIds);
+      if (error) throw new AppError(502, 'DB_ERROR', error.message);
+      for (const row of (data ?? []) as TripRow[]) byId.set(row.id, row);
+    }
+
+    const trips = [...byId.values()].sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+    );
+    return attachActualSpend(db, trips.map(mapRow));
+  }
+
   async create(input: CreateTripInput): Promise<Trip> {
     if (assertDbOrMock() === 'memory') {
       const trip: Trip = {
@@ -299,6 +349,21 @@ export class TripRepository {
         throw new AppError(502, 'DB_ERROR', budgetError.message);
       }
       budgetCents = Number(budgetRow?.total_cents ?? 0);
+    }
+
+    if (input.createdBy) {
+      const { error: memberError } = await db.from('trip_members').upsert(
+        {
+          trip_id: row.id,
+          user_id: input.createdBy,
+          role: 'organizer',
+          rsvp_status: 'accepted',
+        },
+        { onConflict: 'trip_id,user_id' },
+      );
+      if (memberError) {
+        console.warn('Failed to add trip creator as member', memberError.message);
+      }
     }
 
     return mapRow({ ...row, budgets: [{ total_cents: budgetCents }] });

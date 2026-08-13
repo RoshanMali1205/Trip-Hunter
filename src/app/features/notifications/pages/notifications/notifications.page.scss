@@ -8,6 +8,71 @@
   cursor: pointer;
 }
 
+.invite-section {
+  margin-bottom: 1.25rem;
+
+  h2 {
+    margin: 0 0 0.25rem;
+    font-size: 1.15rem;
+  }
+}
+
+.invite-sub {
+  margin: 0 0 0.85rem;
+  color: var(--th-text-secondary);
+}
+
+.invite-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.invite-card {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+  justify-content: space-between;
+  align-items: center;
+
+  p {
+    margin: 0.25rem 0 0;
+    color: var(--th-text-secondary);
+  }
+}
+
+.invite-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.btn {
+  height: 36px;
+  padding: 0 0.9rem;
+  border-radius: 999px;
+  font-weight: 700;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+
+.btn.primary {
+  background: var(--th-primary);
+  color: white;
+}
+
+.btn.ghost {
+  background: white;
+  border-color: var(--th-border-strong);
+  color: var(--th-text-secondary);
+}
+
+.ghost-link {
+  color: var(--th-primary-dark);
+  font-weight: 650;
+  margin-right: 0.25rem;
+}
+
 ul {
   list-style: none;
   margin: 0;
@@ -32,6 +97,11 @@ li.unread {
   background: color-mix(in srgb, var(--th-primary) 10%, transparent);
 }
 
+li.empty {
+  cursor: default;
+  color: var(--th-text-muted);
+}
+
 p {
   margin: 0.2rem 0;
   color: var(--th-text-secondary);
@@ -40,4 +110,11 @@ p {
 span {
   font-size: 0.8rem;
   color: var(--th-text-muted);
+}
+
+.open-link {
+  display: inline-block;
+  margin-top: 0.35rem;
+  font-weight: 700;
+  color: var(--th-primary-dark);
 }

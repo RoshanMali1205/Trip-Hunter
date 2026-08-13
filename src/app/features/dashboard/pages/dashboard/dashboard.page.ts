@@ -23,8 +23,10 @@ export class DashboardPage {
 
   readonly user = this.auth.user;
   readonly summary = computed(() => this.store.getDashboard());
+  readonly pendingInvites = computed(() => this.store.getPendingInvites());
   readonly search = signal('');
   readonly category = signal<TripCategory>('all');
+  readonly respondingId = signal<string | null>(null);
 
   readonly initials = computed(() => {
     const u = this.user();
@@ -117,6 +119,15 @@ export class DashboardPage {
 
   setCategory(id: TripCategory): void {
     this.category.set(id);
+  }
+
+  async respondToInvite(tripId: string, status: 'accepted' | 'declined'): Promise<void> {
+    this.respondingId.set(tripId);
+    try {
+      await this.store.respondToInvite(tripId, status);
+    } finally {
+      this.respondingId.set(null);
+    }
   }
 
   coverStyle(url?: string): string {

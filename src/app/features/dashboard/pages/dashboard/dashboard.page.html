@@ -90,6 +90,47 @@
     </article>
   </div>
 
+  @if (pendingInvites().length) {
+    <section class="invite-panel">
+      <div class="section-head">
+        <div>
+          <h2>Invites for you</h2>
+          <p>Someone invited you — accept to join, or decline.</p>
+        </div>
+        <a routerLink="/notifications">All notifications</a>
+      </div>
+      <div class="invite-grid">
+        @for (invite of pendingInvites(); track invite.tripId) {
+          <article class="invite-card">
+            <div>
+              <strong>{{ invite.tripName }}</strong>
+              <p>{{ invite.destination || 'Destination TBD' }}</p>
+            </div>
+            <div class="invite-card__actions">
+              <a [routerLink]="['/trips', invite.tripId, 'members']">Open</a>
+              <button
+                type="button"
+                class="btn primary"
+                [disabled]="respondingId() === invite.tripId"
+                (click)="respondToInvite(invite.tripId, 'accepted')"
+              >
+                Accept
+              </button>
+              <button
+                type="button"
+                class="btn ghost"
+                [disabled]="respondingId() === invite.tripId"
+                (click)="respondToInvite(invite.tripId, 'declined')"
+              >
+                Decline
+              </button>
+            </div>
+          </article>
+        }
+      </div>
+    </section>
+  }
+
   <div class="section-head">
     <div>
       <h2>Upcoming trips</h2>

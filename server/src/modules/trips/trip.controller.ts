@@ -8,7 +8,8 @@ const tripService = new TripService();
 export const listTrips: RequestHandler = async (req, res, next) => {
   try {
     const organizationId = req.user?.organizationId || undefined;
-    const trips = await tripService.listTrips(organizationId);
+    const userId = req.user?.id;
+    const trips = await tripService.listTrips(organizationId, userId);
     res.json(ok(trips, 'Trips retrieved successfully'));
   } catch (err) {
     next(err);
