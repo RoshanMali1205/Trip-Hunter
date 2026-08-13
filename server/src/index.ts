@@ -47,6 +47,7 @@ import {
   markAllNotificationsRead,
   markNotificationRead,
 } from './modules/notifications/notification.controller.js';
+import { chatWithAdvisor, getAdvisorInfo } from './modules/advisor/advisor.controller.js';
 import { ok } from './types/api.js';
 
 // Safe to import from Netlify Functions (no import.meta / listen side effects).
@@ -117,6 +118,9 @@ export function createApp() {
   v1.get('/notifications', authenticate, listNotifications);
   v1.patch('/notifications/:id/read', authenticate, markNotificationRead);
   v1.post('/notifications/read-all', authenticate, markAllNotificationsRead);
+
+  v1.get('/advisor', authenticate, getAdvisorInfo);
+  v1.post('/advisor/chat', authenticate, chatWithAdvisor);
 
   app.use('/api/v1', v1);
   app.use(notFoundHandler);

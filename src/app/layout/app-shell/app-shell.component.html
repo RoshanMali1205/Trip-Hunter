@@ -85,6 +85,8 @@
     <router-outlet />
   </main>
 
+  <app-trip-advisor />
+
   <nav class="shell__mobile-nav" aria-label="Mobile">
     @for (item of mobileNav; track item.path) {
       <a [routerLink]="item.path" routerLinkActive="is-active" [class.shell__fab]="item.label === 'Create'">

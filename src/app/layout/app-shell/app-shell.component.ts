@@ -5,6 +5,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { AuthService } from '../../core/auth/auth.service';
 import { TripStore } from '../../core/services/trip.store';
 import { ThemeService } from '../../core/theme/theme.service';
+import { TripAdvisorComponent } from '../../shared/components/trip-advisor/trip-advisor.component';
 
 interface NavItem {
   label: string;
@@ -15,7 +16,14 @@ interface NavItem {
 @Component({
   selector: 'app-shell',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, MatIconModule, MatTooltipModule],
+  imports: [
+    RouterOutlet,
+    RouterLink,
+    RouterLinkActive,
+    MatIconModule,
+    MatTooltipModule,
+    TripAdvisorComponent,
+  ],
   templateUrl: './app-shell.component.html',
   styleUrl: './app-shell.component.scss',
 })
