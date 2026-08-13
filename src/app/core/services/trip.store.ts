@@ -1,4 +1,5 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
 import {
   AvailabilityOption,
   Booking,
@@ -9,6 +10,7 @@ import {
   ItineraryDay,
   Trip,
   TripMember,
+  TripStatus,
   TripTask,
   AppNotification,
 } from '../models/trip.model';
@@ -22,33 +24,43 @@ import {
   MOCK_MEMBERS,
   MOCK_NOTIFICATIONS,
   MOCK_TASKS,
-  MOCK_TRIPS,
 } from '../data/mock-data';
+import { AuthService } from '../auth/auth.service';
+import { ApiTrip, ApiTripStatus, CreateTripPayload, TripApiService } from './trip-api.service';
 import { lsGet, lsSet } from './local-storage.service';
 
-const TRIPS_KEY = 'trips';
 const NOTIF_KEY = 'notifications';
 const TASKS_KEY = 'tasks';
 const SEED_KEY = 'seed-version';
-const SEED_VERSION = 2;
+const SEED_VERSION = 3;
 
 function loadSeeded<T>(key: string, seed: T): T {
   const version = lsGet<number>(SEED_KEY, 0);
   if (version < SEED_VERSION) {
-    lsSet(TRIPS_KEY, MOCK_TRIPS);
     lsSet(NOTIF_KEY, MOCK_NOTIFICATIONS);
     lsSet(TASKS_KEY, MOCK_TASKS);
     lsSet(SEED_KEY, SEED_VERSION);
-    if (key === TRIPS_KEY) return MOCK_TRIPS as T;
     if (key === NOTIF_KEY) return MOCK_NOTIFICATIONS as T;
     if (key === TASKS_KEY) return MOCK_TASKS as T;
   }
   return lsGet(key, seed);
 }
 
+const API_STATUS_TO_TRIP_STATUS: Record<ApiTripStatus, TripStatus> = {
+  draft: 'DRAFT',
+  planning: 'PLANNING',
+  confirmed: 'UPCOMING',
+  in_progress: 'IN_PROGRESS',
+  completed: 'COMPLETED',
+  cancelled: 'CANCELLED',
+};
+
 @Injectable({ providedIn: 'root' })
 export class TripStore {
-  private readonly tripsSignal = signal<Trip[]>(loadSeeded(TRIPS_KEY, MOCK_TRIPS));
+  private readonly tripApi = inject(TripApiService);
+  private readonly auth = inject(AuthService);
+
+  private readonly tripsSignal = signal<Trip[]>([]);
   private readonly notificationsSignal = signal<AppNotification[]>(
     loadSeeded(NOTIF_KEY, MOCK_NOTIFICATIONS),
   );
@@ -61,8 +73,49 @@ export class TripStore {
     this.tripsSignal().filter((t) => !['COMPLETED', 'CANCELLED', 'ARCHIVED'].includes(t.status)),
   );
 
-  private persistTrips(): void {
-    lsSet(TRIPS_KEY, this.tripsSignal());
+  constructor() {
+    void this.loadTrips();
+  }
+
+  private mapApiTrip(api: ApiTrip): Trip {
+    const currentUser = this.auth.user();
+    const organizerName =
+      api.createdBy && currentUser?.id === api.createdBy
+        ? `${currentUser.firstName} ${currentUser.lastName}`.trim()
+        : 'Team member';
+
+    return {
+      id: api.id,
+      organizationId: api.organizationId,
+      title: api.name,
+      description: api.description,
+      tripType: 'TEAM_OUTING',
+      startDate: api.startDate,
+      endDate: api.endDate,
+      origin: '',
+      destination: api.destination,
+      status: API_STATUS_TO_TRIP_STATUS[api.status],
+      approvalStatus: 'NOT_REQUIRED',
+      currency: api.currency,
+      estimatedBudget: api.budgetCents / 100,
+      actualBudget: 0,
+      maxMembers: 20,
+      memberCount: 1,
+      organizerId: api.createdBy ?? '',
+      organizerName,
+      createdAt: api.createdAt,
+      updatedAt: api.updatedAt,
+    };
+  }
+
+  async loadTrips(): Promise<void> {
+    this.loadingSignal.set(true);
+    try {
+      const apiTrips = await firstValueFrom(this.tripApi.list());
+      this.tripsSignal.set(apiTrips.map((t) => this.mapApiTrip(t)));
+    } finally {
+      this.loadingSignal.set(false);
+    }
   }
 
   private persistNotifications(): void {
@@ -77,31 +130,19 @@ export class TripStore {
     return this.tripsSignal().find((t) => t.id === id);
   }
 
-  createTrip(partial: Partial<Trip>): Trip {
-    const trip: Trip = {
-      id: `trip-${Date.now()}`,
-      organizationId: 'org-1',
-      title: partial.title || 'Untitled trip',
+  async createTrip(partial: Partial<Trip>): Promise<Trip> {
+    const payload: CreateTripPayload = {
+      name: partial.title || 'Untitled trip',
       description: partial.description || '',
-      tripType: partial.tripType || 'TEAM_OUTING',
+      destination: partial.destination || '',
       startDate: partial.startDate ?? null,
       endDate: partial.endDate ?? null,
-      origin: partial.origin || '',
-      destination: partial.destination || '',
-      status: 'DRAFT',
-      approvalStatus: partial.approvalStatus || 'NOT_REQUIRED',
       currency: partial.currency || 'INR',
-      estimatedBudget: partial.estimatedBudget || 0,
-      actualBudget: 0,
-      maxMembers: partial.maxMembers || 20,
-      memberCount: partial.memberCount || 1,
-      organizerId: 'user-roshan',
-      organizerName: 'Roshan Deshmukh',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      budgetCents: Math.round((partial.estimatedBudget || 0) * 100),
     };
+    const apiTrip = await firstValueFrom(this.tripApi.create(payload));
+    const trip = this.mapApiTrip(apiTrip);
     this.tripsSignal.update((list) => [trip, ...list]);
-    this.persistTrips();
     return trip;
   }
 

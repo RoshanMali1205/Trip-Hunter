@@ -1,4 +1,8 @@
-@if (trip(); as t) {
+@if (loading()) {
+  <section class="th-page">
+    <div class="th-panel">Loading trip…</div>
+  </section>
+} @else if (trip(); as t) {
   <section class="th-page detail">
     <nav class="crumbs">
       <a routerLink="/trips">My Trips</a>

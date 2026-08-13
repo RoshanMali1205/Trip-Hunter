@@ -2,6 +2,7 @@ import { DatePipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { AuthService } from '../../../../core/auth/auth.service';
 import { TripStore } from '../../../../core/services/trip.store';
 import { StatusLabelPipe } from '../../../../shared/pipes/format.pipe';
 
@@ -14,6 +15,7 @@ import { StatusLabelPipe } from '../../../../shared/pipes/format.pipe';
 })
 export class TripListPage {
   private readonly store = inject(TripStore);
+  private readonly auth = inject(AuthService);
 
   readonly search = signal('');
   readonly filter = signal<'all' | 'upcoming' | 'planning' | 'completed' | 'mine'>('all');
@@ -43,7 +45,8 @@ export class TripListPage {
     } else if (filter === 'completed') {
       list = list.filter((t) => t.status === 'COMPLETED');
     } else if (filter === 'mine') {
-      list = list.filter((t) => t.organizerId === 'user-roshan');
+      const userId = this.auth.user()?.id;
+      list = list.filter((t) => t.organizerId === userId);
     }
 
     return list;

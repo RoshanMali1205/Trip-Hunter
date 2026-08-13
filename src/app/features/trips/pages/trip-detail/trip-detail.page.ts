@@ -29,6 +29,7 @@ export class TripDetailPage {
     { initialValue: '' },
   );
 
+  readonly loading = this.store.loading;
   readonly trip = computed(() => this.store.getById(this.tripId()));
   readonly members = computed(() => this.store.getMembers(this.tripId()));
   readonly memberPreview = computed(() => this.members().slice(0, 4));

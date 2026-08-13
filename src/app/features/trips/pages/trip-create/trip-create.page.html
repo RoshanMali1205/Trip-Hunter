@@ -108,6 +108,10 @@
       }
     }
 
+    @if (error()) {
+      <p class="hint" style="color: #dc2626">{{ error() }}</p>
+    }
+
     <div class="actions">
       @if (step() === 0) {
         <a class="btn ghost" routerLink="/trips">Cancel</a>

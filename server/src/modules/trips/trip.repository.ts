@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { allowMockData } from '../../config/env.js';
 import {
   getSupabaseAdmin,
@@ -28,6 +29,18 @@ export interface Trip {
   createdBy: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface CreateTripInput {
+  organizationId: string;
+  name: string;
+  description: string;
+  destination: string;
+  startDate: string | null;
+  endDate: string | null;
+  currency: string;
+  budgetCents: number;
+  createdBy: string | null;
 }
 
 interface TripRow {
@@ -179,5 +192,73 @@ export class TripRepository {
     }
 
     return ((data ?? []) as TripRow[]).map(mapRow);
+  }
+
+  async create(input: CreateTripInput): Promise<Trip> {
+    if (assertDbOrMock() === 'memory') {
+      const trip: Trip = {
+        id: randomUUID(),
+        organizationId: input.organizationId,
+        teamId: null,
+        name: input.name,
+        description: input.description,
+        destination: input.destination,
+        status: 'draft',
+        startDate: input.startDate,
+        endDate: input.endDate,
+        budgetCents: input.budgetCents,
+        currency: input.currency,
+        createdBy: input.createdBy,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      memoryTrips.unshift(trip);
+      return trip;
+    }
+
+    const db = getSupabaseAdmin();
+
+    const { data, error } = await db
+      .from('trips')
+      .insert({
+        organization_id: input.organizationId,
+        name: input.name,
+        description: input.description || null,
+        destination_summary: input.destination || null,
+        start_date: input.startDate,
+        end_date: input.endDate,
+        currency: input.currency,
+        created_by: input.createdBy,
+      })
+      .select(
+        'id, organization_id, team_id, name, description, destination_summary, status, start_date, end_date, currency, created_by, created_at, updated_at',
+      )
+      .single();
+
+    if (error) {
+      throw new AppError(502, 'DB_ERROR', error.message);
+    }
+
+    const row = data as TripRow;
+    let budgetCents = 0;
+
+    if (input.budgetCents > 0) {
+      const { data: budgetRow, error: budgetError } = await db
+        .from('budgets')
+        .insert({
+          trip_id: row.id,
+          total_cents: input.budgetCents,
+          currency: input.currency,
+        })
+        .select('total_cents')
+        .single();
+
+      if (budgetError) {
+        throw new AppError(502, 'DB_ERROR', budgetError.message);
+      }
+      budgetCents = Number(budgetRow?.total_cents ?? 0);
+    }
+
+    return mapRow({ ...row, budgets: [{ total_cents: budgetCents }] });
   }
 }

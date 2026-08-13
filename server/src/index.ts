@@ -11,6 +11,7 @@ import {
   notFoundHandler,
 } from './middleware/error-handler.js';
 import {
+  createTrip,
   getTrip,
   listTrips,
 } from './modules/trips/trip.controller.js';
@@ -55,6 +56,7 @@ export function createApp() {
 
   v1.get('/trips', authenticate, listTrips);
   v1.get('/trips/:id', authenticate, getTrip);
+  v1.post('/trips', authenticate, createTrip);
 
   app.use('/api/v1', v1);
   app.use(notFoundHandler);

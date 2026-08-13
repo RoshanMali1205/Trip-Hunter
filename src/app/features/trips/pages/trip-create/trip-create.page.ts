@@ -83,31 +83,39 @@ export class TripCreatePage {
     this.form.controls.tripType.setValue(type);
   }
 
-  create(): void {
+  readonly error = signal('');
+
+  async create(): Promise<void> {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       this.step.set(0);
       return;
     }
     this.saving.set(true);
+    this.error.set('');
     const v = this.form.getRawValue();
-    const trip = this.store.createTrip({
-      title: v.title,
-      tripType: v.tripType,
-      description: v.description,
-      origin: v.origin,
-      destination: v.destination,
-      startDate: v.startDate || null,
-      endDate: v.endDate || null,
-      maxMembers: v.maxMembers,
-      estimatedBudget: v.estimatedBudget,
-      currency: v.currency,
-      approvalStatus: v.approvalRequired === 'yes' ? 'PENDING' : 'NOT_REQUIRED',
-      memberCount: 1,
-    });
-    lsRemove(DRAFT_KEY);
-    lsRemove(DRAFT_KEY + ':step');
-    this.saving.set(false);
-    void this.router.navigate(['/trips', trip.id]);
+    try {
+      const trip = await this.store.createTrip({
+        title: v.title,
+        tripType: v.tripType,
+        description: v.description,
+        origin: v.origin,
+        destination: v.destination,
+        startDate: v.startDate || null,
+        endDate: v.endDate || null,
+        maxMembers: v.maxMembers,
+        estimatedBudget: v.estimatedBudget,
+        currency: v.currency,
+        approvalStatus: v.approvalRequired === 'yes' ? 'PENDING' : 'NOT_REQUIRED',
+        memberCount: 1,
+      });
+      lsRemove(DRAFT_KEY);
+      lsRemove(DRAFT_KEY + ':step');
+      void this.router.navigate(['/trips', trip.id]);
+    } catch {
+      this.error.set('Could not create the trip. Please try again.');
+    } finally {
+      this.saving.set(false);
+    }
   }
 }
