@@ -153,21 +153,48 @@
   padding: 0.75rem 1rem;
   border-radius: 999px;
   border: 1px solid var(--th-border-strong);
-  background: color-mix(in srgb, var(--th-surface-strong) 75%, transparent);
+  background: var(--th-surface-strong);
+  color: var(--th-text);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
 
   mat-icon {
     color: var(--th-text-muted);
+    flex-shrink: 0;
   }
 
   input {
     flex: 1;
+    min-width: 0;
     border: 0;
     outline: 0;
     background: transparent;
     color: var(--th-text);
+    caret-color: var(--th-text);
+    -webkit-text-fill-color: var(--th-text);
     font-size: 0.98rem;
+    font-weight: 550;
+    -webkit-appearance: none;
+    appearance: none;
+
+    &::placeholder {
+      color: var(--th-text-muted);
+      opacity: 1;
+      -webkit-text-fill-color: var(--th-text-muted);
+      font-weight: 500;
+    }
+
+    &::-webkit-input-placeholder {
+      color: var(--th-text-muted);
+      -webkit-text-fill-color: var(--th-text-muted);
+    }
+
+    &::-webkit-search-decoration,
+    &::-webkit-search-cancel-button,
+    &::-webkit-search-results-button,
+    &::-webkit-search-results-decoration {
+      -webkit-appearance: none;
+    }
   }
 }
 

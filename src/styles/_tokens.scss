@@ -1,4 +1,6 @@
 :root {
+  color-scheme: light;
+
   /* Wander glass — sunset coral + soft teal accents (not purple-default) */
   --th-primary: #ff6a1a;
   --th-primary-dark: #e85a0f;
@@ -79,6 +81,8 @@
 }
 
 :root[data-theme='dark'] {
+  color-scheme: dark;
+
   --th-primary: #ff7a2e;
   --th-primary-dark: #ff9a5c;
   --th-primary-light: #ffb07a;
