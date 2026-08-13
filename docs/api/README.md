@@ -40,7 +40,6 @@ When `SUPABASE_URL` + keys are set, the API validates the JWT with Supabase `aut
 | `GET` | `/api/v1/me` | Yes | Authenticated user |
 | `GET` | `/api/v1/trips` | Yes | Org-scoped trips (Supabase or memory) |
 | `GET` | `/api/v1/trips/:id` | Yes | Single trip |
-
 | `GET` | `/api/v1/advisor` | Yes | Buddy advisor metadata |
 | `POST` | `/api/v1/advisor/chat` | Yes | Gemini India trip chat |
 

@@ -53,17 +53,71 @@ interface GeminiPart {
 interface GeminiResponse {
   candidates?: Array<{
     content?: { parts?: GeminiPart[] };
+    finishReason?: string;
   }>;
-  error?: { message?: string };
+  error?: { message?: string; status?: string; code?: number };
 }
+
+type ChatTurn = { role: 'user' | 'model'; text: string };
 
 function extractText(data: GeminiResponse): string {
   const parts = data.candidates?.[0]?.content?.parts ?? [];
-  const text = parts
+  return parts
     .map((p) => p.text ?? '')
     .join('')
     .trim();
-  return text;
+}
+
+/**
+ * Gemini generateContent requires alternating user/model turns and must
+ * start with a user message. Our UI greeting is a synthetic model bubble —
+ * drop leading model turns and collapse any consecutive same-role messages.
+ */
+function normalizeContents(history: ChatTurn[], message: string) {
+  const turns: ChatTurn[] = [...history, { role: 'user', text: message }];
+  while (turns.length && turns[0].role === 'model') {
+    turns.shift();
+  }
+
+  const merged: ChatTurn[] = [];
+  for (const turn of turns) {
+    const last = merged[merged.length - 1];
+    if (last && last.role === turn.role) {
+      last.text = `${last.text}\n\n${turn.text}`;
+    } else {
+      merged.push({ ...turn });
+    }
+  }
+
+  if (!merged.length || merged[0].role !== 'user') {
+    merged.unshift({ role: 'user', text: message });
+  }
+
+  return merged.map((h) => ({
+    role: h.role,
+    parts: [{ text: h.text }],
+  }));
+}
+
+async function callGemini(apiKey: string, model: string, contents: unknown) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      systemInstruction: {
+        parts: [{ text: SYSTEM_INSTRUCTION }],
+      },
+      contents,
+      generationConfig: {
+        temperature: 0.8,
+        maxOutputTokens: 2048,
+      },
+    }),
+  });
+
+  const data = (await response.json()) as GeminiResponse;
+  return { response, data };
 }
 
 export const getAdvisorInfo: RequestHandler = (_req, res) => {
@@ -97,51 +151,59 @@ export const chatWithAdvisor: RequestHandler = async (req, res, next) => {
       );
     }
 
-    const model = env.GEMINI_MODEL || 'gemini-2.0-flash';
+    const preferred = env.GEMINI_MODEL || 'gemini-2.0-flash';
+    const fallbacks = [preferred, 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-flash-latest'].filter(
+      (m, i, arr) => arr.indexOf(m) === i,
+    );
+
     const { message, history } = parsed.data;
+    const contents = normalizeContents(history, message);
 
-    const contents = [
-      ...history.map((h) => ({
-        role: h.role,
-        parts: [{ text: h.text }],
-      })),
-      { role: 'user' as const, parts: [{ text: message }] },
-    ];
+    let lastDetail = 'Unknown Gemini error';
+    let usedModel = preferred;
+    let reply = '';
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-goog-api-key': apiKey,
-      },
-      body: JSON.stringify({
-        systemInstruction: {
-          parts: [{ text: SYSTEM_INSTRUCTION }],
-        },
-        contents,
-        generationConfig: {
-          temperature: 0.8,
-          maxOutputTokens: 1024,
-        },
-      }),
-    });
+    for (const model of fallbacks) {
+      usedModel = model;
+      try {
+        const { response, data } = await callGemini(apiKey, model, contents);
+        if (!response.ok) {
+          lastDetail = data.error?.message || `Gemini HTTP ${response.status}`;
+          console.error(`[advisor] Gemini error (${model}):`, lastDetail);
+          // Try next model on not-found / unsupported
+          if (response.status === 404 || /not found|not supported/i.test(lastDetail)) {
+            continue;
+          }
+          throw new AppError(502, 'GEMINI_ERROR', `Buddy couldn’t reach Gemini: ${lastDetail}`, lastDetail);
+        }
 
-    const data = (await response.json()) as GeminiResponse;
-    if (!response.ok) {
-      const detail = data.error?.message || `Gemini HTTP ${response.status}`;
-      throw new AppError(502, 'GEMINI_ERROR', 'Buddy couldn’t reach Gemini right now.', detail);
+        reply = extractText(data);
+        if (!reply) {
+          lastDetail = data.candidates?.[0]?.finishReason || 'empty candidates';
+          console.error(`[advisor] Empty Gemini reply (${model}):`, lastDetail);
+          continue;
+        }
+        break;
+      } catch (err) {
+        if (err instanceof AppError) throw err;
+        lastDetail = err instanceof Error ? err.message : String(err);
+        console.error(`[advisor] Fetch failed (${model}):`, lastDetail);
+      }
     }
 
-    const reply = extractText(data);
     if (!reply) {
-      throw new AppError(502, 'GEMINI_EMPTY', 'Buddy returned an empty reply. Try again.');
+      throw new AppError(
+        502,
+        'GEMINI_ERROR',
+        `Buddy couldn’t reach Gemini right now. ${lastDetail}`,
+        lastDetail,
+      );
     }
 
     res.json(
       ok({
         reply,
-        model,
+        model: usedModel,
       }),
     );
   } catch (err) {
