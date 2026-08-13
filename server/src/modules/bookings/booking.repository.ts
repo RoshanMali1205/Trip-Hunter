@@ -41,6 +41,15 @@ const TYPE_MAP: Record<BookingRow['booking_type'], BookingType> = {
   other: 'OTHER',
 };
 
+const TYPE_TO_DB: Record<'FLIGHT' | 'TRAIN' | 'HOTEL' | 'CAB' | 'ACTIVITY' | 'OTHER', BookingRow['booking_type']> = {
+  FLIGHT: 'flight',
+  TRAIN: 'train',
+  HOTEL: 'hotel',
+  CAB: 'car',
+  ACTIVITY: 'activity',
+  OTHER: 'other',
+};
+
 const STATUS_MAP: Record<BookingRow['status'], BookingStatus> = {
   draft: 'PENDING',
   pending: 'PENDING',
@@ -65,6 +74,21 @@ function mapRow(row: BookingRow): Booking {
   };
 }
 
+const BOOKING_SELECT =
+  'id, trip_id, vendor_name, booking_type, confirmation_code, status, amount_cents, currency, starts_at, ends_at';
+
+export interface CreateBookingInput {
+  tripId: string;
+  bookingType: 'FLIGHT' | 'TRAIN' | 'HOTEL' | 'CAB' | 'ACTIVITY' | 'OTHER';
+  provider: string;
+  bookingReference: string;
+  amountCents: number;
+  currency: string;
+  startDatetime: string | null;
+  endDatetime: string | null;
+  createdBy: string | null;
+}
+
 export class BookingRepository {
   async findByTrip(tripId: string): Promise<Booking[]> {
     if (assertDbOrMock('bookings') === 'memory') {
@@ -73,9 +97,7 @@ export class BookingRepository {
 
     const { data, error } = await getSupabaseAdmin()
       .from('bookings')
-      .select(
-        'id, trip_id, vendor_name, booking_type, confirmation_code, status, amount_cents, currency, starts_at, ends_at',
-      )
+      .select(BOOKING_SELECT)
       .eq('trip_id', tripId)
       .order('starts_at', { ascending: true, nullsFirst: false });
 
@@ -84,5 +106,34 @@ export class BookingRepository {
     }
 
     return ((data ?? []) as BookingRow[]).map(mapRow);
+  }
+
+  async create(input: CreateBookingInput): Promise<Booking> {
+    if (assertDbOrMock('bookings') === 'memory') {
+      throw new AppError(503, 'SUPABASE_NOT_CONFIGURED', 'Supabase is required to add bookings');
+    }
+
+    const { data, error } = await getSupabaseAdmin()
+      .from('bookings')
+      .insert({
+        trip_id: input.tripId,
+        booking_type: TYPE_TO_DB[input.bookingType],
+        vendor_name: input.provider,
+        confirmation_code: input.bookingReference || null,
+        status: 'pending',
+        amount_cents: input.amountCents,
+        currency: input.currency,
+        starts_at: input.startDatetime,
+        ends_at: input.endDatetime,
+        created_by: input.createdBy,
+      })
+      .select(BOOKING_SELECT)
+      .single();
+
+    if (error) {
+      throw new AppError(502, 'DB_ERROR', error.message);
+    }
+
+    return mapRow(data as BookingRow);
   }
 }

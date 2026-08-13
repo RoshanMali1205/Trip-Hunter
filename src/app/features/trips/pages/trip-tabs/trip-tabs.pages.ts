@@ -8,7 +8,7 @@ import { AuthService } from '../../../../core/auth/auth.service';
 import { TripStore } from '../../../../core/services/trip.store';
 import { InrCurrencyPipe } from '../../../../shared/pipes/format.pipe';
 import { AvailabilityOption, DestinationOption, TripMember } from '../../../../core/models/trip.model';
-import { ApiItineraryItem, ExpenseCategory } from '../../../../core/services/trip-api.service';
+import { ApiItineraryItem, CreateBookingType, ExpenseCategory } from '../../../../core/services/trip-api.service';
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
 
 function tripIdFromParent(route: ActivatedRoute) {
@@ -1173,11 +1173,53 @@ export class TripItineraryPage {
 @Component({
   selector: 'app-trip-bookings',
   standalone: true,
-  imports: [InrCurrencyPipe],
+  imports: [InrCurrencyPipe, FormsModule, ButtonComponent],
   template: `
     <div class="head">
       <h2>Bookings</h2>
+      <app-button variant="secondary" (click)="showForm.set(!showForm())">Add booking +</app-button>
     </div>
+
+    @if (showForm()) {
+      <form class="th-panel add-form" (ngSubmit)="submit()">
+        <label>
+          Type
+          <select [(ngModel)]="bookingType" name="bookingType">
+            <option value="FLIGHT">Flight</option>
+            <option value="TRAIN">Train</option>
+            <option value="HOTEL">Hotel</option>
+            <option value="CAB">Cab</option>
+            <option value="ACTIVITY">Activity</option>
+            <option value="OTHER">Other</option>
+          </select>
+        </label>
+        <label class="wide">
+          Provider
+          <input type="text" required [(ngModel)]="provider" name="provider" placeholder="Taj Resorts" />
+        </label>
+        <label>
+          Booking reference
+          <input type="text" [(ngModel)]="bookingReference" name="bookingReference" placeholder="Optional" />
+        </label>
+        <label>
+          Amount
+          <input type="number" required min="0" step="0.01" [(ngModel)]="amount" name="amount" />
+        </label>
+        <label>
+          Starts
+          <input type="datetime-local" [(ngModel)]="startDatetime" name="startDatetime" />
+        </label>
+        <label>
+          Ends
+          <input type="datetime-local" [(ngModel)]="endDatetime" name="endDatetime" />
+        </label>
+        <app-button type="submit" [loading]="adding()">Add booking</app-button>
+        @if (addError()) {
+          <p class="add-error">{{ addError() }}</p>
+        }
+      </form>
+    }
+
     <div class="grid">
       @for (b of bookings(); track b.id) {
         <article class="th-panel card">
@@ -1215,14 +1257,37 @@ export class TripItineraryPage {
         margin: 0;
         font-family: var(--th-font-display);
       }
-      .outline-btn {
-        background: transparent;
-        color: var(--th-primary-dark);
-        border: 1px solid var(--th-primary);
-        border-radius: 999px;
-        padding: 0.5rem 0.95rem;
-        font-weight: 650;
-        cursor: pointer;
+      .add-form {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+      }
+      .add-form label {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+        font-size: 0.85rem;
+        color: var(--th-text-secondary);
+      }
+      .add-form label.wide {
+        grid-column: 1 / -1;
+      }
+      .add-form input,
+      .add-form select {
+        padding: 0.6rem 0.75rem;
+        border-radius: var(--th-radius);
+        border: 1px solid var(--th-border);
+        background: var(--th-surface);
+      }
+      .add-form button {
+        align-self: end;
+      }
+      .add-error {
+        margin: 0;
+        color: #dc2626;
+        font-size: 0.85rem;
+        grid-column: 1 / -1;
       }
       .grid {
         display: grid;
@@ -1301,11 +1366,51 @@ export class TripBookingsPage {
   readonly bookings = computed(() => this.store.getBookings(this.tripId()));
   formatWhen = formatDateTime;
 
+  readonly showForm = signal(false);
+  readonly bookingType = signal<CreateBookingType>('HOTEL');
+  readonly provider = signal('');
+  readonly bookingReference = signal('');
+  readonly amount = signal<number | null>(null);
+  readonly startDatetime = signal('');
+  readonly endDatetime = signal('');
+  readonly adding = signal(false);
+  readonly addError = signal('');
+
   constructor() {
     effect(() => {
       const id = this.tripId();
       if (id) void this.store.loadBookings(id);
     });
+  }
+
+  async submit(): Promise<void> {
+    const id = this.tripId();
+    const provider = this.provider().trim();
+    const amount = this.amount();
+    if (!id || !provider || amount === null) return;
+
+    this.adding.set(true);
+    this.addError.set('');
+    try {
+      await this.store.addBooking(id, {
+        bookingType: this.bookingType(),
+        provider,
+        bookingReference: this.bookingReference().trim() || undefined,
+        amount,
+        startDatetime: this.startDatetime() || undefined,
+        endDatetime: this.endDatetime() || undefined,
+      });
+      this.provider.set('');
+      this.bookingReference.set('');
+      this.amount.set(null);
+      this.startDatetime.set('');
+      this.endDatetime.set('');
+      this.showForm.set(false);
+    } catch {
+      this.addError.set('Could not add that booking. Please try again.');
+    } finally {
+      this.adding.set(false);
+    }
   }
 }
 

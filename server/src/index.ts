@@ -30,7 +30,7 @@ import {
   listDestinations,
 } from './modules/planning/planning.controller.js';
 import { createItineraryItem, listItinerary } from './modules/itinerary/itinerary.controller.js';
-import { listBookings } from './modules/bookings/booking.controller.js';
+import { createBooking, listBookings } from './modules/bookings/booking.controller.js';
 import {
   createBudgetCategory,
   listBudgetCategories,
@@ -103,6 +103,7 @@ export function createApp() {
   v1.get('/trips/:tripId/itinerary', authenticate, listItinerary);
   v1.post('/trips/:tripId/itinerary', authenticate, createItineraryItem);
   v1.get('/trips/:tripId/bookings', authenticate, listBookings);
+  v1.post('/trips/:tripId/bookings', authenticate, createBooking);
   v1.get('/trips/:tripId/budget', authenticate, listBudgetCategories);
   v1.post('/trips/:tripId/budget', authenticate, createBudgetCategory);
   v1.patch('/trips/:tripId/budget/:categoryId', authenticate, updateBudgetCategory);

@@ -24,6 +24,7 @@ import {
   ApiTripMember,
   ApiTripStatus,
   ApiTripTask,
+  CreateBookingPayload,
   CreateBudgetCategoryPayload,
   CreateExpensePayload,
   CreateItineraryItemPayload,
@@ -282,6 +283,11 @@ export class TripStore {
   async loadBookings(tripId: string): Promise<void> {
     const bookings = await firstValueFrom(this.tripApi.bookings(tripId));
     this.bookingsByTrip.update((b) => ({ ...b, [tripId]: bookings.map(mapBooking) }));
+  }
+
+  async addBooking(tripId: string, payload: CreateBookingPayload): Promise<void> {
+    await firstValueFrom(this.tripApi.createBooking(tripId, payload));
+    await this.loadBookings(tripId);
   }
 
   getBudget(tripId: string): BudgetCategory[] {

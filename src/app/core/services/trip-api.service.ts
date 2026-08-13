@@ -200,6 +200,18 @@ export interface CreateExpensePayload {
   expenseDate?: string;
 }
 
+export type CreateBookingType = 'FLIGHT' | 'TRAIN' | 'HOTEL' | 'CAB' | 'ACTIVITY' | 'OTHER';
+
+export interface CreateBookingPayload {
+  bookingType: CreateBookingType;
+  provider: string;
+  bookingReference?: string;
+  amount: number;
+  currency?: string;
+  startDatetime?: string;
+  endDatetime?: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class TripApiService {
   private readonly http = inject(HttpClient);
@@ -280,6 +292,12 @@ export class TripApiService {
   bookings(tripId: string): Observable<ApiBooking[]> {
     return this.http
       .get<ApiEnvelope<ApiBooking[]>>(`${this.base}/${tripId}/bookings`)
+      .pipe(map((res) => res.data));
+  }
+
+  createBooking(tripId: string, payload: CreateBookingPayload): Observable<ApiBooking> {
+    return this.http
+      .post<ApiEnvelope<ApiBooking>>(`${this.base}/${tripId}/bookings`, payload)
       .pipe(map((res) => res.data));
   }
 
