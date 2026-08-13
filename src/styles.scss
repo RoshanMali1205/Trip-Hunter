@@ -6,9 +6,9 @@ html {
   @include mat.theme(
     (
       color: (
-        theme-type: dark,
-        primary: mat.$violet-palette,
-        tertiary: mat.$cyan-palette,
+        theme-type: light,
+        primary: mat.$cyan-palette,
+        tertiary: mat.$orange-palette,
       ),
       typography: (
         plain-family: var(--th-font-body),
@@ -26,12 +26,13 @@ html {
 }
 
 body {
-  color-scheme: dark;
+  color-scheme: light;
   margin: 0;
   min-height: 100%;
   font-family: var(--th-font-body);
   color: var(--th-text);
-  background: var(--th-gradient-page);
+  background-color: var(--th-bg);
+  background-image: var(--th-pattern), var(--th-gradient-page);
   background-attachment: fixed;
   -webkit-font-smoothing: antialiased;
 }
@@ -127,8 +128,8 @@ select {
 }
 
 .th-panel {
-  background: color-mix(in srgb, var(--th-surface) 92%, transparent);
-  backdrop-filter: blur(10px);
+  background: color-mix(in srgb, var(--th-surface) 96%, white);
+  backdrop-filter: blur(8px);
   border: 1px solid var(--th-border);
   border-radius: var(--th-radius-lg);
   padding: 1.25rem;
@@ -139,10 +140,10 @@ select {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  padding: 0.25rem 0.75rem;
+  padding: 0.28rem 0.7rem;
   border-radius: 999px;
-  font-size: 0.72rem;
-  font-weight: 700;
+  font-size: 0.7rem;
+  font-weight: 750;
   letter-spacing: 0.03em;
   text-transform: uppercase;
   border: 1px solid transparent;
@@ -154,39 +155,42 @@ select {
 }
 
 .th-status--completed {
-  background: color-mix(in srgb, var(--th-success) 55%, var(--th-bg));
-  color: #eafff2;
+  background: color-mix(in srgb, var(--th-success) 18%, white);
+  color: var(--th-success);
+  border-color: color-mix(in srgb, var(--th-success) 35%, white);
 }
 
 .th-status--planning,
 .th-status--booking,
 .th-status--in_progress {
-  background: var(--th-primary);
-  color: white;
+  background: color-mix(in srgb, var(--th-primary) 14%, white);
+  color: var(--th-primary-dark);
+  border-color: color-mix(in srgb, var(--th-primary) 28%, white);
 }
 
 .th-status--voting {
-  background: transparent;
-  border-color: color-mix(in srgb, var(--th-info) 55%, transparent);
+  background: color-mix(in srgb, var(--th-info) 12%, white);
+  border-color: color-mix(in srgb, var(--th-info) 35%, white);
   color: var(--th-info);
 }
 
 .th-status--pending,
 .th-status--pending_approval {
-  background: transparent;
-  border-color: color-mix(in srgb, var(--th-warning) 55%, transparent);
-  color: var(--th-warning);
+  background: color-mix(in srgb, var(--th-warning) 14%, white);
+  border-color: color-mix(in srgb, var(--th-warning) 35%, white);
+  color: #b45309;
 }
 
 .th-status--rejected,
 .th-status--cancelled {
-  background: color-mix(in srgb, var(--th-error) 55%, var(--th-bg));
-  color: #ffeaea;
+  background: color-mix(in srgb, var(--th-error) 12%, white);
+  color: var(--th-error);
+  border-color: color-mix(in srgb, var(--th-error) 30%, white);
 }
 
 .th-status--draft,
 .th-status--upcoming {
-  background: transparent;
+  background: var(--th-surface-muted);
   border-color: var(--th-border-strong);
   color: var(--th-text-secondary);
 }
@@ -202,7 +206,7 @@ select {
 }
 
 .th-pill--solid {
-  background: var(--th-primary);
+  background: var(--th-accent);
   color: white;
 }
 

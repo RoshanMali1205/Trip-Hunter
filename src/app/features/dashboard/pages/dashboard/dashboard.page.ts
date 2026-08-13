@@ -47,10 +47,16 @@ export class DashboardPage {
 
   readonly inspirationTiles = [
     {
-      label: 'Beach escapes',
-      caption: 'Coastal team outings',
+      label: 'Resort stays',
+      caption: 'Pool decks & team dinners',
       imageUrl:
-        'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=900&q=80',
+        'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=900&q=80',
+    },
+    {
+      label: 'Volvo nights',
+      caption: 'Comfort coaches to the coast',
+      imageUrl:
+        'https://images.unsplash.com/photo-1544620341-1adc1baa1b6c?auto=format&fit=crop&w=900&q=80',
     },
     {
       label: 'Hill retreats',
@@ -59,14 +65,8 @@ export class DashboardPage {
         'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=900&q=80',
     },
     {
-      label: 'City workshops',
-      caption: 'On-site delivery trips',
-      imageUrl:
-        'https://images.unsplash.com/photo-1596176530529-78163a4f7af2?auto=format&fit=crop&w=900&q=80',
-    },
-    {
-      label: 'Palm shores',
-      caption: 'Goa-style bonding days',
+      label: 'Water sports',
+      caption: 'Beach bonding hours',
       imageUrl:
         'https://images.unsplash.com/photo-1519046904884-53103b34b206?auto=format&fit=crop&w=900&q=80',
     },

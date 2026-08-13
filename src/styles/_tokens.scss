@@ -1,40 +1,43 @@
 :root {
-  /* Nocturne — dark indigo/violet system */
-  --th-primary: #7c6cf6;
-  --th-primary-dark: #5b4bd6;
-  --th-primary-light: #a597ff;
-  --th-accent: #3ecfb2;
-  --th-accent-soft: #1f5f52;
-  --th-success: #3ecf8e;
-  --th-warning: #e0a94c;
-  --th-error: #ec6f6f;
-  --th-info: #5aa9e6;
+  /* Horizon — travel marketplace (Agoda/Goibibo energy, not a copy) */
+  --th-primary: #0f766e;
+  --th-primary-dark: #0d5c56;
+  --th-primary-light: #14b8a6;
+  --th-accent: #f97316;
+  --th-accent-soft: #ffedd5;
+  --th-success: #059669;
+  --th-warning: #d97706;
+  --th-error: #dc2626;
+  --th-info: #0284c7;
 
-  --th-bg: #0a0c14;
-  --th-bg-elevated: #12141f;
-  --th-surface: #151827;
-  --th-surface-muted: #1c2032;
-  --th-border: #262b40;
-  --th-border-strong: #383e59;
+  --th-bg: #eef6f8;
+  --th-bg-elevated: #ffffff;
+  --th-surface: #ffffff;
+  --th-surface-muted: #f1f5f9;
+  --th-border: #d8e4ea;
+  --th-border-strong: #b6c9d2;
 
-  --th-text: #eef0fb;
-  --th-text-secondary: #a9adc9;
-  --th-text-muted: #767b9c;
-  --th-text-inverse: #0a0c14;
+  --th-text: #0f172a;
+  --th-text-secondary: #475569;
+  --th-text-muted: #64748b;
+  --th-text-inverse: #ffffff;
 
   --th-sidebar-width: 260px;
   --th-header-height: 64px;
-  --th-radius-sm: 8px;
-  --th-radius: 12px;
-  --th-radius-lg: 20px;
-  --th-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
-  --th-shadow-sm: 0 4px 16px rgba(0, 0, 0, 0.3);
+  --th-radius-sm: 10px;
+  --th-radius: 14px;
+  --th-radius-lg: 22px;
+  --th-shadow: 0 18px 40px rgba(15, 55, 70, 0.12);
+  --th-shadow-sm: 0 8px 22px rgba(15, 55, 70, 0.08);
 
   --th-font-display: 'Sora', system-ui, sans-serif;
   --th-font-body: 'Manrope', system-ui, sans-serif;
 
-  --th-gradient-hero: linear-gradient(145deg, #2c2560 0%, #5b4bd6 45%, #14123a 100%);
-  --th-gradient-page: radial-gradient(ellipse 110% 70% at 0% 0%, #1c1f3d 0%, transparent 55%),
-    radial-gradient(ellipse 90% 60% at 100% 0%, #16233a 0%, transparent 50%),
-    linear-gradient(180deg, #0a0c14 0%, #0d0f1a 100%);
+  --th-gradient-hero: linear-gradient(135deg, #0f766e 0%, #0e7490 42%, #f97316 160%);
+  --th-gradient-page:
+    radial-gradient(ellipse 90% 55% at 8% -10%, rgba(20, 184, 166, 0.22), transparent 55%),
+    radial-gradient(ellipse 70% 45% at 100% 0%, rgba(249, 115, 22, 0.14), transparent 50%),
+    radial-gradient(ellipse 50% 40% at 70% 100%, rgba(14, 116, 144, 0.1), transparent 55%),
+    linear-gradient(180deg, #eef6f8 0%, #f7fafb 48%, #eef4f6 100%);
+  --th-pattern: url("data:image/svg+xml,%3Csvg width='64' height='64' viewBox='0 0 64 64' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%230f766e' fill-opacity='0.045'%3E%3Cpath d='M32 6l2.2 6.6H41l-5.4 4 2.1 6.6L32 19.4l-5.7 3.8 2.1-6.6-5.4-4h6.8z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
 }

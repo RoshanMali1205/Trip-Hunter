@@ -46,7 +46,7 @@ export const MOCK_TRIPS: Trip[] = [
     organizerId: 'user-roshan',
     organizerName: 'Roshan Deshmukh',
     coverImageUrl:
-      'https://images.unsplash.com/photo-1519046904884-53103b34b206?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&q=80',
     createdAt: '2026-06-01T10:00:00Z',
     updatedAt: '2026-08-01T10:00:00Z',
   },
@@ -319,6 +319,8 @@ export const MOCK_DESTINATIONS: DestinationOption[] = [
     description: 'Beaches, nightlife, and team dinners by the coast.',
     estimatedCost: 12000,
     voteCount: 8,
+    imageUrl:
+      'https://images.unsplash.com/photo-1512343879784-a96011150555?auto=format&fit=crop&w=900&q=80',
   },
   {
     id: 'dest-2',
@@ -328,6 +330,8 @@ export const MOCK_DESTINATIONS: DestinationOption[] = [
     description: 'Quick hills getaway with waterfall trails.',
     estimatedCost: 7000,
     voteCount: 4,
+    imageUrl:
+      'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=900&q=80',
   },
   {
     id: 'dest-3',
@@ -337,6 +341,8 @@ export const MOCK_DESTINATIONS: DestinationOption[] = [
     description: 'Cool weather and strawberry farms.',
     estimatedCost: 8500,
     voteCount: 2,
+    imageUrl:
+      'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=900&q=80',
   },
   {
     id: 'dest-4',
@@ -346,6 +352,8 @@ export const MOCK_DESTINATIONS: DestinationOption[] = [
     description: 'Beach cottages near Mumbai.',
     estimatedCost: 9000,
     voteCount: 1,
+    imageUrl:
+      'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=900&q=80',
   },
 ];
 
@@ -484,12 +492,14 @@ export const MOCK_BOOKINGS: Booking[] = [
     amount: 52000,
     currency: 'INR',
     status: 'CONFIRMED',
+    imageUrl:
+      'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1000&q=80',
   },
   {
     id: 'book-2',
     tripId: 'trip-goa-2026',
     bookingType: 'BUS',
-    provider: 'Neeta Travels',
+    provider: 'Neeta Travels (Volvo AC)',
     bookingReference: 'NT-9921',
     confirmationNumber: 'BUS-PUNE-GOA-12',
     startDatetime: '2026-08-21T06:00:00',
@@ -497,6 +507,8 @@ export const MOCK_BOOKINGS: Booking[] = [
     amount: 18000,
     currency: 'INR',
     status: 'CONFIRMED',
+    imageUrl:
+      'https://images.unsplash.com/photo-1544620341-1adc1baa1b6c?auto=format&fit=crop&w=1000&q=80',
   },
   {
     id: 'book-3',
@@ -510,6 +522,8 @@ export const MOCK_BOOKINGS: Booking[] = [
     amount: 2400,
     currency: 'INR',
     status: 'CONFIRMED',
+    imageUrl:
+      'https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?auto=format&fit=crop&w=1000&q=80',
   },
   {
     id: 'book-4',
@@ -523,6 +537,8 @@ export const MOCK_BOOKINGS: Booking[] = [
     amount: 12000,
     currency: 'INR',
     status: 'PENDING',
+    imageUrl:
+      'https://images.unsplash.com/photo-1502680390469-be75c6c3395d?auto=format&fit=crop&w=1000&q=80',
   },
 ];
 

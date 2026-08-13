@@ -25,22 +25,31 @@
 
   <div class="grid">
     @for (trip of trips(); track trip.id) {
-      <a class="card" [routerLink]="['/trips', trip.id]">
-        <div class="top">
-          <span class="type">{{ trip.tripType.replaceAll('_', ' ') }}</span>
-          <span class="th-status" [class]="'th-status th-status--' + trip.status.toLowerCase()">
-            {{ trip.status | statusLabel }}
-          </span>
+      <a
+        class="card"
+        [routerLink]="['/trips', trip.id]"
+        [style.--cover]="trip.coverImageUrl ? 'url(' + trip.coverImageUrl + ')' : 'none'"
+        [class.card--fallback]="!trip.coverImageUrl"
+      >
+        <div class="card__media" aria-hidden="true"></div>
+        <div class="card__body">
+          <div class="top">
+            <span class="type">{{ trip.tripType.replaceAll('_', ' ') }}</span>
+            <span class="th-status" [class]="'th-status th-status--' + trip.status.toLowerCase()">
+              {{ trip.status | statusLabel }}
+            </span>
+          </div>
+          <h3>{{ trip.title }}</h3>
+          <p class="route">{{ trip.origin || 'Origin TBD' }} → {{ trip.destination || 'Destination TBD' }}</p>
+          <p>
+            @if (trip.startDate) {
+              {{ trip.startDate | date: 'd MMM' }} → {{ trip.endDate | date: 'd MMM' }}
+            } @else {
+              Dates TBD
+            }
+            · {{ trip.memberCount }} members · {{ shortBudget(trip.estimatedBudget) }}
+          </p>
         </div>
-        <h3>{{ trip.title }}</h3>
-        <p>
-          @if (trip.startDate) {
-            {{ trip.startDate | date: 'd MMM' }} → {{ trip.endDate | date: 'd MMM' }}
-          } @else {
-            Dates TBD
-          }
-          · {{ trip.memberCount }} members · {{ shortBudget(trip.estimatedBudget) }}
-        </p>
       </a>
     } @empty {
       <div class="th-panel empty">No trips match your filters.</div>
