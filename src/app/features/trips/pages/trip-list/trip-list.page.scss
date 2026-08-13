@@ -3,6 +3,11 @@
   grid-template-columns: 1.6fr 1fr;
   gap: 0.75rem;
   margin-bottom: 1.25rem;
+  background:
+    var(--th-glass-shine),
+    var(--th-surface);
+  backdrop-filter: var(--th-blur);
+  -webkit-backdrop-filter: var(--th-blur);
 }
 
 .search,
@@ -10,9 +15,10 @@ select {
   width: 100%;
   padding: 0.7rem 0.85rem;
   border-radius: var(--th-radius);
-  border: 1px solid var(--th-border);
-  background: var(--th-surface);
+  border: 1px solid var(--th-border-strong);
+  background: color-mix(in srgb, var(--th-surface-strong) 75%, transparent);
   color: var(--th-text);
+  backdrop-filter: blur(8px);
 }
 
 .grid {
@@ -26,17 +32,23 @@ select {
   grid-template-rows: 160px 1fr;
   border-radius: var(--th-radius-lg);
   border: 1px solid var(--th-border);
-  background: var(--th-surface);
+  background:
+    var(--th-glass-shine),
+    var(--th-surface);
   color: inherit;
   overflow: hidden;
   box-shadow: var(--th-shadow-sm);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   transition:
     transform 0.25s ease,
-    box-shadow 0.25s ease;
+    box-shadow 0.25s ease,
+    border-color 0.25s ease;
 
   &:hover {
-    transform: translateY(-4px);
+    transform: translateY(-5px);
     box-shadow: var(--th-shadow);
+    border-color: color-mix(in srgb, var(--th-primary) 22%, var(--th-border));
   }
 
   &:hover .card__media {

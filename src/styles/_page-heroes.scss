@@ -117,7 +117,11 @@
   flex-direction: column;
   min-height: 0;
   padding: clamp(1rem, 2.5vw, 1.5rem);
-  background: var(--th-surface);
+  background:
+    var(--th-glass-shine),
+    var(--th-surface);
+  backdrop-filter: var(--th-blur);
+  -webkit-backdrop-filter: var(--th-blur);
   border-top: 1px solid var(--th-border);
   overflow: auto;
 }

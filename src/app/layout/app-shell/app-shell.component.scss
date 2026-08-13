@@ -13,8 +13,10 @@
   flex-direction: column;
   gap: 0.5rem;
   background: var(--th-sidebar-bg);
+  backdrop-filter: var(--th-blur);
+  -webkit-backdrop-filter: var(--th-blur);
   border-right: 1px solid var(--th-border);
-  box-shadow: 8px 0 28px rgba(20, 24, 31, 0.03);
+  box-shadow: 10px 0 36px rgba(20, 24, 31, 0.05);
   animation: th-slide-in 0.4s ease both;
 }
 
@@ -45,13 +47,19 @@
   place-items: center;
   border-radius: 999px;
   border: 1px solid var(--th-border-strong);
-  background: var(--th-surface);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.08)),
+    var(--th-surface);
   color: var(--th-text-secondary);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   cursor: pointer;
+  box-shadow: var(--th-shadow-sm);
   transition:
     color 0.2s ease,
     background 0.2s ease,
-    border-color 0.2s ease;
+    border-color 0.2s ease,
+    transform 0.2s ease;
 
   mat-icon {
     font-size: 18px;
@@ -62,7 +70,8 @@
   &:hover {
     color: var(--th-primary-dark);
     border-color: color-mix(in srgb, var(--th-primary) 40%, var(--th-border));
-    background: var(--th-accent-soft);
+    background: var(--th-gradient-cta-soft);
+    transform: translateY(-1px);
   }
 }
 
@@ -78,20 +87,24 @@
 .shell__nav {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: 0.35rem;
   flex: 1;
 
   a {
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    padding: 0.65rem 0.85rem;
-    border-radius: var(--th-radius);
+    padding: 0.7rem 0.9rem;
+    border-radius: 999px;
     color: var(--th-text-secondary);
-    font-weight: 600;
+    font-weight: 650;
+    border: 1px solid transparent;
     transition:
       background 0.2s ease,
-      color 0.2s ease;
+      color 0.2s ease,
+      box-shadow 0.2s ease,
+      border-color 0.2s ease,
+      transform 0.2s ease;
 
     mat-icon {
       color: var(--th-text-muted);
@@ -99,14 +112,19 @@
     }
 
     &:hover {
-      background: var(--th-surface);
+      background: color-mix(in srgb, var(--th-surface-strong) 80%, transparent);
+      border-color: var(--th-border);
       color: var(--th-text);
+      transform: translateX(2px);
     }
 
     &.is-active {
-      background: var(--th-primary);
+      background: var(--th-gradient-cta);
       color: white;
-      box-shadow: 0 12px 24px rgba(255, 106, 26, 0.28);
+      border-color: rgba(255, 255, 255, 0.18);
+      box-shadow:
+        0 14px 28px rgba(255, 106, 26, 0.32),
+        0 1px 0 rgba(255, 255, 255, 0.28) inset;
 
       mat-icon {
         color: white;
@@ -117,7 +135,7 @@
 
 .shell__badge {
   margin-left: auto;
-  background: var(--th-accent);
+  background: rgba(255, 255, 255, 0.22);
   color: white;
   font-style: normal;
   font-size: 0.7rem;
@@ -128,6 +146,7 @@
   display: grid;
   place-items: center;
   padding: 0 0.3rem;
+  backdrop-filter: blur(8px);
 }
 
 .shell__footer {
@@ -239,8 +258,11 @@
     justify-content: space-between;
     gap: 0.75rem;
     padding: 0.65rem 0.9rem;
-    background: color-mix(in srgb, var(--th-surface) 92%, transparent);
-    backdrop-filter: blur(12px);
+    background:
+      var(--th-glass-shine),
+      color-mix(in srgb, var(--th-surface) 88%, transparent);
+    backdrop-filter: var(--th-blur);
+    -webkit-backdrop-filter: var(--th-blur);
     border-bottom: 1px solid var(--th-border);
   }
 
@@ -302,9 +324,13 @@
     grid-template-columns: repeat(5, 1fr);
     gap: 0.25rem;
     padding: 0.45rem 0.5rem calc(0.45rem + env(safe-area-inset-bottom));
-    background: color-mix(in srgb, var(--th-surface) 94%, transparent);
-    backdrop-filter: blur(12px);
+    background:
+      var(--th-glass-shine),
+      color-mix(in srgb, var(--th-surface) 88%, transparent);
+    backdrop-filter: var(--th-blur);
+    -webkit-backdrop-filter: var(--th-blur);
     border-top: 1px solid var(--th-border);
+    box-shadow: 0 -10px 28px rgba(20, 24, 31, 0.06);
 
     a {
       display: flex;
@@ -314,11 +340,11 @@
       padding: 0.35rem;
       color: var(--th-text-muted);
       font-size: 0.68rem;
-      border-radius: 12px;
+      border-radius: 14px;
 
       &.is-active {
         color: var(--th-primary-dark);
-        background: color-mix(in srgb, var(--th-primary) 16%, var(--th-surface));
+        background: var(--th-gradient-cta-soft);
       }
     }
 

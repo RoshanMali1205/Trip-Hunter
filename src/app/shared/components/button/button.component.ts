@@ -63,11 +63,35 @@ export type ButtonSize = 'sm' | 'md';
         font-weight: 700;
         cursor: pointer;
         white-space: nowrap;
+        position: relative;
+        overflow: hidden;
+        isolation: isolate;
         transition:
-          transform 0.15s ease,
-          box-shadow 0.15s ease,
-          background-color 0.15s ease,
-          color 0.15s ease;
+          transform 0.18s ease,
+          box-shadow 0.18s ease,
+          background 0.18s ease,
+          border-color 0.18s ease,
+          color 0.18s ease;
+      }
+
+      .th-btn::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(120deg, transparent 20%, rgba(255, 255, 255, 0.28), transparent 80%);
+        transform: translateX(-120%);
+        transition: transform 0.45s ease;
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      .th-btn:hover:not(:disabled)::after {
+        transform: translateX(120%);
+      }
+
+      .th-btn > * {
+        position: relative;
+        z-index: 1;
       }
 
       .th-btn:disabled {
@@ -77,13 +101,15 @@ export type ButtonSize = 'sm' | 'md';
       }
 
       .th-btn--md {
-        padding: 0.65rem 1.35rem;
+        padding: 0.68rem 1.4rem;
         font-size: 0.92rem;
+        min-height: 44px;
       }
 
       .th-btn--sm {
-        padding: 0.4rem 0.9rem;
+        padding: 0.42rem 0.95rem;
         font-size: 0.8rem;
+        min-height: 36px;
       }
 
       .th-btn--block {
@@ -92,56 +118,73 @@ export type ButtonSize = 'sm' | 'md';
       }
 
       .th-btn--primary {
-        background: linear-gradient(135deg, var(--th-primary-light), var(--th-primary) 55%, var(--th-primary-dark));
+        background: var(--th-gradient-cta);
         color: #fff;
-        box-shadow: 0 10px 24px rgba(255, 106, 26, 0.28);
+        border-color: rgba(255, 255, 255, 0.18);
+        box-shadow:
+          0 12px 28px rgba(255, 106, 26, 0.34),
+          0 1px 0 rgba(255, 255, 255, 0.35) inset;
       }
       .th-btn--primary:hover:not(:disabled) {
-        transform: translateY(-1px);
-        box-shadow: 0 14px 30px rgba(255, 106, 26, 0.36);
+        transform: translateY(-2px);
+        box-shadow:
+          0 16px 34px rgba(255, 106, 26, 0.42),
+          0 1px 0 rgba(255, 255, 255, 0.4) inset;
       }
       .th-btn--primary:active:not(:disabled) {
         transform: translateY(0);
-        box-shadow: 0 6px 16px rgba(255, 106, 26, 0.3);
+        box-shadow: 0 8px 18px rgba(255, 106, 26, 0.3);
       }
 
       .th-btn--secondary {
-        background: transparent;
-        border-color: var(--th-primary);
+        background:
+          linear-gradient(145deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.08)),
+          color-mix(in srgb, var(--th-surface-strong) 70%, transparent);
+        border-color: color-mix(in srgb, var(--th-primary) 45%, var(--th-border));
         color: var(--th-primary-dark);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        box-shadow: var(--th-shadow-sm);
       }
       .th-btn--secondary:hover:not(:disabled) {
-        background: var(--th-accent-soft);
+        background: var(--th-gradient-cta-soft);
+        border-color: var(--th-primary);
+        transform: translateY(-1px);
       }
 
       .th-btn--ghost {
-        background: transparent;
+        background: color-mix(in srgb, var(--th-surface) 70%, transparent);
         border-color: var(--th-border-strong);
         color: var(--th-text-secondary);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
       }
       .th-btn--ghost:hover:not(:disabled) {
         background: var(--th-surface-muted);
         color: var(--th-text);
+        border-color: color-mix(in srgb, var(--th-primary) 25%, var(--th-border));
       }
 
       .th-btn--ghost-inverted {
-        background: rgba(255, 255, 255, 0.12);
-        border-color: rgba(255, 255, 255, 0.45);
+        background: rgba(255, 255, 255, 0.14);
+        border-color: rgba(255, 255, 255, 0.42);
         color: #fff;
-        backdrop-filter: blur(8px);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
       }
       .th-btn--ghost-inverted:hover:not(:disabled) {
-        background: rgba(255, 255, 255, 0.2);
+        background: rgba(255, 255, 255, 0.24);
       }
 
       .th-btn--danger {
-        background: linear-gradient(135deg, #f87171, var(--th-error) 60%, #b91c1c);
+        background: linear-gradient(135deg, #fb7185, var(--th-error) 55%, #b91c1c);
         color: #fff;
-        box-shadow: 0 10px 24px rgba(220, 38, 38, 0.25);
+        box-shadow: 0 12px 28px rgba(220, 38, 38, 0.28);
       }
       .th-btn--danger:hover:not(:disabled) {
-        transform: translateY(-1px);
-        box-shadow: 0 14px 30px rgba(220, 38, 38, 0.32);
+        transform: translateY(-2px);
+        box-shadow: 0 16px 34px rgba(220, 38, 38, 0.36);
       }
       .th-btn--danger:active:not(:disabled) {
         transform: translateY(0);
@@ -153,6 +196,12 @@ export type ButtonSize = 'sm' | 'md';
         border: none;
         padding: 0;
         font-weight: 650;
+        box-shadow: none;
+        overflow: visible;
+      }
+      .th-btn--link::after,
+      .th-btn--link-danger::after {
+        display: none;
       }
       .th-btn--link {
         color: var(--th-primary-dark);
@@ -167,6 +216,7 @@ export type ButtonSize = 'sm' | 'md';
       .th-btn--link.th-btn--sm,
       .th-btn--link-danger.th-btn--sm {
         font-size: 0.8rem;
+        min-height: auto;
       }
 
       .th-btn__spinner {

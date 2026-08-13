@@ -147,64 +147,82 @@ select {
 }
 
 .th-panel {
-  background: var(--th-surface);
-  backdrop-filter: blur(8px);
+  position: relative;
+  background:
+    var(--th-glass-shine),
+    var(--th-surface);
+  backdrop-filter: var(--th-blur);
+  -webkit-backdrop-filter: var(--th-blur);
   border: 1px solid var(--th-border);
   border-radius: var(--th-radius-lg);
   padding: 1.25rem;
   box-shadow: var(--th-shadow-sm);
+  overflow: hidden;
+}
+
+.th-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--th-glass-edge), transparent);
+  pointer-events: none;
 }
 
 .th-status {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  padding: 0.28rem 0.7rem;
+  padding: 0.3rem 0.75rem;
   border-radius: 999px;
   font-size: 0.7rem;
   font-weight: 750;
   letter-spacing: 0.03em;
   text-transform: uppercase;
   border: 1px solid transparent;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 .th-status--approved {
-  background: var(--th-primary);
+  background: var(--th-gradient-cta);
   color: white;
+  border-color: transparent;
+  box-shadow: 0 8px 18px rgba(255, 106, 26, 0.28);
 }
 
 .th-status--completed {
-  background: color-mix(in srgb, var(--th-success) 18%, white);
+  background: color-mix(in srgb, var(--th-success) 18%, transparent);
   color: var(--th-success);
-  border-color: color-mix(in srgb, var(--th-success) 35%, white);
+  border-color: color-mix(in srgb, var(--th-success) 35%, transparent);
 }
 
 .th-status--planning,
 .th-status--booking,
 .th-status--in_progress {
-  background: color-mix(in srgb, var(--th-info) 12%, white);
-  color: #0369a1;
-  border-color: color-mix(in srgb, var(--th-info) 28%, white);
+  background: color-mix(in srgb, var(--th-info) 14%, transparent);
+  color: color-mix(in srgb, var(--th-info) 55%, var(--th-text));
+  border-color: color-mix(in srgb, var(--th-info) 30%, transparent);
 }
 
 .th-status--voting {
-  background: color-mix(in srgb, var(--th-primary) 12%, white);
-  border-color: color-mix(in srgb, var(--th-primary) 30%, white);
+  background: color-mix(in srgb, var(--th-primary) 14%, transparent);
+  border-color: color-mix(in srgb, var(--th-primary) 28%, transparent);
   color: var(--th-primary-dark);
 }
 
 .th-status--pending,
 .th-status--pending_approval {
-  background: color-mix(in srgb, var(--th-warning) 16%, var(--th-surface));
-  border-color: color-mix(in srgb, var(--th-warning) 45%, var(--th-border));
+  background: color-mix(in srgb, var(--th-warning) 16%, transparent);
+  border-color: color-mix(in srgb, var(--th-warning) 40%, transparent);
   color: color-mix(in srgb, var(--th-warning) 70%, var(--th-text));
 }
 
 .th-status--rejected,
 .th-status--cancelled {
-  background: color-mix(in srgb, var(--th-error) 12%, white);
+  background: color-mix(in srgb, var(--th-error) 14%, transparent);
   color: var(--th-error);
-  border-color: color-mix(in srgb, var(--th-error) 30%, white);
+  border-color: color-mix(in srgb, var(--th-error) 30%, transparent);
 }
 
 .th-status--draft,
@@ -217,20 +235,23 @@ select {
 .th-pill {
   display: inline-flex;
   align-items: center;
-  padding: 0.25rem 0.7rem;
+  padding: 0.28rem 0.75rem;
   border-radius: 999px;
   font-size: 0.78rem;
   font-weight: 650;
   border: 1px solid transparent;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 .th-pill--solid {
-  background: var(--th-primary);
+  background: var(--th-gradient-cta);
   color: white;
+  box-shadow: 0 8px 18px rgba(255, 106, 26, 0.25);
 }
 
 .th-pill--outline {
-  background: transparent;
+  background: color-mix(in srgb, var(--th-surface-strong) 70%, transparent);
   border-color: var(--th-border-strong);
   color: var(--th-text-secondary);
 }
@@ -238,6 +259,7 @@ select {
 .th-pill--muted {
   background: var(--th-surface-muted);
   color: var(--th-text-secondary);
+  border-color: var(--th-border);
 }
 
 @keyframes th-fade-up {
