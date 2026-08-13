@@ -30,10 +30,10 @@ npm run dev
 - App shell (sidebar / mobile bottom nav)
 - Login, dashboard, trip list / create wizard / detail tabs
 - Feature modules aligned to the LLD (`core`, `shared`, `layout`, `features`)
-- Design tokens + Material theme (coastal teal / sunset accent)
-- PWA manifest + service worker
+- Design tokens + Material theme (orange travel accents on a light canvas)
+- PWA manifest + service worker with update/install banners (see [docs/api/pwa.md](docs/api/pwa.md))
 - Express API stub under `server/`
-- Netlify config + function entry
+- Netlify config + function entry (cache headers for mobile SW updates)
 - Supabase SQL migrations under `supabase/migrations/`
 
 ## Main routes
