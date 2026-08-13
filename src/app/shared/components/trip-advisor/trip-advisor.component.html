@@ -54,8 +54,10 @@
         <article class="bubble" [class.bubble--user]="m.role === 'user'" [class.bubble--bot]="m.role === 'model'">
           @if (m.role === 'model') {
             <span class="bubble__tag">Buddy</span>
+            <div class="bubble__md" [innerHTML]="formatMessage(m.text)"></div>
+          } @else {
+            <p>{{ m.text }}</p>
           }
-          <p>{{ m.text }}</p>
         </article>
       }
       @if (busy()) {
