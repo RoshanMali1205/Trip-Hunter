@@ -5,6 +5,14 @@ import { CURRENT_USER } from '../data/mock-data';
 import { isSupabaseBrowserConfigured } from '../config/app-config';
 import { getSupabaseBrowserClient } from '../supabase/supabase-browser.client';
 import { lsGet, lsRemove, lsSet } from '../services/local-storage.service';
+import {
+  dataUrlToFile,
+  fileToDataUrl,
+  prepareAvatarFile,
+  validateAvatarFile,
+} from './avatar-image';
+
+export { validateAvatarFile, prepareAvatarFile, fileToDataUrl } from './avatar-image';
 
 const SESSION_KEY = 'auth-session';
 const PENDING_AVATAR_KEY = 'th-pending-avatar';
@@ -223,7 +231,15 @@ export class AuthService {
     if (!supabase) {
       let avatarUrl: string | undefined;
       if (input.avatarFile) {
-        avatarUrl = await fileToDataUrl(input.avatarFile);
+        try {
+          const prepared = await prepareAvatarFile(input.avatarFile);
+          avatarUrl = await fileToDataUrl(prepared);
+        } catch (err) {
+          return {
+            ok: false,
+            message: err instanceof Error ? err.message : 'Could not process photo.',
+          };
+        }
       }
       return this.demoSignIn(email, firstName, lastName, phone, avatarUrl);
     }
@@ -327,9 +343,19 @@ export class AuthService {
       return { ok: false, message: 'Sign in to update your photo.' };
     }
 
+    let prepared: File;
+    try {
+      prepared = await prepareAvatarFile(file);
+    } catch (err) {
+      return {
+        ok: false,
+        message: err instanceof Error ? err.message : 'Could not process photo.',
+      };
+    }
+
     const supabase = getSupabaseBrowserClient();
     if (!supabase) {
-      const avatarUrl = await fileToDataUrl(file);
+      const avatarUrl = await fileToDataUrl(prepared);
       const next: AuthSession = {
         ...current,
         user: { ...current.user, avatarUrl },
@@ -339,25 +365,25 @@ export class AuthService {
       return { ok: true };
     }
 
-    const avatarUrl = await this.uploadAvatar(current.user.id, file);
-    if (!avatarUrl) {
-      return { ok: false, message: 'Could not upload photo. Try again.' };
+    const upload = await this.uploadAvatar(current.user.id, prepared);
+    if (!upload.ok || !upload.url) {
+      return { ok: false, message: upload.message ?? 'Could not upload photo. Try again.' };
     }
 
     const { error } = await supabase
       .from('profiles')
-      .update({ avatar_url: avatarUrl, updated_at: new Date().toISOString() })
+      .update({ avatar_url: upload.url, updated_at: new Date().toISOString() })
       .eq('id', current.user.id);
 
     if (error) {
       return { ok: false, message: error.message };
     }
 
-    await supabase.auth.updateUser({ data: { avatar_url: avatarUrl } });
+    await supabase.auth.updateUser({ data: { avatar_url: upload.url } });
 
     const next: AuthSession = {
       ...current,
-      user: { ...current.user, avatarUrl },
+      user: { ...current.user, avatarUrl: upload.url },
     };
     this.sessionSignal.set(next);
     this.persist(next);
@@ -374,7 +400,16 @@ export class AuthService {
 
     let avatarUrl: string | undefined;
     if (avatarFile) {
-      avatarUrl = await this.uploadAvatar(userId, avatarFile);
+      try {
+        const prepared = await prepareAvatarFile(avatarFile);
+        const upload = await this.uploadAvatar(userId, prepared);
+        avatarUrl = upload.url;
+        if (!upload.ok) {
+          console.warn('Avatar upload failed', upload.message);
+        }
+      } catch (err) {
+        console.warn('Avatar prepare failed', err);
+      }
     }
 
     const patch: { phone: string; avatar_url?: string; updated_at: string } = {
@@ -392,37 +427,61 @@ export class AuthService {
     }
   }
 
-  private async uploadAvatar(userId: string, file: File): Promise<string | undefined> {
+  private async uploadAvatar(
+    userId: string,
+    file: File,
+  ): Promise<{ ok: boolean; url?: string; message?: string }> {
     const supabase = getSupabaseBrowserClient();
-    if (!supabase) return undefined;
+    if (!supabase) return { ok: false, message: 'Supabase is not configured.' };
 
-    const ext = extensionForMime(file.type) || 'jpg';
-    const path = `${userId}/avatar.${ext}`;
-    const { error } = await supabase.storage.from('avatars').upload(path, file, {
+    // Always the same object key so replace works regardless of original format.
+    const path = `${userId}/avatar.jpg`;
+    const legacy = [
+      `${userId}/avatar.png`,
+      `${userId}/avatar.webp`,
+      `${userId}/avatar.gif`,
+      `${userId}/avatar.jpeg`,
+    ];
+
+    await supabase.storage.from('avatars').remove(legacy);
+
+    let { error } = await supabase.storage.from('avatars').upload(path, file, {
       upsert: true,
-      contentType: file.type || 'image/jpeg',
+      contentType: 'image/jpeg',
       cacheControl: '3600',
     });
 
+    // Some projects reject upsert; fall back to remove + insert.
     if (error) {
-      console.warn('Avatar upload failed', error.message);
-      return undefined;
+      await supabase.storage.from('avatars').remove([path]);
+      ({ error } = await supabase.storage.from('avatars').upload(path, file, {
+        upsert: false,
+        contentType: 'image/jpeg',
+        cacheControl: '3600',
+      }));
+    }
+
+    if (error) {
+      const hint = /bucket|not found|row-level security|policy/i.test(error.message)
+        ? ' Apply migration 008/009 (avatars bucket) in Supabase, then retry.'
+        : '';
+      return { ok: false, message: `${error.message}.${hint}`.replace(/\.\./g, '.') };
     }
 
     const { data } = supabase.storage.from('avatars').getPublicUrl(path);
-    // Bust CDN cache after replace.
-    return `${data.publicUrl}?v=${Date.now()}`;
+    return { ok: true, url: `${data.publicUrl}?v=${Date.now()}` };
   }
 
   private async stashPendingAvatar(email: string, file: File): Promise<void> {
     try {
-      const dataUrl = await fileToDataUrl(file);
+      const prepared = await prepareAvatarFile(file);
+      const dataUrl = await fileToDataUrl(prepared);
       sessionStorage.setItem(
         PENDING_AVATAR_KEY,
         JSON.stringify({
           email: email.trim().toLowerCase(),
           dataUrl,
-          mime: file.type || 'image/jpeg',
+          mime: 'image/jpeg',
         }),
       );
     } catch {
@@ -452,14 +511,14 @@ export class AuthService {
         return;
       }
 
-      const file = dataUrlToFile(pending.dataUrl, `avatar.${extensionForMime(pending.mime ?? '') || 'jpg'}`);
-      const avatarUrl = await this.uploadAvatar(userId, file);
-      if (avatarUrl) {
+      const file = dataUrlToFile(pending.dataUrl, 'avatar.jpg');
+      const upload = await this.uploadAvatar(userId, file);
+      if (upload.ok && upload.url) {
         await supabase
           .from('profiles')
-          .update({ avatar_url: avatarUrl, updated_at: new Date().toISOString() })
+          .update({ avatar_url: upload.url, updated_at: new Date().toISOString() })
           .eq('id', userId);
-        await supabase.auth.updateUser({ data: { avatar_url: avatarUrl } });
+        await supabase.auth.updateUser({ data: { avatar_url: upload.url } });
       }
       sessionStorage.removeItem(PENDING_AVATAR_KEY);
     } catch {
@@ -519,49 +578,4 @@ export function normalizePhone(value: string): string {
   const digits = trimmed.replace(/\D/g, '');
   if (digits.length < 10 || digits.length > 15) return '';
   return hasPlus ? `+${digits}` : digits;
-}
-
-export function validateAvatarFile(file: File): string | null {
-  const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-  if (!allowed.includes(file.type)) {
-    return 'Photo must be a JPG, PNG, WebP, or GIF.';
-  }
-  if (file.size > 2 * 1024 * 1024) {
-    return 'Photo must be 2 MB or smaller.';
-  }
-  return null;
-}
-
-function extensionForMime(mime: string): string {
-  switch (mime) {
-    case 'image/png':
-      return 'png';
-    case 'image/webp':
-      return 'webp';
-    case 'image/gif':
-      return 'gif';
-    case 'image/jpeg':
-    case 'image/jpg':
-      return 'jpg';
-    default:
-      return '';
-  }
-}
-
-function fileToDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result ?? ''));
-    reader.onerror = () => reject(reader.error ?? new Error('Could not read photo'));
-    reader.readAsDataURL(file);
-  });
-}
-
-function dataUrlToFile(dataUrl: string, filename: string): File {
-  const [header, body] = dataUrl.split(',');
-  const mime = /data:(.*?);base64/.exec(header ?? '')?.[1] ?? 'image/jpeg';
-  const binary = atob(body ?? '');
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  return new File([bytes], filename, { type: mime });
 }

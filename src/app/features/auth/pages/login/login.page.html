@@ -87,14 +87,14 @@
             </div>
             <div class="login__photo-actions">
               <span class="login__photo-label">Profile photo</span>
-              <p>Optional · JPG/PNG/WebP · max 2 MB</p>
+              <p>Optional · any phone photo up to 15 MB (we compress it)</p>
               <div class="login__photo-btns">
                 <label class="login__photo-pick">
                   {{ avatarPreview() ? 'Change photo' : 'Upload photo' }}
                   <input
                     #avatarInput
                     type="file"
-                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    accept="image/*,.heic,.heif"
                     (change)="onAvatarSelected($event)"
                   />
                 </label>

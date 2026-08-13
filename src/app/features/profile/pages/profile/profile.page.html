@@ -20,12 +20,12 @@
         {{ busy() ? 'Uploading…' : user()?.avatarUrl ? 'Change photo' : 'Add photo' }}
         <input
           type="file"
-          accept="image/jpeg,image/png,image/webp,image/gif"
+          accept="image/*,.heic,.heif"
           [disabled]="busy()"
           (change)="onPhotoSelected($event)"
         />
       </label>
-      <p class="profile__hint">JPG, PNG, or WebP · max 2 MB</p>
+      <p class="profile__hint">Any phone photo up to 15 MB — we compress before upload</p>
     </div>
 
     <div class="profile__meta">
