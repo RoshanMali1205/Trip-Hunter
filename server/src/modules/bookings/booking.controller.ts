@@ -4,7 +4,15 @@ import { ok } from '../../types/api.js';
 import { BookingRepository, type CreateBookingInput } from './booking.repository.js';
 
 const repo = new BookingRepository();
-const VALID_TYPES: CreateBookingInput['bookingType'][] = ['FLIGHT', 'TRAIN', 'HOTEL', 'CAB', 'ACTIVITY', 'OTHER'];
+const VALID_TYPES: CreateBookingInput['bookingType'][] = [
+  'FLIGHT',
+  'TRAIN',
+  'BUS',
+  'HOTEL',
+  'CAB',
+  'ACTIVITY',
+  'OTHER',
+];
 
 export const listBookings: RequestHandler = async (req, res, next) => {
   try {

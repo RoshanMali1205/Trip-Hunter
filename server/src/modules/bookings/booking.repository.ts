@@ -23,7 +23,7 @@ interface BookingRow {
   id: string;
   trip_id: string;
   vendor_name: string | null;
-  booking_type: 'flight' | 'train' | 'hotel' | 'car' | 'activity' | 'other';
+  booking_type: 'flight' | 'train' | 'bus' | 'hotel' | 'car' | 'activity' | 'other';
   confirmation_code: string | null;
   status: 'draft' | 'pending' | 'confirmed' | 'cancelled' | 'completed';
   amount_cents: number | null;
@@ -35,15 +35,20 @@ interface BookingRow {
 const TYPE_MAP: Record<BookingRow['booking_type'], BookingType> = {
   flight: 'FLIGHT',
   train: 'TRAIN',
+  bus: 'BUS',
   hotel: 'HOTEL',
   car: 'CAB',
   activity: 'ACTIVITY',
   other: 'OTHER',
 };
 
-const TYPE_TO_DB: Record<'FLIGHT' | 'TRAIN' | 'HOTEL' | 'CAB' | 'ACTIVITY' | 'OTHER', BookingRow['booking_type']> = {
+const TYPE_TO_DB: Record<
+  'FLIGHT' | 'TRAIN' | 'BUS' | 'HOTEL' | 'CAB' | 'ACTIVITY' | 'OTHER',
+  BookingRow['booking_type']
+> = {
   FLIGHT: 'flight',
   TRAIN: 'train',
+  BUS: 'bus',
   HOTEL: 'hotel',
   CAB: 'car',
   ACTIVITY: 'activity',
@@ -79,7 +84,7 @@ const BOOKING_SELECT =
 
 export interface CreateBookingInput {
   tripId: string;
-  bookingType: 'FLIGHT' | 'TRAIN' | 'HOTEL' | 'CAB' | 'ACTIVITY' | 'OTHER';
+  bookingType: 'FLIGHT' | 'TRAIN' | 'BUS' | 'HOTEL' | 'CAB' | 'ACTIVITY' | 'OTHER';
   provider: string;
   bookingReference: string;
   amountCents: number;
