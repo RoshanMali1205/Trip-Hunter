@@ -119,6 +119,8 @@ export interface Booking {
   amount: number;
   currency: string;
   status: 'CONFIRMED' | 'PENDING' | 'CANCELLED';
+  /** Optional cover for photo-first booking cards (hotel/bus/etc.). */
+  imageUrl?: string;
 }
 
 export interface BudgetCategory {

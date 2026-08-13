@@ -37,27 +37,32 @@ import { InrCurrencyPipe, StatusLabelPipe, TripDatePipe } from '../../pipes/form
     `
       .trip-card {
         display: grid;
-        grid-template-rows: 140px 1fr;
+        grid-template-rows: 180px 1fr;
         border-radius: var(--th-radius-lg);
         overflow: hidden;
         border: 1px solid var(--th-border);
         background: var(--th-surface);
         box-shadow: var(--th-shadow-sm);
         transition:
-          transform 0.25s ease,
-          box-shadow 0.25s ease;
+          transform 0.28s ease,
+          box-shadow 0.28s ease;
         height: 100%;
       }
 
       .trip-card:hover {
-        transform: translateY(-4px);
+        transform: translateY(-5px);
         box-shadow: var(--th-shadow);
       }
 
       .trip-card__media {
         background:
-          linear-gradient(180deg, transparent 20%, rgba(10, 12, 24, 0.65)),
+          linear-gradient(180deg, transparent 20%, rgba(15, 23, 42, 0.55)),
           var(--cover) center/cover no-repeat;
+        transition: transform 0.4s ease;
+      }
+
+      .trip-card:hover .trip-card__media {
+        transform: scale(1.04);
       }
 
       .trip-card__media--fallback {

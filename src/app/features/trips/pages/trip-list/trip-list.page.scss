@@ -1,11 +1,12 @@
 .btn.primary {
   display: inline-flex;
   align-items: center;
-  padding: 0.65rem 1rem;
-  border-radius: var(--th-radius);
-  background: var(--th-primary);
+  padding: 0.65rem 1.1rem;
+  border-radius: 999px;
+  background: var(--th-accent);
   color: white;
-  font-weight: 700;
+  font-weight: 750;
+  box-shadow: 0 10px 22px rgba(249, 115, 22, 0.28);
 }
 
 .filters {
@@ -21,7 +22,7 @@ select {
   padding: 0.7rem 0.85rem;
   border-radius: var(--th-radius);
   border: 1px solid var(--th-border);
-  background: var(--th-bg);
+  background: var(--th-surface);
   color: var(--th-text);
 }
 
@@ -32,25 +33,61 @@ select {
 }
 
 .card {
-  display: flex;
-  flex-direction: column;
-  gap: 0.55rem;
-  padding: 1.15rem;
+  display: grid;
+  grid-template-rows: 160px 1fr;
   border-radius: var(--th-radius-lg);
   border: 1px solid var(--th-border);
   background: var(--th-surface);
   color: inherit;
+  overflow: hidden;
+  box-shadow: var(--th-shadow-sm);
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
 
-  h3 {
-    margin: 0;
-    color: var(--th-text);
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--th-shadow);
   }
 
-  p {
-    margin: 0;
-    color: var(--th-text-muted);
-    font-size: 0.88rem;
+  &:hover .card__media {
+    transform: scale(1.04);
   }
+}
+
+.card__media {
+  background:
+    linear-gradient(180deg, transparent 30%, rgba(15, 23, 42, 0.45)),
+    var(--cover) center/cover no-repeat;
+  transition: transform 0.4s ease;
+}
+
+.card--fallback .card__media {
+  background: var(--th-gradient-hero);
+}
+
+.card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 1rem 1.1rem 1.15rem;
+}
+
+.card h3 {
+  margin: 0;
+  color: var(--th-text);
+  font-size: 1.02rem;
+}
+
+.card p {
+  margin: 0;
+  color: var(--th-text-muted);
+  font-size: 0.88rem;
+}
+
+.route {
+  color: var(--th-text-secondary) !important;
+  font-weight: 650;
 }
 
 .top {
@@ -61,10 +98,10 @@ select {
 
 .type {
   font-size: 0.7rem;
-  font-weight: 700;
+  font-weight: 750;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: var(--th-primary-light);
+  color: var(--th-primary);
 }
 
 .empty {
