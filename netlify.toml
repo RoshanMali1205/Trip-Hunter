@@ -9,6 +9,10 @@
   # devDependencies. Without this, setting NODE_ENV=production (used for
   # server runtime behavior) makes npm skip devDependencies during install.
   NPM_FLAGS = "--no-fund --no-audit --include=dev"
+  # SUPABASE_URL/SUPABASE_PUBLIC_KEY are intentionally public (shipped to the
+  # browser via public/env.js for client-side Supabase Auth). The real secret,
+  # SUPABASE_SERVICE_ROLE_KEY, is never written there and stays scanned.
+  SECRETS_SCAN_OMIT_KEYS = "SUPABASE_URL,SUPABASE_PUBLIC_KEY"
 
 [functions]
   node_bundler = "esbuild"
