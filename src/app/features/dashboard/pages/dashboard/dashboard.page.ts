@@ -6,6 +6,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { Trip } from '../../../../core/models/trip.model';
 import { TripStore } from '../../../../core/services/trip.store';
+import { ToastService } from '../../../../core/ui/toast.service';
 import { InrCurrencyPipe, StatusLabelPipe } from '../../../../shared/pipes/format.pipe';
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
 
@@ -21,6 +22,7 @@ type TripCategory = 'all' | 'beaches' | 'hills' | 'cities' | 'adventure';
 export class DashboardPage {
   private readonly auth = inject(AuthService);
   private readonly store = inject(TripStore);
+  private readonly toast = inject(ToastService);
 
   readonly user = this.auth.user;
   readonly summary = computed(() => this.store.getDashboard());
@@ -126,6 +128,13 @@ export class DashboardPage {
     this.respondingId.set(tripId);
     try {
       await this.store.respondToInvite(tripId, status);
+      if (status === 'accepted') {
+        this.toast.success('You’re in — trip invite accepted.', 'Invite accepted');
+      } else {
+        this.toast.info('Invite declined.', 'Invite updated');
+      }
+    } catch {
+      this.toast.error('Could not update that invite. Try again.', 'Invite failed');
     } finally {
       this.respondingId.set(null);
     }
