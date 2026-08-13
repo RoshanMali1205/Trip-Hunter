@@ -317,6 +317,53 @@ export class AuthService {
     this.persist(null);
   }
 
+  /** Update the signed-in user's profile photo (profile page / settings). */
+  async updateAvatar(file: File): Promise<AuthResult> {
+    const photoError = validateAvatarFile(file);
+    if (photoError) return { ok: false, message: photoError };
+
+    const current = this.sessionSignal();
+    if (!current?.user) {
+      return { ok: false, message: 'Sign in to update your photo.' };
+    }
+
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) {
+      const avatarUrl = await fileToDataUrl(file);
+      const next: AuthSession = {
+        ...current,
+        user: { ...current.user, avatarUrl },
+      };
+      this.sessionSignal.set(next);
+      this.persist(next);
+      return { ok: true };
+    }
+
+    const avatarUrl = await this.uploadAvatar(current.user.id, file);
+    if (!avatarUrl) {
+      return { ok: false, message: 'Could not upload photo. Try again.' };
+    }
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({ avatar_url: avatarUrl, updated_at: new Date().toISOString() })
+      .eq('id', current.user.id);
+
+    if (error) {
+      return { ok: false, message: error.message };
+    }
+
+    await supabase.auth.updateUser({ data: { avatar_url: avatarUrl } });
+
+    const next: AuthSession = {
+      ...current,
+      user: { ...current.user, avatarUrl },
+    };
+    this.sessionSignal.set(next);
+    this.persist(next);
+    return { ok: true };
+  }
+
   private async saveProfileExtras(
     userId: string,
     phone: string,

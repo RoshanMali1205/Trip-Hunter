@@ -12,10 +12,12 @@
 
     <header class="detail__header">
       <div class="detail__title-row">
-        <div>
+        <div class="detail__heading">
           <div class="title-line">
             <h1>{{ t.title }}</h1>
-            <span class="th-status th-status--approved">{{ t.status | statusLabel }}</span>
+            <span class="th-status" [class]="'th-status th-status--' + t.status.toLowerCase()">
+              {{ t.status | statusLabel }}
+            </span>
             <span class="th-pill th-pill--outline">{{ t.tripType.replaceAll('_', ' ') }}</span>
           </div>
           <p class="meta">
@@ -28,26 +30,28 @@
           </p>
         </div>
 
-        <div class="avatars" aria-label="Members">
-          @for (m of memberPreview(); track m.id) {
-            <span [title]="m.name">{{ initials(m.name) }}</span>
-          }
-          @if (extraMembers() > 0) {
-            <span class="more">+{{ extraMembers() }}</span>
+        <div class="detail__actions">
+          <div class="avatars" aria-label="Members">
+            @for (m of memberPreview(); track m.id) {
+              <span [title]="m.name">{{ initials(m.name) }}</span>
+            }
+            @if (extraMembers() > 0) {
+              <span class="more">+{{ extraMembers() }}</span>
+            }
+          </div>
+
+          @if (isOwner()) {
+            <button
+              type="button"
+              class="detail__delete"
+              [disabled]="deleting()"
+              (click)="deleteTrip()"
+            >
+              <mat-icon>delete</mat-icon>
+              {{ deleting() ? 'Deleting…' : 'Delete trip' }}
+            </button>
           }
         </div>
-
-        @if (isOwner()) {
-          <button
-            type="button"
-            class="btn ghost"
-            [disabled]="deleting()"
-            (click)="deleteTrip()"
-          >
-            <mat-icon>delete</mat-icon>
-            {{ deleting() ? 'Deleting…' : 'Delete trip' }}
-          </button>
-        }
       </div>
     </header>
 
