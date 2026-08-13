@@ -7,6 +7,7 @@ Trip Hunter ships as an installable PWA on production builds (`ng build` / Netli
 | Piece | Role |
 | --- | --- |
 | `public/manifest.webmanifest` | Name, icons, theme, standalone display |
+| `public/favicon.svg` / `favicon.ico` / `public/icons/*` | Unique Trip Hunter mark for browser tab, Apple touch, and installed PWA |
 | `ngsw-config.json` + `@angular/service-worker` | Offline shell + versioned asset cache |
 | `PwaUpdateService` | Detects new deploys and shows a **Refresh** banner |
 | `PwaInstallService` | Captures `beforeinstallprompt` for **Install** |

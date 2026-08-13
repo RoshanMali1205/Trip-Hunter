@@ -5,13 +5,30 @@
       <p>Your organization identity and travel preferences.</p>
     </div>
   </header>
+
   <div class="th-panel profile">
-    @if (user()?.avatarUrl; as photo) {
-      <img class="profile__avatar" [src]="photo" [alt]="user()?.firstName + ' profile photo'" />
-    } @else {
-      <mat-icon>account_circle</mat-icon>
-    }
-    <div>
+    <div class="profile__photo">
+      @if (user()?.avatarUrl; as photo) {
+        <img class="profile__avatar" [src]="photo" [alt]="user()?.firstName + ' profile photo'" />
+      } @else {
+        <div class="profile__avatar profile__avatar--fallback" aria-hidden="true">
+          <mat-icon>person</mat-icon>
+        </div>
+      }
+      <label class="profile__upload" [class.is-busy]="busy()">
+        <mat-icon>photo_camera</mat-icon>
+        {{ busy() ? 'Uploading…' : user()?.avatarUrl ? 'Change photo' : 'Add photo' }}
+        <input
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/gif"
+          [disabled]="busy()"
+          (change)="onPhotoSelected($event)"
+        />
+      </label>
+      <p class="profile__hint">JPG, PNG, or WebP · max 2 MB</p>
+    </div>
+
+    <div class="profile__meta">
       <h2>{{ user()?.firstName }} {{ user()?.lastName }}</h2>
       <p>{{ user()?.email }}</p>
       @if (user()?.phone) {
@@ -19,6 +36,13 @@
       }
       <p>{{ user()?.organizationName }} · {{ user()?.role?.replaceAll('_', ' ') }}</p>
       <p>{{ user()?.department }} · {{ user()?.timezone }}</p>
+
+      @if (error()) {
+        <p class="profile__error" role="alert">{{ error() }}</p>
+      }
+      @if (message()) {
+        <p class="profile__ok" role="status">{{ message() }}</p>
+      }
     </div>
   </div>
 </section>
