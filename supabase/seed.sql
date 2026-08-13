@@ -78,25 +78,28 @@ begin
   -- Destination options (for voting).
   select id into v_dest_goa from public.destinations where trip_id = v_trip_id and name = 'North Goa';
   if v_dest_goa is null then
-    insert into public.destinations (trip_id, name, country, region, description, estimated_cost_cents, currency, metadata)
-    values (v_trip_id, 'North Goa', 'India', 'Goa', 'Beaches, shacks, and an easy flight in.', 14000000, 'INR',
-      '{"imageUrl":"https://images.unsplash.com/photo-1519046904884-53103b34b206?auto=format&fit=crop&w=900&q=80"}'::jsonb)
+    insert into public.destinations (trip_id, name, country, region, city, description, estimated_cost_cents, currency, image_url, metadata)
+    values (v_trip_id, 'North Goa', 'India', 'Goa', 'Goa', 'Beaches, shacks, and an easy flight in.', 14000000, 'INR',
+      'https://images.unsplash.com/photo-1519046904884-53103b34b206?auto=format&fit=crop&w=1200&q=80',
+      '{"imageUrl":"https://images.unsplash.com/photo-1519046904884-53103b34b206?auto=format&fit=crop&w=1200&q=80"}'::jsonb)
     returning id into v_dest_goa;
   end if;
 
   select id into v_dest_gokarna from public.destinations where trip_id = v_trip_id and name = 'Gokarna';
   if v_dest_gokarna is null then
-    insert into public.destinations (trip_id, name, country, region, description, estimated_cost_cents, currency, metadata)
-    values (v_trip_id, 'Gokarna', 'India', 'Karnataka', 'Quieter beaches, more of a trek.', 11000000, 'INR',
-      '{"imageUrl":"https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=900&q=80"}'::jsonb)
+    insert into public.destinations (trip_id, name, country, region, city, description, estimated_cost_cents, currency, image_url, metadata)
+    values (v_trip_id, 'Gokarna', 'India', 'Karnataka', 'Karnataka', 'Quieter beaches, more of a trek.', 11000000, 'INR',
+      'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80',
+      '{"imageUrl":"https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80"}'::jsonb)
     returning id into v_dest_gokarna;
   end if;
 
   select id into v_dest_pondy from public.destinations where trip_id = v_trip_id and name = 'Pondicherry';
   if v_dest_pondy is null then
-    insert into public.destinations (trip_id, name, country, region, description, estimated_cost_cents, currency, metadata)
-    values (v_trip_id, 'Pondicherry', 'India', 'Puducherry', 'French quarter, cafes, and the promenade.', 9500000, 'INR',
-      '{"imageUrl":"https://images.unsplash.com/photo-1596176530529-78163a4f7af2?auto=format&fit=crop&w=900&q=80"}'::jsonb)
+    insert into public.destinations (trip_id, name, country, region, city, description, estimated_cost_cents, currency, image_url, metadata)
+    values (v_trip_id, 'Pondicherry', 'India', 'Puducherry', 'Puducherry', 'French quarter, cafes, and the promenade.', 9500000, 'INR',
+      'https://images.unsplash.com/photo-1596176530529-78163a4f7af2?auto=format&fit=crop&w=1200&q=80',
+      '{"imageUrl":"https://images.unsplash.com/photo-1596176530529-78163a4f7af2?auto=format&fit=crop&w=1200&q=80"}'::jsonb)
     returning id into v_dest_pondy;
   end if;
 
@@ -105,7 +108,11 @@ begin
   values (v_trip_id, v_dest_goa, v_actor_id)
   on conflict on constraint destination_votes_unique_per_trip do update set destination_id = excluded.destination_id;
 
-  -- Availability poll: actor marks themselves available for one date range.
+  -- Availability poll: option catalog + actor vote.
+  insert into public.availability_options (trip_id, start_date, end_date, label, created_by)
+  values (v_trip_id, current_date + 45, current_date + 48, 'Long weekend', v_actor_id)
+  on conflict on constraint availability_options_unique_range do nothing;
+
   insert into public.availability (trip_id, user_id, start_date, end_date, status)
   values (v_trip_id, v_actor_id, current_date + 45, current_date + 48, 'available')
   on conflict on constraint availability_unique_per_user_range do update set status = excluded.status;

@@ -25,6 +25,8 @@ import {
 import {
   castAvailabilityVote,
   castDestinationVote,
+  createAvailabilityOption,
+  createDestination,
   getMyVotes,
   listAvailability,
   listDestinations,
@@ -97,7 +99,9 @@ export function createApp() {
   v1.post('/trips/:tripId/members', authenticate, inviteMember);
   v1.patch('/trips/:tripId/members/me', authenticate, respondToInvite);
   v1.get('/trips/:tripId/availability', authenticate, listAvailability);
+  v1.post('/trips/:tripId/availability', authenticate, createAvailabilityOption);
   v1.get('/trips/:tripId/destinations', authenticate, listDestinations);
+  v1.post('/trips/:tripId/destinations', authenticate, createDestination);
   v1.get('/trips/:tripId/votes/me', authenticate, getMyVotes);
   v1.post('/trips/:tripId/availability/vote', authenticate, castAvailabilityVote);
   v1.post('/trips/:tripId/destinations/:destinationId/vote', authenticate, castDestinationVote);
