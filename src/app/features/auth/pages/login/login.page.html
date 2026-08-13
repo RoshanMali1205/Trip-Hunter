@@ -1,5 +1,16 @@
 <section class="login">
   <div class="login__visual" aria-hidden="true">
+    <div class="login__tiles">
+      @for (tile of visualTiles; track tile.label) {
+        <figure
+          [class]="'login__tile login__tile--' + tile.size"
+          [style.--tile-image]="'url(' + tile.imageUrl + ')'"
+        >
+          <figcaption>{{ tile.label }}</figcaption>
+        </figure>
+      }
+    </div>
+
     <div class="login__visual-overlay">
       <p class="login__brand">Trip Hunter</p>
       <h2>From trip idea to settlement — one workspace for your team.</h2>

@@ -117,6 +117,8 @@ export const MOCK_TRIPS: Trip[] = [
     memberCount: 2,
     organizerId: 'user-mayuri',
     organizerName: 'Mayuri Patil',
+    coverImageUrl:
+      'https://images.unsplash.com/photo-1582510003544-4d00b07f73c7?auto=format&fit=crop&w=1200&q=80',
     createdAt: '2026-03-01T10:00:00Z',
     updatedAt: '2026-05-20T10:00:00Z',
   },
