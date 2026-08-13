@@ -23,9 +23,12 @@ import {
   ApiTripMember,
   ApiTripStatus,
   ApiTripTask,
+  CreateBudgetCategoryPayload,
+  CreateExpensePayload,
   CreateItineraryItemPayload,
   CreateTripPayload,
   TripApiService,
+  UpdateBudgetCategoryPayload,
 } from './trip-api.service';
 import { NotificationApiService } from './notification-api.service';
 
@@ -134,7 +137,7 @@ export class TripStore {
       approvalStatus: 'NOT_REQUIRED',
       currency: api.currency,
       estimatedBudget: api.budgetCents / 100,
-      actualBudget: 0,
+      actualBudget: api.actualCents / 100,
       maxMembers: 20,
       memberCount: 1,
       organizerId: api.createdBy ?? '',
@@ -269,6 +272,20 @@ export class TripStore {
     this.budgetByTrip.update((b) => ({ ...b, [tripId]: categories }));
   }
 
+  async addBudgetCategory(tripId: string, payload: CreateBudgetCategoryPayload): Promise<void> {
+    await firstValueFrom(this.tripApi.createBudgetCategory(tripId, payload));
+    await this.loadBudget(tripId);
+  }
+
+  async updateBudgetCategory(
+    tripId: string,
+    categoryId: string,
+    payload: UpdateBudgetCategoryPayload,
+  ): Promise<void> {
+    await firstValueFrom(this.tripApi.updateBudgetCategory(tripId, categoryId, payload));
+    await this.loadBudget(tripId);
+  }
+
   getExpenses(tripId: string): Expense[] {
     return this.expensesByTrip()[tripId] ?? [];
   }
@@ -276,6 +293,16 @@ export class TripStore {
   async loadExpenses(tripId: string): Promise<void> {
     const expenses = await firstValueFrom(this.tripApi.expenses(tripId));
     this.expensesByTrip.update((e) => ({ ...e, [tripId]: expenses }));
+  }
+
+  async addExpense(tripId: string, payload: CreateExpensePayload): Promise<void> {
+    await firstValueFrom(this.tripApi.createExpense(tripId, payload));
+    await Promise.all([this.loadExpenses(tripId), this.loadTrips()]);
+  }
+
+  async updateExpenseStatus(tripId: string, expenseId: string, status: 'APPROVED' | 'REJECTED'): Promise<void> {
+    await firstValueFrom(this.tripApi.updateExpenseStatus(expenseId, status));
+    await Promise.all([this.loadExpenses(tripId), this.loadTrips()]);
   }
 
   getTasks(tripId?: string): TripTask[] {

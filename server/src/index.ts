@@ -30,8 +30,16 @@ import {
 } from './modules/planning/planning.controller.js';
 import { createItineraryItem, listItinerary } from './modules/itinerary/itinerary.controller.js';
 import { listBookings } from './modules/bookings/booking.controller.js';
-import { listBudgetCategories } from './modules/budgets/budget.controller.js';
-import { listExpenses } from './modules/expenses/expense.controller.js';
+import {
+  createBudgetCategory,
+  listBudgetCategories,
+  updateBudgetCategory,
+} from './modules/budgets/budget.controller.js';
+import {
+  createExpense,
+  listExpenses,
+  updateExpenseStatus,
+} from './modules/expenses/expense.controller.js';
 import { listMyOrgTasks, listTasks, updateTaskStatus } from './modules/tasks/task.controller.js';
 import {
   listNotifications,
@@ -94,7 +102,11 @@ export function createApp() {
   v1.post('/trips/:tripId/itinerary', authenticate, createItineraryItem);
   v1.get('/trips/:tripId/bookings', authenticate, listBookings);
   v1.get('/trips/:tripId/budget', authenticate, listBudgetCategories);
+  v1.post('/trips/:tripId/budget', authenticate, createBudgetCategory);
+  v1.patch('/trips/:tripId/budget/:categoryId', authenticate, updateBudgetCategory);
   v1.get('/trips/:tripId/expenses', authenticate, listExpenses);
+  v1.post('/trips/:tripId/expenses', authenticate, createExpense);
+  v1.patch('/expenses/:id', authenticate, updateExpenseStatus);
   v1.get('/trips/:tripId/tasks', authenticate, listTasks);
   v1.get('/tasks', authenticate, listMyOrgTasks);
   v1.patch('/tasks/:id', authenticate, updateTaskStatus);

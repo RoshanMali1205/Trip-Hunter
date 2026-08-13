@@ -22,6 +22,7 @@ export interface ApiTrip {
   startDate: string | null;
   endDate: string | null;
   budgetCents: number;
+  actualCents: number;
   currency: string;
   createdBy: string | null;
   createdAt: string;
@@ -169,6 +170,27 @@ export interface CreateItineraryItemPayload {
   locationName?: string;
 }
 
+export interface CreateBudgetCategoryPayload {
+  category: string;
+  plannedAmount: number;
+  currency?: string;
+}
+
+export interface UpdateBudgetCategoryPayload {
+  plannedAmount?: number;
+  actualAmount?: number;
+}
+
+export type ExpenseCategory = 'travel' | 'lodging' | 'food' | 'activity' | 'supplies' | 'other';
+
+export interface CreateExpensePayload {
+  description: string;
+  category: ExpenseCategory;
+  amount: number;
+  currency?: string;
+  expenseDate?: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class TripApiService {
   private readonly http = inject(HttpClient);
@@ -252,9 +274,37 @@ export class TripApiService {
       .pipe(map((res) => res.data));
   }
 
+  createBudgetCategory(tripId: string, payload: CreateBudgetCategoryPayload): Observable<ApiBudgetCategory> {
+    return this.http
+      .post<ApiEnvelope<ApiBudgetCategory>>(`${this.base}/${tripId}/budget`, payload)
+      .pipe(map((res) => res.data));
+  }
+
+  updateBudgetCategory(
+    tripId: string,
+    categoryId: string,
+    payload: UpdateBudgetCategoryPayload,
+  ): Observable<ApiBudgetCategory> {
+    return this.http
+      .patch<ApiEnvelope<ApiBudgetCategory>>(`${this.base}/${tripId}/budget/${categoryId}`, payload)
+      .pipe(map((res) => res.data));
+  }
+
   expenses(tripId: string): Observable<ApiExpense[]> {
     return this.http
       .get<ApiEnvelope<ApiExpense[]>>(`${this.base}/${tripId}/expenses`)
+      .pipe(map((res) => res.data));
+  }
+
+  createExpense(tripId: string, payload: CreateExpensePayload): Observable<ApiExpense> {
+    return this.http
+      .post<ApiEnvelope<ApiExpense>>(`${this.base}/${tripId}/expenses`, payload)
+      .pipe(map((res) => res.data));
+  }
+
+  updateExpenseStatus(expenseId: string, status: 'APPROVED' | 'REJECTED'): Observable<ApiExpense> {
+    return this.http
+      .patch<ApiEnvelope<ApiExpense>>(`${getAppConfig().apiBaseUrl}/expenses/${expenseId}`, { status })
       .pipe(map((res) => res.data));
   }
 

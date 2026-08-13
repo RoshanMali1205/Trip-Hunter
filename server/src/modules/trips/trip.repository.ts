@@ -25,6 +25,7 @@ export interface Trip {
   startDate: string | null;
   endDate: string | null;
   budgetCents: number;
+  actualCents: number;
   currency: string;
   createdBy: string | null;
   createdAt: string;
@@ -76,6 +77,7 @@ const memoryTrips: Trip[] = [
     startDate: '2026-11-14',
     endDate: '2026-11-17',
     budgetCents: 45000000,
+    actualCents: 0,
     currency: 'INR',
     createdBy: '11111111-1111-1111-1111-111111111111',
     createdAt: now,
@@ -93,6 +95,7 @@ const memoryTrips: Trip[] = [
     startDate: '2027-01-09',
     endDate: '2027-01-11',
     budgetCents: 18000000,
+    actualCents: 0,
     currency: 'INR',
     createdBy: '11111111-1111-1111-1111-111111111111',
     createdAt: now,
@@ -116,11 +119,42 @@ function mapRow(row: TripRow): Trip {
     startDate: row.start_date,
     endDate: row.end_date,
     budgetCents,
+    actualCents: 0,
     currency: row.currency,
     createdBy: row.created_by,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
+}
+
+/** Sums each trip's non-rejected expenses and fills in `actualCents`. */
+async function attachActualSpend(
+  db: ReturnType<typeof getSupabaseAdmin>,
+  trips: Trip[],
+): Promise<Trip[]> {
+  if (trips.length === 0) {
+    return trips;
+  }
+
+  const { data, error } = await db
+    .from('expenses')
+    .select('trip_id, amount_cents')
+    .in(
+      'trip_id',
+      trips.map((t) => t.id),
+    )
+    .neq('status', 'rejected');
+
+  if (error) {
+    throw new AppError(502, 'DB_ERROR', error.message);
+  }
+
+  const sums = new Map<string, number>();
+  for (const row of (data ?? []) as { trip_id: string; amount_cents: number }[]) {
+    sums.set(row.trip_id, (sums.get(row.trip_id) ?? 0) + row.amount_cents);
+  }
+
+  return trips.map((t) => ({ ...t, actualCents: sums.get(t.id) ?? 0 }));
 }
 
 const TRIP_SELECT =
@@ -146,7 +180,8 @@ export class TripRepository {
       return [...memoryTrips];
     }
 
-    const { data, error } = await getSupabaseAdmin()
+    const db = getSupabaseAdmin();
+    const { data, error } = await db
       .from('trips')
       .select(TRIP_SELECT)
       .order('created_at', { ascending: false });
@@ -155,7 +190,7 @@ export class TripRepository {
       throw new AppError(502, 'DB_ERROR', error.message);
     }
 
-    return ((data ?? []) as TripRow[]).map(mapRow);
+    return attachActualSpend(db, ((data ?? []) as TripRow[]).map(mapRow));
   }
 
   async findById(id: string): Promise<Trip | undefined> {
@@ -163,7 +198,8 @@ export class TripRepository {
       return memoryTrips.find((t) => t.id === id);
     }
 
-    const { data, error } = await getSupabaseAdmin()
+    const db = getSupabaseAdmin();
+    const { data, error } = await db
       .from('trips')
       .select(TRIP_SELECT)
       .eq('id', id)
@@ -172,8 +208,12 @@ export class TripRepository {
     if (error) {
       throw new AppError(502, 'DB_ERROR', error.message);
     }
+    if (!data) {
+      return undefined;
+    }
 
-    return data ? mapRow(data as TripRow) : undefined;
+    const [trip] = await attachActualSpend(db, [mapRow(data as TripRow)]);
+    return trip;
   }
 
   async findByOrganization(organizationId: string): Promise<Trip[]> {
@@ -181,7 +221,8 @@ export class TripRepository {
       return memoryTrips.filter((t) => t.organizationId === organizationId);
     }
 
-    const { data, error } = await getSupabaseAdmin()
+    const db = getSupabaseAdmin();
+    const { data, error } = await db
       .from('trips')
       .select(TRIP_SELECT)
       .eq('organization_id', organizationId)
@@ -191,7 +232,7 @@ export class TripRepository {
       throw new AppError(502, 'DB_ERROR', error.message);
     }
 
-    return ((data ?? []) as TripRow[]).map(mapRow);
+    return attachActualSpend(db, ((data ?? []) as TripRow[]).map(mapRow));
   }
 
   async create(input: CreateTripInput): Promise<Trip> {
@@ -207,6 +248,7 @@ export class TripRepository {
         startDate: input.startDate,
         endDate: input.endDate,
         budgetCents: input.budgetCents,
+        actualCents: 0,
         currency: input.currency,
         createdBy: input.createdBy,
         createdAt: new Date().toISOString(),

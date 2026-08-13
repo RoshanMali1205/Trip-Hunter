@@ -8,7 +8,7 @@ import { AuthService } from '../../../../core/auth/auth.service';
 import { TripStore } from '../../../../core/services/trip.store';
 import { InrCurrencyPipe } from '../../../../shared/pipes/format.pipe';
 import { AvailabilityOption, DestinationOption, TripMember } from '../../../../core/models/trip.model';
-import { ApiItineraryItem } from '../../../../core/services/trip-api.service';
+import { ApiItineraryItem, ExpenseCategory } from '../../../../core/services/trip-api.service';
 
 function tripIdFromParent(route: ActivatedRoute) {
   return toSignal(route.parent!.paramMap.pipe(map((p) => p.get('tripId') || '')), {
@@ -1308,7 +1308,7 @@ export class TripBookingsPage {
 @Component({
   selector: 'app-trip-budget',
   standalone: true,
-  imports: [InrCurrencyPipe],
+  imports: [InrCurrencyPipe, FormsModule],
   template: `
     @if (trip(); as t) {
       <div class="top-grid">
@@ -1335,12 +1335,48 @@ export class TripBookingsPage {
         </article>
       </div>
     }
+
+    <div class="head">
+      <h2>Categories</h2>
+      <button type="button" class="outline-btn" (click)="showForm.set(!showForm())">Add category +</button>
+    </div>
+
+    @if (showForm()) {
+      <form class="th-panel add-form" (ngSubmit)="submit()">
+        <label>
+          Category name
+          <input type="text" required [(ngModel)]="categoryName" name="categoryName" placeholder="Stay" />
+        </label>
+        <label>
+          Planned amount
+          <input type="number" required min="0" [(ngModel)]="plannedAmount" name="plannedAmount" />
+        </label>
+        <button type="submit" class="btn primary" [disabled]="adding()">
+          {{ adding() ? 'Adding…' : 'Add category' }}
+        </button>
+        @if (addError()) {
+          <p class="add-error">{{ addError() }}</p>
+        }
+      </form>
+    }
+
     <div class="cats">
       @for (b of budget(); track b.id) {
         <article class="th-panel">
           <div class="row">
             <h3>{{ b.category }}</h3>
-            <span>{{ b.actualAmount | inr: b.currency }} / {{ b.plannedAmount | inr: b.currency }}</span>
+            @if (editingId() === b.id) {
+              <span class="edit-row">
+                <input type="number" min="0" [(ngModel)]="editAmount" name="editAmount-{{ b.id }}" />
+                <button type="button" class="btn primary" (click)="saveEdit(b.id)">Save</button>
+                <button type="button" class="btn ghost" (click)="editingId.set('')">Cancel</button>
+              </span>
+            } @else {
+              <span>
+                {{ b.actualAmount | inr: b.currency }} / {{ b.plannedAmount | inr: b.currency }}
+                <button type="button" class="link-btn" (click)="startEdit(b.id, b.plannedAmount)">Edit</button>
+              </span>
+            }
           </div>
           <div class="bar">
             <i [style.width.%]="pct(b.actualAmount, b.plannedAmount)"></i>
@@ -1353,6 +1389,77 @@ export class TripBookingsPage {
   `,
   styles: [
     `
+      .head {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        justify-content: space-between;
+        align-items: center;
+        margin: 1.25rem 0 0.85rem;
+      }
+      .head h2 {
+        margin: 0;
+        font-family: var(--th-font-display);
+      }
+      .outline-btn {
+        background: transparent;
+        color: var(--th-primary-light);
+        border: 1px solid var(--th-primary);
+        border-radius: 999px;
+        padding: 0.55rem 1rem;
+        font-weight: 650;
+        cursor: pointer;
+      }
+      .add-form {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+      }
+      .add-form label {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+        font-size: 0.85rem;
+        color: var(--th-text-secondary);
+      }
+      .add-form input {
+        padding: 0.6rem 0.75rem;
+        border-radius: var(--th-radius);
+        border: 1px solid var(--th-border);
+        background: var(--th-surface);
+      }
+      .add-form button {
+        align-self: end;
+      }
+      .add-error {
+        margin: 0;
+        color: #dc2626;
+        font-size: 0.85rem;
+        grid-column: 1 / -1;
+      }
+      .link-btn {
+        background: none;
+        border: none;
+        color: var(--th-primary-light);
+        cursor: pointer;
+        font-weight: 650;
+        font-size: 0.82rem;
+        padding: 0;
+        margin-left: 0.5rem;
+      }
+      .edit-row {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+      }
+      .edit-row input {
+        width: 100px;
+        padding: 0.35rem 0.5rem;
+        border-radius: var(--th-radius);
+        border: 1px solid var(--th-border);
+        background: var(--th-surface);
+      }
       .top-grid {
         display: grid;
         gap: 0.85rem;
@@ -1414,6 +1521,15 @@ export class TripBudgetPage {
   readonly trip = computed(() => this.store.getById(this.tripId()));
   readonly budget = computed(() => this.store.getBudget(this.tripId()));
 
+  readonly showForm = signal(false);
+  readonly categoryName = signal('');
+  readonly plannedAmount = signal<number | null>(null);
+  readonly adding = signal(false);
+  readonly addError = signal('');
+
+  readonly editingId = signal('');
+  readonly editAmount = signal<number | null>(null);
+
   constructor() {
     effect(() => {
       const id = this.tripId();
@@ -1434,14 +1550,85 @@ export class TripBudgetPage {
     if (!planned) return 0;
     return Math.min(100, Math.round((actual / planned) * 100));
   }
+
+  async submit(): Promise<void> {
+    const id = this.tripId();
+    const name = this.categoryName().trim();
+    const amount = this.plannedAmount();
+    if (!id || !name || amount === null) return;
+
+    this.adding.set(true);
+    this.addError.set('');
+    try {
+      await this.store.addBudgetCategory(id, { category: name, plannedAmount: amount });
+      this.categoryName.set('');
+      this.plannedAmount.set(null);
+      this.showForm.set(false);
+    } catch {
+      this.addError.set('Could not add that category. Please try again.');
+    } finally {
+      this.adding.set(false);
+    }
+  }
+
+  startEdit(categoryId: string, currentAmount: number): void {
+    this.editingId.set(categoryId);
+    this.editAmount.set(currentAmount);
+  }
+
+  async saveEdit(categoryId: string): Promise<void> {
+    const id = this.tripId();
+    const amount = this.editAmount();
+    if (!id || amount === null) return;
+    await this.store.updateBudgetCategory(id, categoryId, { plannedAmount: amount });
+    this.editingId.set('');
+  }
 }
 
 @Component({
   selector: 'app-trip-expenses',
   standalone: true,
-  imports: [InrCurrencyPipe],
+  imports: [InrCurrencyPipe, FormsModule],
   template: `
-    <h2>Expenses</h2>
+    <div class="head">
+      <h2>Expenses</h2>
+      <button type="button" class="outline-btn" (click)="showForm.set(!showForm())">Add expense +</button>
+    </div>
+
+    @if (showForm()) {
+      <form class="th-panel add-form" (ngSubmit)="submit()">
+        <label class="wide">
+          Description
+          <input type="text" required [(ngModel)]="description" name="description" placeholder="Welcome dinner" />
+        </label>
+        <label>
+          Category
+          <select [(ngModel)]="category" name="category">
+            <option value="travel">Travel</option>
+            <option value="lodging">Lodging</option>
+            <option value="food">Food</option>
+            <option value="activity">Activity</option>
+            <option value="supplies">Supplies</option>
+            <option value="other">Other</option>
+          </select>
+        </label>
+        <label>
+          Amount
+          <input type="number" required min="0.01" step="0.01" [(ngModel)]="amount" name="amount" />
+        </label>
+        <label>
+          Date
+          <input type="date" [(ngModel)]="expenseDate" name="expenseDate" />
+        </label>
+        <button type="submit" class="btn primary" [disabled]="adding()">
+          {{ adding() ? 'Adding…' : 'Add expense' }}
+        </button>
+        @if (addError()) {
+          <p class="add-error">{{ addError() }}</p>
+        }
+      </form>
+    }
+
     <div class="th-panel">
       <ul>
         @for (e of expenses(); track e.id) {
@@ -1449,8 +1636,23 @@ export class TripBudgetPage {
             <div>
               <strong>{{ e.description }}</strong>
               <span>{{ e.paidByName }} · {{ e.category }} · {{ e.expenseDate }}</span>
+              @if (e.status === 'PENDING') {
+                <span class="pending-actions">
+                  <button type="button" class="link-btn" (click)="respond(e.id, 'APPROVED')">Approve</button>
+                  <button type="button" class="link-btn danger" (click)="respond(e.id, 'REJECTED')">Reject</button>
+                </span>
+              }
             </div>
-            <em>{{ e.amount | inr: e.currency }}</em>
+            <div class="amount-col">
+              <em>{{ e.amount | inr: e.currency }}</em>
+              <em
+                class="th-pill"
+                [class.th-pill--solid]="e.status === 'APPROVED'"
+                [class.th-pill--outline]="e.status === 'PENDING'"
+                [class.th-pill--muted]="e.status === 'REJECTED'"
+                >{{ e.status.charAt(0) + e.status.slice(1).toLowerCase() }}</em
+              >
+            </div>
           </li>
         } @empty {
           <li>No expenses yet.</li>
@@ -1470,9 +1672,58 @@ export class TripBudgetPage {
   `,
   styles: [
     `
+      .head {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+      }
       h2 {
-        margin: 0 0 1rem;
+        margin: 0;
         font-family: var(--th-font-display);
+      }
+      .outline-btn {
+        background: transparent;
+        color: var(--th-primary-light);
+        border: 1px solid var(--th-primary);
+        border-radius: 999px;
+        padding: 0.55rem 1rem;
+        font-weight: 650;
+        cursor: pointer;
+      }
+      .add-form {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+      }
+      .add-form label {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+        font-size: 0.85rem;
+        color: var(--th-text-secondary);
+      }
+      .add-form label.wide {
+        grid-column: 1 / -1;
+      }
+      .add-form input,
+      .add-form select {
+        padding: 0.6rem 0.75rem;
+        border-radius: var(--th-radius);
+        border: 1px solid var(--th-border);
+        background: var(--th-surface);
+      }
+      .add-form button {
+        align-self: end;
+      }
+      .add-error {
+        margin: 0;
+        color: #dc2626;
+        font-size: 0.85rem;
+        grid-column: 1 / -1;
       }
       ul {
         list-style: none;
@@ -1490,6 +1741,28 @@ export class TripBudgetPage {
         display: block;
         color: var(--th-text-muted);
         font-size: 0.82rem;
+      }
+      .pending-actions {
+        margin-top: 0.3rem;
+      }
+      .link-btn {
+        background: none;
+        border: none;
+        color: var(--th-primary-light);
+        cursor: pointer;
+        font-weight: 650;
+        font-size: 0.8rem;
+        padding: 0;
+        margin-right: 0.85rem;
+      }
+      .link-btn.danger {
+        color: #dc2626;
+      }
+      .amount-col {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 0.35rem;
       }
       em {
         font-style: normal;
@@ -1522,11 +1795,50 @@ export class TripExpensesPage {
     this.expenses().length ? ['Rahul owes Roshan ₹2,450'] : [],
   );
 
+  readonly showForm = signal(false);
+  readonly description = signal('');
+  readonly category = signal<ExpenseCategory>('other');
+  readonly amount = signal<number | null>(null);
+  readonly expenseDate = signal('');
+  readonly adding = signal(false);
+  readonly addError = signal('');
+
   constructor() {
     effect(() => {
       const id = this.tripId();
       if (id) void this.store.loadExpenses(id);
     });
+  }
+
+  async submit(): Promise<void> {
+    const id = this.tripId();
+    const description = this.description().trim();
+    const amount = this.amount();
+    if (!id || !description || amount === null) return;
+
+    this.adding.set(true);
+    this.addError.set('');
+    try {
+      await this.store.addExpense(id, {
+        description,
+        category: this.category(),
+        amount,
+        expenseDate: this.expenseDate() || undefined,
+      });
+      this.description.set('');
+      this.amount.set(null);
+      this.expenseDate.set('');
+      this.showForm.set(false);
+    } catch {
+      this.addError.set('Could not add that expense. Please try again.');
+    } finally {
+      this.adding.set(false);
+    }
+  }
+
+  respond(expenseId: string, status: 'APPROVED' | 'REJECTED'): void {
+    const id = this.tripId();
+    if (id) void this.store.updateExpenseStatus(id, expenseId, status);
   }
 }
 

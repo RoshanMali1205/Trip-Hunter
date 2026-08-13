@@ -54,6 +54,20 @@ function mapRow(row: ExpenseRow): Expense {
   };
 }
 
+const EXPENSE_SELECT =
+  'id, trip_id, paid_by, category, title, description, amount_cents, currency, incurred_on, status, profiles!paid_by(display_name)';
+
+export interface CreateExpenseInput {
+  tripId: string;
+  title: string;
+  category: string;
+  amountCents: number;
+  currency: string;
+  incurredOn: string;
+  paidBy: string | null;
+  createdBy: string | null;
+}
+
 export class ExpenseRepository {
   async findByTrip(tripId: string): Promise<Expense[]> {
     if (assertDbOrMock('expenses') === 'memory') {
@@ -62,9 +76,7 @@ export class ExpenseRepository {
 
     const { data, error } = await getSupabaseAdmin()
       .from('expenses')
-      .select(
-        'id, trip_id, paid_by, category, title, description, amount_cents, currency, incurred_on, status, profiles!paid_by(display_name)',
-      )
+      .select(EXPENSE_SELECT)
       .eq('trip_id', tripId)
       .order('incurred_on', { ascending: false });
 
@@ -73,5 +85,56 @@ export class ExpenseRepository {
     }
 
     return ((data ?? []) as unknown as ExpenseRow[]).map(mapRow);
+  }
+
+  async create(input: CreateExpenseInput): Promise<Expense> {
+    if (assertDbOrMock('expenses') === 'memory') {
+      throw new AppError(503, 'SUPABASE_NOT_CONFIGURED', 'Supabase is required to add expenses');
+    }
+
+    const { data, error } = await getSupabaseAdmin()
+      .from('expenses')
+      .insert({
+        trip_id: input.tripId,
+        title: input.title,
+        category: input.category,
+        amount_cents: input.amountCents,
+        currency: input.currency,
+        incurred_on: input.incurredOn,
+        paid_by: input.paidBy,
+        created_by: input.createdBy,
+      })
+      .select(EXPENSE_SELECT)
+      .single();
+
+    if (error) {
+      throw new AppError(502, 'DB_ERROR', error.message);
+    }
+
+    return mapRow(data as unknown as ExpenseRow);
+  }
+
+  async updateStatus(id: string, status: 'APPROVED' | 'REJECTED'): Promise<Expense> {
+    if (assertDbOrMock('expenses') === 'memory') {
+      throw new AppError(503, 'SUPABASE_NOT_CONFIGURED', 'Supabase is required to update expenses');
+    }
+
+    const dbStatus = status === 'APPROVED' ? 'approved' : 'rejected';
+
+    const { data, error } = await getSupabaseAdmin()
+      .from('expenses')
+      .update({ status: dbStatus })
+      .eq('id', id)
+      .select(EXPENSE_SELECT)
+      .single();
+
+    if (error) {
+      throw new AppError(502, 'DB_ERROR', error.message);
+    }
+    if (!data) {
+      throw new AppError(404, 'EXPENSE_NOT_FOUND', `Expense ${id} was not found`);
+    }
+
+    return mapRow(data as unknown as ExpenseRow);
   }
 }
