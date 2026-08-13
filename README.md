@@ -2,7 +2,7 @@
 
 Collaborative trip planning and trip management for office teams — from idea and availability voting through approvals, itinerary, bookings, expenses, and settlement.
 
-**Stack:** Angular 22 · Angular Material · Signals · PWA · Node.js/Express (Netlify Functions) · Supabase (planned)
+**Stack:** Angular 22 · Angular Material · Signals · PWA · Node.js/Express (Netlify Functions) · Supabase Auth/Postgres
 
 ## Quick start
 
@@ -11,7 +11,7 @@ npm install
 npm start
 ```
 
-Open `http://localhost:4200`. Demo auth accepts any valid email (or Microsoft button). The UI uses mock trip data so you can explore the full shell without a backend.
+Open `http://localhost:4200/login`. Use **Sign in** or **Create account**. Without Supabase keys the app runs in demo auth (any email + password 6+ chars). With keys, it uses Supabase Auth — see [docs/api/auth-login-signup.md](docs/api/auth-login-signup.md).
 
 ### API stub (optional)
 
@@ -37,7 +37,8 @@ npm run dev
 
 | Path | Purpose |
 |------|---------|
-| `/login` | Auth |
+| `/login` | Sign in / create account |
+| `/auth/callback` | OAuth / email confirm redirect |
 | `/dashboard` | Attention widgets |
 | `/trips` | Trip list |
 | `/trips/create` | Creation wizard |

@@ -164,6 +164,49 @@
     background: var(--th-surface);
     color: var(--th-text);
   }
+
+  input:focus {
+    outline: 2px solid color-mix(in srgb, var(--th-primary) 55%, transparent);
+    outline-offset: 1px;
+  }
+
+  .btn:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+  }
+}
+
+.login__tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.35rem;
+  margin-bottom: 1.25rem;
+  padding: 0.3rem;
+  border-radius: var(--th-radius);
+  background: color-mix(in srgb, var(--th-surface) 80%, var(--th-border));
+  border: 1px solid var(--th-border);
+}
+
+.login__tab {
+  height: 40px;
+  border: 0;
+  border-radius: calc(var(--th-radius) - 2px);
+  background: transparent;
+  color: var(--th-text-secondary);
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.login__tab--active {
+  background: var(--th-surface);
+  color: var(--th-text);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.25);
+}
+
+.login__name-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
 }
 
 .login__eyebrow {
@@ -215,6 +258,12 @@
   font-size: 0.9rem;
 }
 
+.login__info {
+  color: var(--th-primary-light);
+  margin: 0;
+  font-size: 0.9rem;
+}
+
 .login__divider {
   display: grid;
   place-items: center;
@@ -238,6 +287,10 @@
 
 @media (max-width: 959px) {
   .login {
+    grid-template-columns: 1fr;
+  }
+
+  .login__name-row {
     grid-template-columns: 1fr;
   }
 

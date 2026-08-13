@@ -1,5 +1,6 @@
 export const APP_ROUTES = {
   login: '/login',
+  authCallback: '/auth/callback',
   dashboard: '/dashboard',
   trips: '/trips',
   tripCreate: '/trips/create',
