@@ -6,10 +6,17 @@
     </div>
   </header>
   <div class="th-panel profile">
-    <mat-icon>account_circle</mat-icon>
+    @if (user()?.avatarUrl; as photo) {
+      <img class="profile__avatar" [src]="photo" [alt]="user()?.firstName + ' profile photo'" />
+    } @else {
+      <mat-icon>account_circle</mat-icon>
+    }
     <div>
       <h2>{{ user()?.firstName }} {{ user()?.lastName }}</h2>
       <p>{{ user()?.email }}</p>
+      @if (user()?.phone) {
+        <p>{{ user()?.phone }}</p>
+      }
       <p>{{ user()?.organizationName }} · {{ user()?.role?.replaceAll('_', ' ') }}</p>
       <p>{{ user()?.department }} · {{ user()?.timezone }}</p>
     </div>

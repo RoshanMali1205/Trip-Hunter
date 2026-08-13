@@ -17,7 +17,8 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(withInterceptors([authInterceptor])),
     provideServiceWorker('ngsw-worker.js', {
       enabled: !isDevMode(),
-      registrationStrategy: 'registerWhenStable:30000',
+      // Register quickly so mobile clients can detect new deploys.
+      registrationStrategy: 'registerWhenStable:5000',
     }),
   ],
 };
