@@ -10,6 +10,7 @@ import {
   validateAvatarFile,
 } from '../../../../core/auth/auth.service';
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
+import { brandIconFor } from '../../../../core/theme/seasonal-icons';
 
 type AuthPanel = 'signin' | 'signup';
 
@@ -25,6 +26,7 @@ export class LoginPage {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
 
+  readonly brandIcon = brandIconFor();
   readonly panel = signal<AuthPanel>('signin');
   readonly error = signal('');
   readonly info = signal('');
