@@ -15,6 +15,18 @@ import {
   getTrip,
   listTrips,
 } from './modules/trips/trip.controller.js';
+import { listMembers } from './modules/members/member.controller.js';
+import { listAvailability, listDestinations } from './modules/planning/planning.controller.js';
+import { listItinerary } from './modules/itinerary/itinerary.controller.js';
+import { listBookings } from './modules/bookings/booking.controller.js';
+import { listBudgetCategories } from './modules/budgets/budget.controller.js';
+import { listExpenses } from './modules/expenses/expense.controller.js';
+import { listTasks, updateTaskStatus } from './modules/tasks/task.controller.js';
+import {
+  listNotifications,
+  markAllNotificationsRead,
+  markNotificationRead,
+} from './modules/notifications/notification.controller.js';
 import { ok } from './types/api.js';
 
 // Safe to import from Netlify Functions (no import.meta / listen side effects).
@@ -57,6 +69,20 @@ export function createApp() {
   v1.get('/trips', authenticate, listTrips);
   v1.get('/trips/:id', authenticate, getTrip);
   v1.post('/trips', authenticate, createTrip);
+
+  v1.get('/trips/:tripId/members', authenticate, listMembers);
+  v1.get('/trips/:tripId/availability', authenticate, listAvailability);
+  v1.get('/trips/:tripId/destinations', authenticate, listDestinations);
+  v1.get('/trips/:tripId/itinerary', authenticate, listItinerary);
+  v1.get('/trips/:tripId/bookings', authenticate, listBookings);
+  v1.get('/trips/:tripId/budget', authenticate, listBudgetCategories);
+  v1.get('/trips/:tripId/expenses', authenticate, listExpenses);
+  v1.get('/trips/:tripId/tasks', authenticate, listTasks);
+  v1.patch('/tasks/:id', authenticate, updateTaskStatus);
+
+  v1.get('/notifications', authenticate, listNotifications);
+  v1.patch('/notifications/:id/read', authenticate, markNotificationRead);
+  v1.post('/notifications/read-all', authenticate, markAllNotificationsRead);
 
   app.use('/api/v1', v1);
   app.use(notFoundHandler);

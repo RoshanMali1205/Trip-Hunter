@@ -231,6 +231,13 @@ export class TripOverviewPage {
   private readonly tripId = tripIdFromParent(this.route);
   readonly trip = computed(() => this.store.getById(this.tripId()));
 
+  constructor() {
+    effect(() => {
+      const id = this.tripId();
+      if (id) void this.store.loadItinerary(id);
+    });
+  }
+
   readonly daysUntil = computed(() => {
     const start = this.trip()?.startDate;
     if (!start) return 0;
@@ -449,6 +456,13 @@ export class TripMembersPage {
   private readonly store = inject(TripStore);
   private readonly tripId = tripIdFromParent(this.route);
   readonly members = computed(() => this.store.getMembers(this.tripId()));
+
+  constructor() {
+    effect(() => {
+      const id = this.tripId();
+      if (id) void this.store.loadMembers(id);
+    });
+  }
   readonly stats = computed(() => {
     const list = this.members();
     return {
@@ -740,6 +754,14 @@ export class TripVotingPage {
   constructor() {
     effect(() => {
       const id = this.tripId();
+      if (id) {
+        void this.store.loadAvailability(id);
+        void this.store.loadDestinations(id);
+      }
+    });
+
+    effect(() => {
+      const id = this.tripId();
       if (!id || typeof localStorage === 'undefined') return;
       try {
         const a = localStorage.getItem(`th-vote-avail-${id}`);
@@ -891,6 +913,13 @@ export class TripItineraryPage {
   private readonly tripId = tripIdFromParent(this.route);
   readonly days = computed(() => this.store.getItinerary(this.tripId()));
   readonly selected = signal('');
+
+  constructor() {
+    effect(() => {
+      const id = this.tripId();
+      if (id) void this.store.loadItinerary(id);
+    });
+  }
   readonly activeDay = computed(() => {
     const list = this.days();
     if (!list.length) return undefined;
@@ -1033,6 +1062,13 @@ export class TripBookingsPage {
   private readonly tripId = tripIdFromParent(this.route);
   readonly bookings = computed(() => this.store.getBookings(this.tripId()));
   formatWhen = formatDateTime;
+
+  constructor() {
+    effect(() => {
+      const id = this.tripId();
+      if (id) void this.store.loadBookings(id);
+    });
+  }
 }
 
 @Component({
@@ -1143,6 +1179,13 @@ export class TripBudgetPage {
   private readonly tripId = tripIdFromParent(this.route);
   readonly trip = computed(() => this.store.getById(this.tripId()));
   readonly budget = computed(() => this.store.getBudget(this.tripId()));
+
+  constructor() {
+    effect(() => {
+      const id = this.tripId();
+      if (id) void this.store.loadBudget(id);
+    });
+  }
   readonly utilization = computed(() => {
     const t = this.trip();
     if (!t?.estimatedBudget) return 0;
@@ -1244,6 +1287,13 @@ export class TripExpensesPage {
   readonly settlements = computed(() =>
     this.expenses().length ? ['Rahul owes Roshan ₹2,450'] : [],
   );
+
+  constructor() {
+    effect(() => {
+      const id = this.tripId();
+      if (id) void this.store.loadExpenses(id);
+    });
+  }
 }
 
 @Component({
@@ -1309,6 +1359,13 @@ export class TripTasksTabPage {
   private readonly store = inject(TripStore);
   private readonly tripId = tripIdFromParent(this.route);
   readonly tasks = computed(() => this.store.getTasks(this.tripId()));
+
+  constructor() {
+    effect(() => {
+      const id = this.tripId();
+      if (id) void this.store.loadTripTasks(id);
+    });
+  }
 }
 
 @Component({
