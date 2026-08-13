@@ -28,6 +28,18 @@
     <link rel="manifest" href="manifest.webmanifest" />
   </head>
   <body>
+    <script>
+      try {
+        var raw = localStorage.getItem('trip-hunter:theme');
+        var theme = raw ? JSON.parse(raw) : 'light';
+        if (theme === 'dark') {
+          document.documentElement.setAttribute('data-theme', 'dark');
+          document.documentElement.style.colorScheme = 'dark';
+          var meta = document.querySelector('meta[name="theme-color"]');
+          if (meta) meta.setAttribute('content', '#0f1218');
+        }
+      } catch (e) {}
+    </script>
     <script src="/env.js"></script>
     <app-root></app-root>
     <noscript>Please enable JavaScript to continue using Trip Hunter.</noscript>

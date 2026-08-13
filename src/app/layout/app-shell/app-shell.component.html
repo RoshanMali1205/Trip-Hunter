@@ -4,22 +4,45 @@
       <img class="shell__logo" src="/icons/brand-48.png" width="28" height="28" alt="" />
       <span>Trip Hunter</span>
     </a>
-    <button
-      type="button"
-      class="shell__mobile-logout"
-      (click)="logout()"
-      aria-label="Log out"
-    >
-      <mat-icon>logout</mat-icon>
-      <span>Log out</span>
-    </button>
+    <div class="shell__mobile-actions">
+      <button
+        type="button"
+        class="shell__theme-btn"
+        (click)="toggleTheme()"
+        [attr.aria-label]="themeMode() === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
+        [matTooltip]="themeMode() === 'dark' ? 'Light mode' : 'Dark mode'"
+      >
+        <mat-icon>{{ themeMode() === 'dark' ? 'light_mode' : 'dark_mode' }}</mat-icon>
+      </button>
+      <button
+        type="button"
+        class="shell__mobile-logout"
+        (click)="logout()"
+        aria-label="Log out"
+      >
+        <mat-icon>logout</mat-icon>
+        <span>Log out</span>
+      </button>
+    </div>
   </header>
 
   <aside class="shell__sidebar" aria-label="Primary">
-    <a class="shell__brand" routerLink="/dashboard">
-      <img class="shell__logo" src="/icons/brand-48.png" width="28" height="28" alt="" />
-      <span>Trip Hunter</span>
-    </a>
+    <div class="shell__brand-row">
+      <a class="shell__brand" routerLink="/dashboard">
+        <img class="shell__logo" src="/icons/brand-48.png" width="28" height="28" alt="" />
+        <span>Trip Hunter</span>
+      </a>
+      <button
+        type="button"
+        class="shell__theme-btn"
+        (click)="toggleTheme()"
+        [attr.aria-label]="themeMode() === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
+        [matTooltip]="themeMode() === 'dark' ? 'Light mode' : 'Dark mode'"
+        matTooltipPosition="right"
+      >
+        <mat-icon>{{ themeMode() === 'dark' ? 'light_mode' : 'dark_mode' }}</mat-icon>
+      </button>
+    </div>
 
     <nav class="shell__nav">
       @for (item of navItems; track item.path) {

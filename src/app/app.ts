@@ -2,6 +2,7 @@ import { Component, OnInit, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { PwaInstallService } from './core/pwa/pwa-install.service';
 import { PwaUpdateService } from './core/pwa/pwa-update.service';
+import { ThemeService } from './core/theme/theme.service';
 import { ButtonComponent } from './shared/components/button/button.component';
 
 @Component({
@@ -70,8 +71,10 @@ import { ButtonComponent } from './shared/components/button/button.component';
 export class App implements OnInit {
   readonly updates = inject(PwaUpdateService);
   readonly install = inject(PwaInstallService);
+  private readonly theme = inject(ThemeService);
 
   ngOnInit(): void {
+    void this.theme.mode();
     this.updates.start();
     this.install.start();
   }

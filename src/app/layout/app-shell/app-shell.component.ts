@@ -4,6 +4,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { AuthService } from '../../core/auth/auth.service';
 import { TripStore } from '../../core/services/trip.store';
+import { ThemeService } from '../../core/theme/theme.service';
 
 interface NavItem {
   label: string;
@@ -22,8 +23,10 @@ export class AppShellComponent {
   private readonly auth = inject(AuthService);
   private readonly store = inject(TripStore);
   private readonly router = inject(Router);
+  private readonly theme = inject(ThemeService);
 
   readonly user = this.auth.user;
+  readonly themeMode = this.theme.mode;
   readonly unreadCount = computed(
     () => this.store.getNotifications().filter((n) => !n.read).length,
   );
@@ -56,6 +59,10 @@ export class AppShellComponent {
     { label: 'Tasks', path: '/tasks', icon: 'check_box' },
     { label: 'Profile', path: '/profile', icon: 'person' },
   ];
+
+  toggleTheme(): void {
+    this.theme.toggle();
+  }
 
   async logout(): Promise<void> {
     await this.auth.logout();
