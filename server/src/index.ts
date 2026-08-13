@@ -1,7 +1,11 @@
 import cors from 'cors';
 import express from 'express';
 import { pathToFileURL } from 'node:url';
-import { loadEnv, getEnv } from './config/env.js';
+import { loadEnv, getEnv, allowMockData } from './config/env.js';
+import {
+  isSupabaseAdminConfigured,
+  isSupabaseConfigured,
+} from './config/supabase.js';
 import { authenticate } from './middleware/authentication.js';
 import {
   errorHandler,
@@ -24,12 +28,20 @@ export function createApp() {
   const v1 = express.Router();
 
   v1.get('/health', (_req, res) => {
+    const dataMode = isSupabaseAdminConfigured()
+      ? 'supabase'
+      : allowMockData()
+        ? 'memory'
+        : 'unavailable';
+
     res.json(
       ok(
         {
           status: 'ok',
           service: 'trip-hunter-api',
           version: 'v1',
+          auth: isSupabaseConfigured() ? 'supabase' : 'mock',
+          data: dataMode,
           timestamp: new Date().toISOString(),
         },
         'Healthy',
@@ -61,6 +73,15 @@ if (isDirectRun && !process.env['NETLIFY']) {
   const { PORT } = getEnv();
   app.listen(PORT, () => {
     console.log(`Trip Hunter API listening on http://localhost:${PORT}`);
+    console.log(
+      `  auth=${isSupabaseConfigured() ? 'supabase' : 'mock'} data=${
+        isSupabaseAdminConfigured()
+          ? 'supabase'
+          : allowMockData()
+            ? 'memory'
+            : 'unavailable'
+      }`,
+    );
   });
 }
 
