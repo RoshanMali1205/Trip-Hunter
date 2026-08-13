@@ -1,7 +1,11 @@
 [build]
-  command = "npm run build && npm --prefix server ci && npm --prefix server run build"
+  command = "bash scripts/netlify-build.sh"
   publish = "dist/trip-hunter/browser"
   functions = "netlify/functions"
+
+[build.environment]
+  NODE_VERSION = "22"
+  NPM_FLAGS = "--no-fund --no-audit"
 
 [functions]
   node_bundler = "esbuild"

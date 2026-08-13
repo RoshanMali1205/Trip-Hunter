@@ -1,8 +1,10 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { AuthService } from '../../../../core/auth/auth.service';
+
+type AuthPanel = 'signin' | 'signup';
 
 @Component({
   selector: 'app-login-page',
@@ -16,10 +18,23 @@ export class LoginPage {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
 
+  readonly panel = signal<AuthPanel>('signin');
   readonly error = signal('');
-  readonly form = this.fb.nonNullable.group({
-    email: ['roshan.deshmukh@company.com', [Validators.required, Validators.email]],
-    password: ['demo1234', [Validators.required, Validators.minLength(6)]],
+  readonly info = signal('');
+  readonly busy = signal(false);
+  readonly isDemo = computed(() => this.auth.authMode() === 'demo');
+
+  readonly signInForm = this.fb.nonNullable.group({
+    email: ['', [Validators.required, Validators.email]],
+    password: ['', [Validators.required, Validators.minLength(6)]],
+  });
+
+  readonly signUpForm = this.fb.nonNullable.group({
+    firstName: ['', [Validators.required, Validators.minLength(1)]],
+    lastName: [''],
+    email: ['', [Validators.required, Validators.email]],
+    password: ['', [Validators.required, Validators.minLength(6)]],
+    confirmPassword: ['', [Validators.required]],
   });
 
   /** Destination photo mosaic for the login half-screen. */
@@ -56,23 +71,99 @@ export class LoginPage {
     },
   ] as const;
 
-  submit(): void {
+  showSignIn(): void {
+    this.panel.set('signin');
     this.error.set('');
-    if (this.form.invalid) {
-      this.form.markAllAsTouched();
+    this.info.set('');
+  }
+
+  showSignUp(): void {
+    this.panel.set('signup');
+    this.error.set('');
+    this.info.set('');
+  }
+
+  async submitSignIn(): Promise<void> {
+    this.error.set('');
+    this.info.set('');
+    if (this.signInForm.invalid) {
+      this.signInForm.markAllAsTouched();
       this.error.set('Enter a valid email and password.');
       return;
     }
-    const { email, password } = this.form.getRawValue();
-    if (this.auth.login(email, password)) {
-      void this.router.navigateByUrl('/dashboard');
-      return;
+
+    this.busy.set(true);
+    try {
+      const { email, password } = this.signInForm.getRawValue();
+      const result = await this.auth.signIn(email, password);
+      if (!result.ok) {
+        this.error.set(result.message ?? 'Sign in failed.');
+        return;
+      }
+      await this.router.navigateByUrl('/dashboard');
+    } finally {
+      this.busy.set(false);
     }
-    this.error.set('Invalid credentials. Please try again.');
   }
 
-  microsoftLogin(): void {
-    this.auth.loginWithMicrosoft();
-    void this.router.navigateByUrl('/dashboard');
+  async submitSignUp(): Promise<void> {
+    this.error.set('');
+    this.info.set('');
+    if (this.signUpForm.invalid) {
+      this.signUpForm.markAllAsTouched();
+      this.error.set('Fill in your name, email, and a password (6+ characters).');
+      return;
+    }
+
+    const raw = this.signUpForm.getRawValue();
+    if (raw.password !== raw.confirmPassword) {
+      this.error.set('Passwords do not match.');
+      return;
+    }
+
+    this.busy.set(true);
+    try {
+      const result = await this.auth.signUp({
+        email: raw.email,
+        password: raw.password,
+        firstName: raw.firstName,
+        lastName: raw.lastName,
+      });
+
+      if (!result.ok) {
+        this.error.set(result.message ?? 'Could not create account.');
+        return;
+      }
+
+      if (result.needsEmailConfirmation) {
+        this.info.set(result.message ?? 'Check your email to confirm your account.');
+        this.showSignIn();
+        this.signInForm.patchValue({ email: raw.email, password: '' });
+        return;
+      }
+
+      await this.router.navigateByUrl('/dashboard');
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
+  async microsoftLogin(): Promise<void> {
+    this.error.set('');
+    this.info.set('');
+    this.busy.set(true);
+    try {
+      const result = await this.auth.signInWithMicrosoft();
+      if (!result.ok) {
+        this.error.set(result.message ?? 'Microsoft sign-in failed.');
+        return;
+      }
+      // Demo mode sets session immediately; OAuth redirects away.
+      if (this.auth.isAuthenticated()) {
+        await this.router.navigateByUrl('/dashboard');
+      }
+    } finally {
+      this.busy.set(false);
+    }
   }
 }

@@ -57,8 +57,8 @@ export class AppShellComponent {
     { label: 'Profile', path: '/profile', icon: 'person' },
   ];
 
-  logout(): void {
-    this.auth.logout();
-    void this.router.navigateByUrl('/login');
+  async logout(): Promise<void> {
+    await this.auth.logout();
+    await this.router.navigateByUrl('/login');
   }
 }
