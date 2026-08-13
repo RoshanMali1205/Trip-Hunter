@@ -1,11 +1,14 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { map } from 'rxjs';
 import { MatIconModule } from '@angular/material/icon';
+import { AuthService } from '../../../../core/auth/auth.service';
 import { TripStore } from '../../../../core/services/trip.store';
 import { InrCurrencyPipe } from '../../../../shared/pipes/format.pipe';
 import { AvailabilityOption, DestinationOption, TripMember } from '../../../../core/models/trip.model';
+import { ApiItineraryItem } from '../../../../core/services/trip-api.service';
 
 function tripIdFromParent(route: ActivatedRoute) {
   return toSignal(route.parent!.paramMap.pipe(map((p) => p.get('tripId') || '')), {
@@ -270,7 +273,7 @@ export class TripOverviewPage {
 @Component({
   selector: 'app-trip-members',
   standalone: true,
-  imports: [MatIconModule],
+  imports: [MatIconModule, FormsModule],
   template: `
     <div class="head">
       <div>
@@ -280,8 +283,37 @@ export class TripOverviewPage {
           {{ stats().declined }} declined
         </p>
       </div>
-      <button type="button" class="outline-btn">Invite members +</button>
+      @if (isOwner()) {
+        <button type="button" class="outline-btn" (click)="showInviteForm.set(!showInviteForm())">
+          Invite members +
+        </button>
+      }
     </div>
+
+    @if (showInviteForm()) {
+      <form class="th-panel invite-form" (ngSubmit)="sendInvite()">
+        <label>
+          Email of a registered teammate
+          <input type="email" required [(ngModel)]="inviteEmail" name="inviteEmail" placeholder="name@company.com" />
+        </label>
+        <button type="submit" class="btn primary" [disabled]="inviting()">
+          {{ inviting() ? 'Inviting…' : 'Send invite' }}
+        </button>
+        @if (inviteError()) {
+          <p class="invite-error">{{ inviteError() }}</p>
+        }
+      </form>
+    }
+
+    @if (myPendingInvite(); as mine) {
+      <div class="th-panel invite-banner">
+        <span>You've been invited to this trip as {{ mine.role.toLowerCase() }}.</span>
+        <div class="invite-actions">
+          <button type="button" class="btn primary" (click)="respond('accepted')">Accept</button>
+          <button type="button" class="btn ghost" (click)="respond('declined')">Decline</button>
+        </div>
+      </div>
+    }
 
     <div class="th-panel table-wrap desktop">
       <table>
@@ -375,6 +407,47 @@ export class TripOverviewPage {
         font-weight: 650;
         cursor: pointer;
       }
+      .invite-form {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-end;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+      }
+      .invite-form label {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+        font-size: 0.85rem;
+        color: var(--th-text-secondary);
+        flex: 1;
+        min-width: 220px;
+      }
+      .invite-form input {
+        padding: 0.6rem 0.75rem;
+        border-radius: var(--th-radius);
+        border: 1px solid var(--th-border);
+        background: var(--th-surface);
+      }
+      .invite-error {
+        margin: 0;
+        color: #dc2626;
+        font-size: 0.85rem;
+        flex-basis: 100%;
+      }
+      .invite-banner {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+        border-color: var(--th-primary);
+      }
+      .invite-actions {
+        display: flex;
+        gap: 0.5rem;
+      }
       table {
         width: 100%;
         border-collapse: collapse;
@@ -454,8 +527,26 @@ export class TripOverviewPage {
 export class TripMembersPage {
   private readonly route = inject(ActivatedRoute);
   private readonly store = inject(TripStore);
+  private readonly auth = inject(AuthService);
   private readonly tripId = tripIdFromParent(this.route);
   readonly members = computed(() => this.store.getMembers(this.tripId()));
+  readonly isOwner = computed(() => {
+    const trip = this.store.getById(this.tripId());
+    const userId = this.auth.user()?.id;
+    return !!trip && !!userId && trip.organizerId === userId;
+  });
+  readonly myPendingInvite = computed(() => {
+    const userId = this.auth.user()?.id;
+    if (!userId) return undefined;
+    return this.members().find(
+      (m) => m.userId === userId && (m.inviteStatus === 'INVITED' || m.inviteStatus === 'MAYBE'),
+    );
+  });
+
+  readonly showInviteForm = signal(false);
+  readonly inviteEmail = signal('');
+  readonly inviting = signal(false);
+  readonly inviteError = signal('');
 
   constructor() {
     effect(() => {
@@ -463,6 +554,29 @@ export class TripMembersPage {
       if (id) void this.store.loadMembers(id);
     });
   }
+
+  async sendInvite(): Promise<void> {
+    const email = this.inviteEmail().trim();
+    const id = this.tripId();
+    if (!email || !id) return;
+    this.inviting.set(true);
+    this.inviteError.set('');
+    try {
+      await this.store.inviteMember(id, email);
+      this.inviteEmail.set('');
+      this.showInviteForm.set(false);
+    } catch {
+      this.inviteError.set('Could not invite that email. Make sure they already have an account.');
+    } finally {
+      this.inviting.set(false);
+    }
+  }
+
+  respond(rsvpStatus: 'accepted' | 'declined'): void {
+    const id = this.tripId();
+    if (id) void this.store.respondToInvite(id, rsvpStatus);
+  }
+
   readonly stats = computed(() => {
     const list = this.members();
     return {
@@ -793,9 +907,55 @@ export class TripVotingPage {
 @Component({
   selector: 'app-trip-itinerary',
   standalone: true,
-  imports: [MatIconModule],
+  imports: [MatIconModule, FormsModule],
   template: `
-    <h2>Itinerary</h2>
+    <div class="head">
+      <h2>Itinerary</h2>
+      <button type="button" class="outline-btn" (click)="showForm.set(!showForm())">Add item +</button>
+    </div>
+
+    @if (showForm()) {
+      <form class="th-panel add-form" (ngSubmit)="submit()">
+        <label>
+          Title
+          <input type="text" required [(ngModel)]="title" name="title" placeholder="Team dinner" />
+        </label>
+        <label>
+          Type
+          <select [(ngModel)]="type" name="type">
+            <option value="TRAVEL">Travel</option>
+            <option value="HOTEL">Hotel</option>
+            <option value="FOOD">Food</option>
+            <option value="ACTIVITY">Activity</option>
+            <option value="MEETING">Meeting</option>
+            <option value="OTHER">Other</option>
+          </select>
+        </label>
+        <label>
+          Date
+          <input type="date" required [(ngModel)]="date" name="date" />
+        </label>
+        <label>
+          Start time
+          <input type="time" [(ngModel)]="startTime" name="startTime" />
+        </label>
+        <label>
+          End time
+          <input type="time" [(ngModel)]="endTime" name="endTime" />
+        </label>
+        <label class="wide">
+          Location
+          <input type="text" [(ngModel)]="locationName" name="locationName" placeholder="Curlies, Anjuna" />
+        </label>
+        <button type="submit" class="btn primary" [disabled]="adding()">
+          {{ adding() ? 'Adding…' : 'Add to itinerary' }}
+        </button>
+        @if (addError()) {
+          <p class="add-error">{{ addError() }}</p>
+        }
+      </form>
+    }
+
     <div class="pills">
       @for (day of days(); track day.id; let i = $index) {
         <button type="button" class="pill" [class.on]="selected() === day.id" (click)="selected.set(day.id)">
@@ -824,8 +984,57 @@ export class TripVotingPage {
   `,
   styles: [
     `
+      .head {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+      }
+      .outline-btn {
+        background: transparent;
+        color: var(--th-primary-light);
+        border: 1px solid var(--th-primary);
+        border-radius: 999px;
+        padding: 0.55rem 1rem;
+        font-weight: 650;
+        cursor: pointer;
+      }
+      .add-form {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+      }
+      .add-form label {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+        font-size: 0.85rem;
+        color: var(--th-text-secondary);
+      }
+      .add-form label.wide {
+        grid-column: 1 / -1;
+      }
+      .add-form input,
+      .add-form select {
+        padding: 0.6rem 0.75rem;
+        border-radius: var(--th-radius);
+        border: 1px solid var(--th-border);
+        background: var(--th-surface);
+      }
+      .add-form button {
+        align-self: end;
+      }
+      .add-error {
+        margin: 0;
+        color: #dc2626;
+        font-size: 0.85rem;
+        grid-column: 1 / -1;
+      }
       h2 {
-        margin: 0 0 1rem;
+        margin: 0;
         font-family: var(--th-font-display);
       }
       .pills {
@@ -899,12 +1108,52 @@ export class TripItineraryPage {
   readonly days = computed(() => this.store.getItinerary(this.tripId()));
   readonly selected = signal('');
 
+  readonly showForm = signal(false);
+  readonly title = signal('');
+  readonly type = signal<ApiItineraryItem['type']>('ACTIVITY');
+  readonly date = signal('');
+  readonly startTime = signal('');
+  readonly endTime = signal('');
+  readonly locationName = signal('');
+  readonly adding = signal(false);
+  readonly addError = signal('');
+
   constructor() {
     effect(() => {
       const id = this.tripId();
       if (id) void this.store.loadItinerary(id);
     });
   }
+
+  async submit(): Promise<void> {
+    const id = this.tripId();
+    const title = this.title().trim();
+    const date = this.date();
+    if (!id || !title || !date) return;
+
+    this.adding.set(true);
+    this.addError.set('');
+    try {
+      await this.store.addItineraryItem(id, {
+        title,
+        type: this.type(),
+        date,
+        startTime: this.startTime() || undefined,
+        endTime: this.endTime() || undefined,
+        locationName: this.locationName() || undefined,
+      });
+      this.title.set('');
+      this.startTime.set('');
+      this.endTime.set('');
+      this.locationName.set('');
+      this.showForm.set(false);
+    } catch {
+      this.addError.set('Could not add that item. Please try again.');
+    } finally {
+      this.adding.set(false);
+    }
+  }
+
   readonly activeDay = computed(() => {
     const list = this.days();
     if (!list.length) return undefined;

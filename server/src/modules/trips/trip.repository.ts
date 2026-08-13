@@ -261,4 +261,18 @@ export class TripRepository {
 
     return mapRow({ ...row, budgets: [{ total_cents: budgetCents }] });
   }
+
+  async delete(id: string): Promise<void> {
+    if (assertDbOrMock() === 'memory') {
+      const index = memoryTrips.findIndex((t) => t.id === id);
+      if (index !== -1) memoryTrips.splice(index, 1);
+      return;
+    }
+
+    const { error } = await getSupabaseAdmin().from('trips').delete().eq('id', id);
+
+    if (error) {
+      throw new AppError(502, 'DB_ERROR', error.message);
+    }
+  }
 }

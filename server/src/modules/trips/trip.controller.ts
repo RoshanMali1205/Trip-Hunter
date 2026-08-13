@@ -57,3 +57,16 @@ export const createTrip: RequestHandler = async (req, res, next) => {
     next(err);
   }
 };
+
+export const deleteTrip: RequestHandler = async (req, res, next) => {
+  try {
+    if (!req.user) {
+      throw new AppError(401, 'UNAUTHORIZED', 'Missing or invalid Bearer token');
+    }
+    const id = String(req.params['id']);
+    await tripService.deleteTrip(id, req.user.id);
+    res.json(ok(null, 'Trip deleted successfully'));
+  } catch (err) {
+    next(err);
+  }
+};

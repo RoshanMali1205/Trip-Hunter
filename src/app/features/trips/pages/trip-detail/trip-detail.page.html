@@ -36,6 +36,18 @@
             <span class="more">+{{ extraMembers() }}</span>
           }
         </div>
+
+        @if (isOwner()) {
+          <button
+            type="button"
+            class="btn ghost"
+            [disabled]="deleting()"
+            (click)="deleteTrip()"
+          >
+            <mat-icon>delete</mat-icon>
+            {{ deleting() ? 'Deleting…' : 'Delete trip' }}
+          </button>
+        }
       </div>
     </header>
 

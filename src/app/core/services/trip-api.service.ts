@@ -154,6 +154,21 @@ export interface ApiMyVotes {
   destinationId: string | null;
 }
 
+export interface InviteMemberPayload {
+  email: string;
+  role?: 'organizer' | 'traveler' | 'viewer';
+}
+
+export interface CreateItineraryItemPayload {
+  title: string;
+  description?: string;
+  type: ApiItineraryItem['type'];
+  date: string;
+  startTime?: string;
+  endTime?: string;
+  locationName?: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class TripApiService {
   private readonly http = inject(HttpClient);
@@ -177,9 +192,27 @@ export class TripApiService {
       .pipe(map((res) => res.data));
   }
 
+  delete(id: string): Observable<void> {
+    return this.http
+      .delete<ApiEnvelope<null>>(`${this.base}/${id}`)
+      .pipe(map(() => undefined));
+  }
+
   members(tripId: string): Observable<ApiTripMember[]> {
     return this.http
       .get<ApiEnvelope<ApiTripMember[]>>(`${this.base}/${tripId}/members`)
+      .pipe(map((res) => res.data));
+  }
+
+  inviteMember(tripId: string, payload: InviteMemberPayload): Observable<ApiTripMember> {
+    return this.http
+      .post<ApiEnvelope<ApiTripMember>>(`${this.base}/${tripId}/members`, payload)
+      .pipe(map((res) => res.data));
+  }
+
+  respondToInvite(tripId: string, rsvpStatus: ApiTripMember['rsvpStatus']): Observable<ApiTripMember> {
+    return this.http
+      .patch<ApiEnvelope<ApiTripMember>>(`${this.base}/${tripId}/members/me`, { rsvpStatus })
       .pipe(map((res) => res.data));
   }
 
@@ -199,6 +232,12 @@ export class TripApiService {
     return this.http
       .get<ApiEnvelope<ApiItineraryDay[]>>(`${this.base}/${tripId}/itinerary`)
       .pipe(map((res) => res.data));
+  }
+
+  addItineraryItem(tripId: string, payload: CreateItineraryItemPayload): Observable<void> {
+    return this.http
+      .post<ApiEnvelope<null>>(`${this.base}/${tripId}/itinerary`, payload)
+      .pipe(map(() => undefined));
   }
 
   bookings(tripId: string): Observable<ApiBooking[]> {

@@ -12,10 +12,15 @@ import {
 } from './middleware/error-handler.js';
 import {
   createTrip,
+  deleteTrip,
   getTrip,
   listTrips,
 } from './modules/trips/trip.controller.js';
-import { listMembers } from './modules/members/member.controller.js';
+import {
+  inviteMember,
+  listMembers,
+  respondToInvite,
+} from './modules/members/member.controller.js';
 import {
   castAvailabilityVote,
   castDestinationVote,
@@ -23,7 +28,7 @@ import {
   listAvailability,
   listDestinations,
 } from './modules/planning/planning.controller.js';
-import { listItinerary } from './modules/itinerary/itinerary.controller.js';
+import { createItineraryItem, listItinerary } from './modules/itinerary/itinerary.controller.js';
 import { listBookings } from './modules/bookings/booking.controller.js';
 import { listBudgetCategories } from './modules/budgets/budget.controller.js';
 import { listExpenses } from './modules/expenses/expense.controller.js';
@@ -75,14 +80,18 @@ export function createApp() {
   v1.get('/trips', authenticate, listTrips);
   v1.get('/trips/:id', authenticate, getTrip);
   v1.post('/trips', authenticate, createTrip);
+  v1.delete('/trips/:id', authenticate, deleteTrip);
 
   v1.get('/trips/:tripId/members', authenticate, listMembers);
+  v1.post('/trips/:tripId/members', authenticate, inviteMember);
+  v1.patch('/trips/:tripId/members/me', authenticate, respondToInvite);
   v1.get('/trips/:tripId/availability', authenticate, listAvailability);
   v1.get('/trips/:tripId/destinations', authenticate, listDestinations);
   v1.get('/trips/:tripId/votes/me', authenticate, getMyVotes);
   v1.post('/trips/:tripId/availability/vote', authenticate, castAvailabilityVote);
   v1.post('/trips/:tripId/destinations/:destinationId/vote', authenticate, castDestinationVote);
   v1.get('/trips/:tripId/itinerary', authenticate, listItinerary);
+  v1.post('/trips/:tripId/itinerary', authenticate, createItineraryItem);
   v1.get('/trips/:tripId/bookings', authenticate, listBookings);
   v1.get('/trips/:tripId/budget', authenticate, listBudgetCategories);
   v1.get('/trips/:tripId/expenses', authenticate, listExpenses);

@@ -52,8 +52,29 @@ const CATEGORY_TO_TYPE: Record<ItineraryItemRow['category'], ItineraryItemType> 
   other: 'OTHER',
 };
 
+const TYPE_TO_CATEGORY: Record<ItineraryItemType, ItineraryItemRow['category']> = {
+  TRAVEL: 'travel',
+  HOTEL: 'lodging',
+  FOOD: 'meal',
+  ACTIVITY: 'activity',
+  MEETING: 'meeting',
+  OTHER: 'other',
+};
+
 function timeOf(iso: string | null): string {
   return iso ? iso.slice(11, 16) : '';
+}
+
+export interface CreateItineraryItemInput {
+  tripId: string;
+  title: string;
+  description: string;
+  type: ItineraryItemType;
+  date: string;
+  startTime: string;
+  endTime: string;
+  locationName: string;
+  createdBy: string | null;
 }
 
 export class ItineraryRepository {
@@ -106,5 +127,31 @@ export class ItineraryRepository {
     }
 
     return [...days.values()];
+  }
+
+  async create(input: CreateItineraryItemInput): Promise<void> {
+    if (assertDbOrMock('itinerary') === 'memory') {
+      throw new AppError(503, 'SUPABASE_NOT_CONFIGURED', 'Supabase is required to add itinerary items');
+    }
+
+    const startAt = input.startTime ? `${input.date}T${input.startTime}:00` : `${input.date}T00:00:00`;
+    const endAt = input.endTime ? `${input.date}T${input.endTime}:00` : null;
+
+    const { error } = await getSupabaseAdmin()
+      .from('itinerary_items')
+      .insert({
+        trip_id: input.tripId,
+        title: input.title,
+        description: input.description || null,
+        category: TYPE_TO_CATEGORY[input.type],
+        start_at: startAt,
+        end_at: endAt,
+        location_name: input.locationName || null,
+        created_by: input.createdBy,
+      });
+
+    if (error) {
+      throw new AppError(502, 'DB_ERROR', error.message);
+    }
   }
 }

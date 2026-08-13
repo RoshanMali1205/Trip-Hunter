@@ -52,4 +52,12 @@ export class TripService {
       createdBy: input.createdBy,
     });
   }
+
+  async deleteTrip(id: string, requesterId: string): Promise<void> {
+    const trip = await this.getTrip(id);
+    if (trip.createdBy !== requesterId) {
+      throw new AppError(403, 'FORBIDDEN', 'Only the trip owner can delete this trip');
+    }
+    await this.repo.delete(id);
+  }
 }

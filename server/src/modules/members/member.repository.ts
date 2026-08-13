@@ -38,6 +38,8 @@ function mapRow(row: MemberRow): TripMember {
   };
 }
 
+const MEMBER_SELECT = 'id, trip_id, user_id, role, rsvp_status, profiles(display_name, email, avatar_url)';
+
 export class MemberRepository {
   async findByTrip(tripId: string): Promise<TripMember[]> {
     if (assertDbOrMock('trip members') === 'memory') {
@@ -46,7 +48,7 @@ export class MemberRepository {
 
     const { data, error } = await getSupabaseAdmin()
       .from('trip_members')
-      .select('id, trip_id, user_id, role, rsvp_status, profiles(display_name, email, avatar_url)')
+      .select(MEMBER_SELECT)
       .eq('trip_id', tripId)
       .order('created_at', { ascending: true });
 
@@ -55,5 +57,68 @@ export class MemberRepository {
     }
 
     return ((data ?? []) as unknown as MemberRow[]).map(mapRow);
+  }
+
+  async inviteByEmail(tripId: string, email: string, role: MemberRole): Promise<TripMember> {
+    if (assertDbOrMock('trip members') === 'memory') {
+      throw new AppError(503, 'SUPABASE_NOT_CONFIGURED', 'Supabase is required to invite members');
+    }
+
+    const db = getSupabaseAdmin();
+
+    const { data: profile, error: profileError } = await db
+      .from('profiles')
+      .select('id')
+      .eq('email', email)
+      .maybeSingle();
+
+    if (profileError) {
+      throw new AppError(502, 'DB_ERROR', profileError.message);
+    }
+    if (!profile) {
+      throw new AppError(
+        404,
+        'USER_NOT_FOUND',
+        `No account found for ${email}. They need to sign up first.`,
+      );
+    }
+
+    const { data, error } = await db
+      .from('trip_members')
+      .upsert(
+        { trip_id: tripId, user_id: (profile as { id: string }).id, role, rsvp_status: 'pending' },
+        { onConflict: 'trip_id,user_id' },
+      )
+      .select(MEMBER_SELECT)
+      .single();
+
+    if (error) {
+      throw new AppError(502, 'DB_ERROR', error.message);
+    }
+
+    return mapRow(data as unknown as MemberRow);
+  }
+
+  async respondToInvite(tripId: string, userId: string, rsvpStatus: RsvpStatus): Promise<TripMember> {
+    if (assertDbOrMock('trip members') === 'memory') {
+      throw new AppError(503, 'SUPABASE_NOT_CONFIGURED', 'Supabase is required to respond to invites');
+    }
+
+    const { data, error } = await getSupabaseAdmin()
+      .from('trip_members')
+      .update({ rsvp_status: rsvpStatus })
+      .eq('trip_id', tripId)
+      .eq('user_id', userId)
+      .select(MEMBER_SELECT)
+      .single();
+
+    if (error) {
+      throw new AppError(502, 'DB_ERROR', error.message);
+    }
+    if (!data) {
+      throw new AppError(404, 'MEMBERSHIP_NOT_FOUND', 'You are not a member of this trip');
+    }
+
+    return mapRow(data as unknown as MemberRow);
   }
 }

@@ -1,8 +1,9 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { map } from 'rxjs';
 import { MatIconModule } from '@angular/material/icon';
+import { AuthService } from '../../../../core/auth/auth.service';
 import { TripStore } from '../../../../core/services/trip.store';
 import { StatusLabelPipe, TripDatePipe } from '../../../../shared/pipes/format.pipe';
 
@@ -22,7 +23,9 @@ import { StatusLabelPipe, TripDatePipe } from '../../../../shared/pipes/format.p
 })
 export class TripDetailPage {
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly store = inject(TripStore);
+  private readonly auth = inject(AuthService);
 
   private readonly tripId = toSignal(
     this.route.paramMap.pipe(map((p) => p.get('tripId') || '')),
@@ -30,10 +33,31 @@ export class TripDetailPage {
   );
 
   readonly loading = this.store.loading;
+  readonly deleting = signal(false);
   readonly trip = computed(() => this.store.getById(this.tripId()));
+  readonly isOwner = computed(() => {
+    const t = this.trip();
+    const userId = this.auth.user()?.id;
+    return !!t && !!userId && t.organizerId === userId;
+  });
   readonly members = computed(() => this.store.getMembers(this.tripId()));
   readonly memberPreview = computed(() => this.members().slice(0, 4));
   readonly extraMembers = computed(() => Math.max(0, (this.trip()?.memberCount ?? 0) - 4));
+
+  async deleteTrip(): Promise<void> {
+    const t = this.trip();
+    if (!t) return;
+    if (!confirm(`Delete "${t.title}"? This removes all its members, itinerary, bookings, budget, expenses, and tasks. This can't be undone.`)) {
+      return;
+    }
+    this.deleting.set(true);
+    try {
+      await this.store.deleteTrip(t.id);
+      void this.router.navigate(['/trips']);
+    } finally {
+      this.deleting.set(false);
+    }
+  }
 
   readonly durationLabel = computed(() => {
     const t = this.trip();

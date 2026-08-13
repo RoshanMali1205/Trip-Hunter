@@ -23,6 +23,7 @@ import {
   ApiTripMember,
   ApiTripStatus,
   ApiTripTask,
+  CreateItineraryItemPayload,
   CreateTripPayload,
   TripApiService,
 } from './trip-api.service';
@@ -173,6 +174,11 @@ export class TripStore {
     return trip;
   }
 
+  async deleteTrip(id: string): Promise<void> {
+    await firstValueFrom(this.tripApi.delete(id));
+    this.tripsSignal.update((list) => list.filter((t) => t.id !== id));
+  }
+
   getMembers(tripId: string): TripMember[] {
     return this.membersByTrip()[tripId] ?? [];
   }
@@ -180,6 +186,16 @@ export class TripStore {
   async loadMembers(tripId: string): Promise<void> {
     const members = await firstValueFrom(this.tripApi.members(tripId));
     this.membersByTrip.update((m) => ({ ...m, [tripId]: members.map(mapMember) }));
+  }
+
+  async inviteMember(tripId: string, email: string, role?: ApiTripMember['role']): Promise<void> {
+    await firstValueFrom(this.tripApi.inviteMember(tripId, { email, role }));
+    await this.loadMembers(tripId);
+  }
+
+  async respondToInvite(tripId: string, rsvpStatus: ApiTripMember['rsvpStatus']): Promise<void> {
+    await firstValueFrom(this.tripApi.respondToInvite(tripId, rsvpStatus));
+    await this.loadMembers(tripId);
   }
 
   getAvailability(tripId: string): AvailabilityOption[] {
@@ -228,6 +244,11 @@ export class TripStore {
   async loadItinerary(tripId: string): Promise<void> {
     const days = await firstValueFrom(this.tripApi.itinerary(tripId));
     this.itineraryByTrip.update((i) => ({ ...i, [tripId]: days }));
+  }
+
+  async addItineraryItem(tripId: string, payload: CreateItineraryItemPayload): Promise<void> {
+    await firstValueFrom(this.tripApi.addItineraryItem(tripId, payload));
+    await this.loadItinerary(tripId);
   }
 
   getBookings(tripId: string): Booking[] {
