@@ -1,4 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { AuthService, validateAvatarFile } from '../../../../core/auth/auth.service';
 
@@ -11,9 +12,11 @@ import { AuthService, validateAvatarFile } from '../../../../core/auth/auth.serv
 })
 export class ProfilePage {
   private readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
 
   readonly user = this.auth.user;
   readonly busy = signal(false);
+  readonly loggingOut = signal(false);
   readonly message = signal('');
   readonly error = signal('');
 
@@ -43,6 +46,16 @@ export class ProfilePage {
     } finally {
       this.busy.set(false);
       input.value = '';
+    }
+  }
+
+  async logout(): Promise<void> {
+    this.loggingOut.set(true);
+    try {
+      await this.auth.logout();
+      await this.router.navigateByUrl('/login');
+    } finally {
+      this.loggingOut.set(false);
     }
   }
 }
