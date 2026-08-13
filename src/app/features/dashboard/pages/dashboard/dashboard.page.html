@@ -51,7 +51,7 @@
         [style.--cover]="coverStyle(trip.coverImageUrl)"
         [class.trip-tile--fallback]="!trip.coverImageUrl"
       >
-        <div class="trip-tile__media" aria-hidden="true"></div>
+        <div class="trip-tile__shade" aria-hidden="true"></div>
         <div class="trip-tile__body">
           <div class="trip-tile__top">
             <span class="type">{{ trip.tripType.replaceAll('_', ' ') }}</span>

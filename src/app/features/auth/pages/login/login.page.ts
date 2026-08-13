@@ -52,7 +52,7 @@ export class LoginPage {
       label: 'Palm shore',
       size: 'square',
       imageUrl:
-        'https://images.unsplash.com/photo-1512343879784-a96011150555?auto=format&fit=crop&w=700&q=80',
+        'https://images.unsplash.com/photo-1559128010-7c1ad6e1b6a5?auto=format&fit=crop&w=700&q=80',
     },
   ] as const;
 

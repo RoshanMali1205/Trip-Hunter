@@ -46,7 +46,7 @@ export const MOCK_TRIPS: Trip[] = [
     organizerId: 'user-roshan',
     organizerName: 'Roshan Deshmukh',
     coverImageUrl:
-      'https://images.unsplash.com/photo-1512343879784-a96011150555?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1559128010-7c1ad6e1b6a5?auto=format&fit=crop&w=1200&q=80',
     createdAt: '2026-06-01T10:00:00Z',
     updatedAt: '2026-08-01T10:00:00Z',
   },
