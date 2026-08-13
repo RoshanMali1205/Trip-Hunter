@@ -31,6 +31,12 @@ Success chat payload:
 
 Without `GEMINI_API_KEY`, chat returns `503` / `GEMINI_NOT_CONFIGURED`. The UI still opens and shows setup guidance.
 
+## Notes
+
+- Chat history sent to Gemini is normalized so turns alternate and **start with `user`** (the welcome “Buddy” bubble is not sent as history).
+- If the preferred model is unavailable, the server tries `gemini-2.0-flash` → `gemini-1.5-flash` → `gemini-flash-latest`.
+- Failures now include Gemini’s error text in the message for easier debugging.
+
 ## Security
 
 The Gemini key stays on the Express/Netlify function. The Angular client only calls `/api/v1/advisor/*` with the user’s Bearer token.

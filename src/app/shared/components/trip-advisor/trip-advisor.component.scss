@@ -217,7 +217,7 @@
   border-radius: 16px;
   animation: th-fade-up 0.25s ease both;
 
-  p {
+  > p {
     margin: 0;
     white-space: pre-wrap;
     line-height: 1.45;
@@ -227,6 +227,8 @@
 
 .bubble--bot {
   justify-self: start;
+  width: min(100%, 360px);
+  max-width: 100%;
   background: var(--th-surface);
   border: 1px solid var(--th-border);
   box-shadow: var(--th-shadow-sm);
@@ -242,12 +244,92 @@
 
 .bubble__tag {
   display: block;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.4rem;
   font-size: 0.68rem;
   font-weight: 750;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--th-primary-dark);
+}
+
+.bubble__md {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--th-text);
+
+  > *:first-child {
+    margin-top: 0;
+  }
+
+  > *:last-child {
+    margin-bottom: 0;
+  }
+
+  p {
+    margin: 0 0 0.65rem;
+  }
+
+  h1,
+  h2,
+  h3 {
+    margin: 0.85rem 0 0.4rem;
+    font-family: var(--th-font-display);
+    line-height: 1.25;
+    color: var(--th-text);
+  }
+
+  h1 {
+    font-size: 1.05rem;
+  }
+
+  h2 {
+    font-size: 0.98rem;
+  }
+
+  h3 {
+    font-size: 0.92rem;
+    color: var(--th-primary-dark);
+  }
+
+  ul,
+  ol {
+    margin: 0 0 0.75rem;
+    padding-left: 1.15rem;
+    display: grid;
+    gap: 0.35rem;
+  }
+
+  li {
+    padding-left: 0.15rem;
+  }
+
+  li::marker {
+    color: var(--th-primary);
+  }
+
+  strong {
+    font-weight: 750;
+    color: var(--th-text);
+  }
+
+  em {
+    font-style: italic;
+    color: var(--th-text-secondary);
+  }
+
+  code {
+    font-size: 0.82em;
+    padding: 0.1rem 0.35rem;
+    border-radius: 6px;
+    background: var(--th-surface-muted);
+    border: 1px solid var(--th-border);
+  }
+
+  hr {
+    border: 0;
+    border-top: 1px solid var(--th-border);
+    margin: 0.75rem 0;
+  }
 }
 
 .bubble--typing {

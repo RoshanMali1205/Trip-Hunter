@@ -7,6 +7,7 @@ import {
   AdvisorInfo,
 } from '../../../core/services/advisor-api.service';
 import { ButtonComponent } from '../button/button.component';
+import { formatBuddyMarkdown } from './buddy-markdown';
 
 interface UiMessage {
   role: 'user' | 'model';
@@ -31,6 +32,10 @@ export class TripAdvisorComponent implements OnInit {
   readonly error = signal('');
   readonly info = signal<AdvisorInfo | null>(null);
   readonly messages = signal<UiMessage[]>([]);
+
+  formatMessage(text: string): string {
+    return formatBuddyMarkdown(text);
+  }
 
   ngOnInit(): void {
     this.api.info().subscribe({
