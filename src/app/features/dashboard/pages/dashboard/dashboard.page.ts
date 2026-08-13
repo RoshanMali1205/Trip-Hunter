@@ -1,15 +1,19 @@
 import { DatePipe } from '@angular/common';
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { AuthService } from '../../../../core/auth/auth.service';
+import { Trip } from '../../../../core/models/trip.model';
 import { TripStore } from '../../../../core/services/trip.store';
 import { InrCurrencyPipe, StatusLabelPipe } from '../../../../shared/pipes/format.pipe';
+
+type TripCategory = 'all' | 'beaches' | 'hills' | 'cities' | 'adventure';
 
 @Component({
   selector: 'app-dashboard-page',
   standalone: true,
-  imports: [RouterLink, MatIconModule, InrCurrencyPipe, StatusLabelPipe, DatePipe],
+  imports: [RouterLink, MatIconModule, FormsModule, InrCurrencyPipe, StatusLabelPipe, DatePipe],
   templateUrl: './dashboard.page.html',
   styleUrl: './dashboard.page.scss',
 })
@@ -19,6 +23,9 @@ export class DashboardPage {
 
   readonly user = this.auth.user;
   readonly summary = computed(() => this.store.getDashboard());
+  readonly search = signal('');
+  readonly category = signal<TripCategory>('all');
+
   readonly initials = computed(() => {
     const u = this.user();
     return u ? `${u.firstName[0]}${u.lastName[0]}`.toUpperCase() : '';
@@ -39,38 +46,78 @@ export class DashboardPage {
     year: 'numeric',
   });
 
-  readonly mobileDate = new Date().toLocaleDateString('en-IN', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-  });
+  readonly categories = [
+    { id: 'all' as const, label: 'All', icon: 'public' },
+    { id: 'beaches' as const, label: 'Beaches', icon: 'beach_access' },
+    { id: 'hills' as const, label: 'Hills', icon: 'terrain' },
+    { id: 'cities' as const, label: 'Cities', icon: 'location_city' },
+    { id: 'adventure' as const, label: 'Adventure', icon: 'hiking' },
+  ];
+
+  readonly valueProps = [
+    { icon: 'apartment', label: 'Handpicked stays' },
+    { icon: 'event_available', label: 'Flexible planning' },
+    { icon: 'payments', label: 'Shared expenses' },
+    { icon: 'verified', label: 'Manager approvals' },
+  ] as const;
 
   readonly inspirationTiles = [
     {
-      label: 'Resort stays',
-      caption: 'Pool decks & team dinners',
+      label: 'Bali-style coasts',
+      caption: 'Resort decks for offsites',
+      rating: '4.9',
+      from: '₹12k',
       imageUrl:
-        'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=900&q=80',
+        'https://images.unsplash.com/photo-1573843981267-be1999ff37cd?auto=format&fit=crop&w=900&q=80',
     },
     {
-      label: 'Volvo nights',
-      caption: 'Comfort coaches to the coast',
+      label: 'Santorini vibes',
+      caption: 'Cliffside team dinners',
+      rating: '4.8',
+      from: '₹18k',
       imageUrl:
-        'https://images.unsplash.com/photo-1544620341-1adc1baa1b6c?auto=format&fit=crop&w=900&q=80',
+        'https://images.unsplash.com/photo-1613395877344-13d4a8e0d49e?auto=format&fit=crop&w=900&q=80',
     },
     {
-      label: 'Hill retreats',
-      caption: 'Quiet planning weekends',
+      label: 'Alpine weekends',
+      caption: 'Cool-weather planning',
+      rating: '4.7',
+      from: '₹9k',
       imageUrl:
         'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=900&q=80',
     },
     {
-      label: 'Water sports',
-      caption: 'Beach bonding hours',
+      label: 'City lights',
+      caption: 'Workshop + nightlife',
+      rating: '4.6',
+      from: '₹11k',
       imageUrl:
-        'https://images.unsplash.com/photo-1519046904884-53103b34b206?auto=format&fit=crop&w=900&q=80',
+        'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&w=900&q=80',
     },
   ] as const;
+
+  readonly featuredTrip = computed(() => this.summary().upcomingTrips[0] ?? null);
+
+  readonly filteredTrips = computed(() => {
+    const q = this.search().trim().toLowerCase();
+    const cat = this.category();
+    return this.summary().upcomingTrips.filter((trip) => {
+      const hay = `${trip.title} ${trip.destination} ${trip.origin} ${trip.tripType}`.toLowerCase();
+      if (q && !hay.includes(q)) return false;
+      return this.matchesCategory(trip, cat);
+    });
+  });
+
+  readonly heroImage = computed(() => {
+    return (
+      this.featuredTrip()?.coverImageUrl ||
+      'https://images.unsplash.com/photo-1540202404-a2f29016b523?auto=format&fit=crop&w=1600&q=80'
+    );
+  });
+
+  setCategory(id: TripCategory): void {
+    this.category.set(id);
+  }
 
   coverStyle(url?: string): string {
     return url ? `url(${url})` : 'none';
@@ -88,5 +135,27 @@ export class DashboardPage {
     if (n >= 100000) return `₹${(n / 100000).toFixed(1).replace(/\.0$/, '')}L`;
     if (n >= 1000) return `₹${Math.round(n / 1000)}k`;
     return `₹${n}`;
+  }
+
+  ratingFor(trip: Trip): string {
+    const base = 4.4 + (trip.memberCount % 5) * 0.1;
+    return base.toFixed(1);
+  }
+
+  private matchesCategory(trip: Trip, cat: TripCategory): boolean {
+    if (cat === 'all') return true;
+    const dest = `${trip.destination} ${trip.title}`.toLowerCase();
+    if (cat === 'beaches') {
+      return /goa|beach|alibaug|coast|baga|calangute/.test(dest);
+    }
+    if (cat === 'hills') {
+      return /lonavala|mahabaleshwar|hill|alpine|mountain/.test(dest);
+    }
+    if (cat === 'cities') {
+      return /bangalore|hyderabad|mumbai|pune|delhi|city/.test(dest);
+    }
+    return /adventure|outing|offsite|water|trek/.test(
+      `${trip.tripType} ${trip.description}`.toLowerCase(),
+    );
   }
 }
