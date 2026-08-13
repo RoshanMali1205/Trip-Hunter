@@ -1,58 +1,69 @@
-<section class="th-page">
-  <header class="th-page-header">
-    <div>
-      <h1>My trips</h1>
-      <p>Upcoming, planning, and completed team travel.</p>
+<section class="trips-page th-page--full">
+  <header
+    class="th-hero-banner"
+    style="--hero-image: url('https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=1600&q=80')"
+    aria-label="My trips"
+  >
+    <div class="th-hero-banner__inner">
+      <div class="th-hero-banner__row">
+        <div>
+          <p class="th-hero-banner__brand">Trip Hunter</p>
+          <h1>My trips</h1>
+          <p class="th-hero-banner__sub">Upcoming, planning, and completed team travel.</p>
+        </div>
+        <app-button routerLink="/trips/create">+ New trip</app-button>
+      </div>
     </div>
-    <app-button routerLink="/trips/create">+ New trip</app-button>
   </header>
 
-  <div class="filters th-panel">
-    <input
-      class="search"
-      [ngModel]="search()"
-      (ngModelChange)="search.set($event)"
-      placeholder="Search trips…"
-    />
-    <select [ngModel]="filter()" (ngModelChange)="filter.set($event)">
-      <option value="all">All trips</option>
-      <option value="upcoming">Upcoming</option>
-      <option value="planning">Planning</option>
-      <option value="completed">Completed</option>
-      <option value="mine">Created by me</option>
-    </select>
-  </div>
+  <div class="th-page-body">
+    <div class="filters th-panel">
+      <input
+        class="search"
+        [ngModel]="search()"
+        (ngModelChange)="search.set($event)"
+        placeholder="Search trips…"
+      />
+      <select [ngModel]="filter()" (ngModelChange)="filter.set($event)">
+        <option value="all">All trips</option>
+        <option value="upcoming">Upcoming</option>
+        <option value="planning">Planning</option>
+        <option value="completed">Completed</option>
+        <option value="mine">Created by me</option>
+      </select>
+    </div>
 
-  <div class="grid">
-    @for (trip of trips(); track trip.id) {
-      <a
-        class="card"
-        [routerLink]="['/trips', trip.id]"
-        [style.--cover]="trip.coverImageUrl ? 'url(' + trip.coverImageUrl + ')' : 'none'"
-        [class.card--fallback]="!trip.coverImageUrl"
-      >
-        <div class="card__media" aria-hidden="true"></div>
-        <div class="card__body">
-          <div class="top">
-            <span class="type">{{ trip.tripType.replaceAll('_', ' ') }}</span>
-            <span class="th-status" [class]="'th-status th-status--' + trip.status.toLowerCase()">
-              {{ trip.status | statusLabel }}
-            </span>
+    <div class="grid">
+      @for (trip of trips(); track trip.id) {
+        <a
+          class="card"
+          [routerLink]="['/trips', trip.id]"
+          [style.--cover]="trip.coverImageUrl ? 'url(' + trip.coverImageUrl + ')' : 'none'"
+          [class.card--fallback]="!trip.coverImageUrl"
+        >
+          <div class="card__media" aria-hidden="true"></div>
+          <div class="card__body">
+            <div class="top">
+              <span class="type">{{ trip.tripType.replaceAll('_', ' ') }}</span>
+              <span class="th-status" [class]="'th-status th-status--' + trip.status.toLowerCase()">
+                {{ trip.status | statusLabel }}
+              </span>
+            </div>
+            <h3>{{ trip.title }}</h3>
+            <p class="route">{{ trip.origin || 'Origin TBD' }} → {{ trip.destination || 'Destination TBD' }}</p>
+            <p>
+              @if (trip.startDate) {
+                {{ trip.startDate | date: 'd MMM' }} → {{ trip.endDate | date: 'd MMM' }}
+              } @else {
+                Dates TBD
+              }
+              · {{ trip.memberCount }} members · {{ shortBudget(trip.estimatedBudget) }}
+            </p>
           </div>
-          <h3>{{ trip.title }}</h3>
-          <p class="route">{{ trip.origin || 'Origin TBD' }} → {{ trip.destination || 'Destination TBD' }}</p>
-          <p>
-            @if (trip.startDate) {
-              {{ trip.startDate | date: 'd MMM' }} → {{ trip.endDate | date: 'd MMM' }}
-            } @else {
-              Dates TBD
-            }
-            · {{ trip.memberCount }} members · {{ shortBudget(trip.estimatedBudget) }}
-          </p>
-        </div>
-      </a>
-    } @empty {
-      <div class="th-panel empty">No trips match your filters.</div>
-    }
+        </a>
+      } @empty {
+        <div class="th-panel empty">No trips match your filters.</div>
+      }
+    </div>
   </div>
 </section>

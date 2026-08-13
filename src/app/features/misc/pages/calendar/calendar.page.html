@@ -1,0 +1,55 @@
+<section class="th-page--full calendar-page">
+  <div class="th-hero-split">
+    <div
+      class="th-hero-split__visual"
+      style="--hero-image: url('https://images.unsplash.com/photo-1506784365847-bbad939e9335?auto=format&fit=crop&w=1200&q=80')"
+    >
+      <div class="th-hero-split__copy">
+        <h1>Calendar</h1>
+        <p>Confirmed and proposed trip dates — see when your team is on the move.</p>
+      </div>
+    </div>
+
+    <div class="th-hero-split__panel calendar-panel">
+      <div class="month-head">
+        <h2>{{ monthLabel() }}</h2>
+        <span class="month-badge">Team trips</span>
+      </div>
+
+      <div class="weekdays" aria-hidden="true">
+        @for (d of ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']; track d) {
+          <span>{{ d }}</span>
+        }
+      </div>
+
+      <div class="month-grid" role="grid" aria-label="Current month">
+        @for (cell of calendarDays(); track $index) {
+          <div
+            class="day"
+            [class.day--empty]="cell.day === null"
+            [class.day--today]="cell.iso === todayIso"
+            [class.day--trip]="cell.hasTrip"
+          >
+            @if (cell.day !== null) {
+              <span>{{ cell.day }}</span>
+            }
+          </div>
+        }
+      </div>
+
+      <h3 class="list-title">Upcoming on the calendar</h3>
+      <ul class="trip-list">
+        @for (trip of trips(); track trip.id) {
+          <li>
+            <a [routerLink]="['/trips', trip.id]">
+              <strong>{{ trip.title }}</strong>
+              <span>{{ trip.startDate | tripDate: trip.endDate }} · {{ trip.destination }}</span>
+            </a>
+          </li>
+        } @empty {
+          <li class="empty">No trips scheduled yet.</li>
+        }
+      </ul>
+    </div>
+  </div>
+</section>

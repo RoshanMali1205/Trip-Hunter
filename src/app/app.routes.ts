@@ -49,17 +49,17 @@ export const routes: Routes = [
       {
         path: 'calendar',
         loadComponent: () =>
-          import('./features/misc/pages/misc.pages').then((m) => m.CalendarPage),
+          import('./features/misc/pages/calendar/calendar.page').then((m) => m.CalendarPage),
       },
       {
         path: 'tasks',
         loadComponent: () =>
-          import('./features/misc/pages/misc.pages').then((m) => m.TasksPage),
+          import('./features/misc/pages/tasks/tasks.page').then((m) => m.TasksPage),
       },
       {
         path: 'expenses',
         loadComponent: () =>
-          import('./features/misc/pages/misc.pages').then((m) => m.ExpensesPage),
+          import('./features/misc/pages/expenses/expenses.page').then((m) => m.ExpensesPage),
       },
       {
         path: 'admin',
