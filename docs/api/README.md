@@ -41,7 +41,7 @@ When `SUPABASE_URL` + keys are set, the API validates the JWT with Supabase `aut
 | `GET` | `/api/v1/trips` | Yes | Org-scoped trips (Supabase or memory) |
 | `GET` | `/api/v1/trips/:id` | Yes | Single trip |
 
-Integration details: [nodejs-db-integration.md](./nodejs-db-integration.md). Auth UI notes: [auth-login-signup.md](./auth-login-signup.md). PWA / mobile updates: [pwa.md](./pwa.md).
+Integration details: [nodejs-db-integration.md](./nodejs-db-integration.md). Auth UI notes: [auth-login-signup.md](./auth-login-signup.md). PWA / mobile updates: [pwa.md](./pwa.md). Member invites: [member-invites.md](./member-invites.md).
 
 ## Local vs Netlify
 

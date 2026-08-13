@@ -164,6 +164,8 @@ export interface AppNotification {
   type: string;
   read: boolean;
   createdAt: string;
+  tripId?: string | null;
+  payload?: Record<string, unknown>;
 }
 
 export interface DashboardSummary {

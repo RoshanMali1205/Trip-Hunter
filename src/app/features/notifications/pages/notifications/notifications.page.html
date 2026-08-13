@@ -2,24 +2,77 @@
   <header class="th-page-header">
     <div>
       <h1>Notifications</h1>
-      <p>{{ unread() }} unread</p>
+      <p>{{ unread() }} unread · {{ pendingInvites().length }} pending invite(s)</p>
     </div>
     @if (unread() > 0) {
       <app-button variant="link" (click)="markAll()">Mark all read</app-button>
     }
   </header>
 
+  @if (pendingInvites().length) {
+    <section class="invite-section">
+      <h2>Trip invites waiting for you</h2>
+      <p class="invite-sub">Accept to join planning, or decline if you can’t go.</p>
+      <div class="invite-list">
+        @for (invite of pendingInvites(); track invite.tripId) {
+          <article class="th-panel invite-card">
+            <div>
+              <strong>{{ invite.tripName }}</strong>
+              <p>{{ invite.destination || 'Destination TBD' }} · role {{ invite.role }}</p>
+            </div>
+            <div class="invite-actions">
+              <app-button
+                variant="ghost"
+                size="sm"
+                [routerLink]="['/trips', invite.tripId, 'members']"
+              >
+                View
+              </app-button>
+              <app-button
+                size="sm"
+                [disabled]="respondingId() === invite.tripId"
+                [loading]="respondingId() === invite.tripId"
+                (click)="respond(invite.tripId, 'accepted')"
+              >
+                Accept
+              </app-button>
+              <app-button
+                variant="secondary"
+                size="sm"
+                [disabled]="respondingId() === invite.tripId"
+                (click)="respond(invite.tripId, 'declined')"
+              >
+                Decline
+              </app-button>
+            </div>
+          </article>
+        }
+      </div>
+    </section>
+  }
+
   <div class="th-panel">
     <ul>
       @for (n of notifications(); track n.id) {
         <li [class.unread]="!n.read" (click)="markOne(n.id)">
-          <mat-icon>{{ n.read ? 'notifications' : 'mark_email_unread' }}</mat-icon>
+          <mat-icon>{{ n.type === 'trip_invite' ? 'mail' : n.read ? 'notifications' : 'mark_email_unread' }}</mat-icon>
           <div>
             <strong>{{ n.title }}</strong>
             <p>{{ n.message }}</p>
             <span>{{ n.createdAt | date: 'medium' }}</span>
+            @if (n.tripId) {
+              <a
+                class="open-link"
+                [routerLink]="['/trips', n.tripId, 'members']"
+                (click)="$event.stopPropagation()"
+              >
+                Open trip
+              </a>
+            }
           </div>
         </li>
+      } @empty {
+        <li class="empty">No notifications yet.</li>
       }
     </ul>
   </div>

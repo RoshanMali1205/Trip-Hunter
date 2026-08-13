@@ -16,7 +16,10 @@ export interface CreateTripRequest {
 export class TripService {
   constructor(private readonly repo = new TripRepository()) {}
 
-  listTrips(organizationId?: string): Promise<Trip[]> {
+  listTrips(organizationId?: string, userId?: string): Promise<Trip[]> {
+    if (userId) {
+      return this.repo.findVisibleToUser(userId, organizationId);
+    }
     if (organizationId) {
       return this.repo.findByOrganization(organizationId);
     }

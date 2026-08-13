@@ -19,6 +19,7 @@ import {
   ApiAvailVote,
   ApiBooking,
   ApiMyVotes,
+  ApiPendingInvite,
   ApiTrip,
   ApiTripMember,
   ApiTripStatus,
@@ -92,6 +93,7 @@ export class TripStore {
 
   private readonly tripsSignal = signal<Trip[]>([]);
   private readonly notificationsSignal = signal<AppNotification[]>([]);
+  private readonly pendingInvitesSignal = signal<ApiPendingInvite[]>([]);
   private readonly tasksSignal = signal<TripTask[]>([]);
   private readonly loadingSignal = signal(false);
 
@@ -113,6 +115,7 @@ export class TripStore {
   constructor() {
     void this.loadTrips();
     void this.loadNotifications();
+    void this.loadPendingInvites();
     void this.loadAllTasks();
   }
 
@@ -198,7 +201,25 @@ export class TripStore {
 
   async respondToInvite(tripId: string, rsvpStatus: ApiTripMember['rsvpStatus']): Promise<void> {
     await firstValueFrom(this.tripApi.respondToInvite(tripId, rsvpStatus));
-    await this.loadMembers(tripId);
+    await Promise.all([
+      this.loadMembers(tripId),
+      this.loadPendingInvites(),
+      this.loadNotifications(),
+      this.loadTrips(),
+    ]);
+  }
+
+  getPendingInvites(): ApiPendingInvite[] {
+    return this.pendingInvitesSignal();
+  }
+
+  async loadPendingInvites(): Promise<void> {
+    try {
+      const invites = await firstValueFrom(this.tripApi.myInvites());
+      this.pendingInvitesSignal.set(invites);
+    } catch {
+      this.pendingInvitesSignal.set([]);
+    }
   }
 
   getAvailability(tripId: string): AvailabilityOption[] {
@@ -329,7 +350,18 @@ export class TripStore {
 
   async loadNotifications(): Promise<void> {
     const notifications = await firstValueFrom(this.notificationApi.list());
-    this.notificationsSignal.set(notifications);
+    this.notificationsSignal.set(
+      notifications.map((n) => ({
+        id: n.id,
+        title: n.title,
+        message: n.message,
+        type: n.type,
+        read: n.read,
+        createdAt: n.createdAt,
+        tripId: n.tripId,
+        payload: n.payload,
+      })),
+    );
   }
 
   async markNotificationRead(id: string): Promise<void> {

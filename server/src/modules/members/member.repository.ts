@@ -121,4 +121,55 @@ export class MemberRepository {
 
     return mapRow(data as unknown as MemberRow);
   }
+
+  async findPendingInvitesForUser(userId: string): Promise<
+    Array<{
+      tripId: string;
+      tripName: string;
+      destination: string;
+      role: MemberRole;
+      rsvpStatus: RsvpStatus;
+      invitedAt: string;
+    }>
+  > {
+    if (assertDbOrMock('trip members') === 'memory') {
+      return [];
+    }
+
+    const { data, error } = await getSupabaseAdmin()
+      .from('trip_members')
+      .select(
+        'role, rsvp_status, created_at, trips(id, name, destination_summary)',
+      )
+      .eq('user_id', userId)
+      .in('rsvp_status', ['pending', 'maybe'])
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw new AppError(502, 'DB_ERROR', error.message);
+    }
+
+    return ((data ?? []) as Array<{
+      role: MemberRole;
+      rsvp_status: RsvpStatus;
+      created_at: string;
+      trips:
+        | { id: string; name: string; destination_summary: string | null }
+        | { id: string; name: string; destination_summary: string | null }[]
+        | null;
+    }>).flatMap((row) => {
+      const trip = Array.isArray(row.trips) ? row.trips[0] : row.trips;
+      if (!trip) return [];
+      return [
+        {
+          tripId: trip.id,
+          tripName: trip.name,
+          destination: trip.destination_summary ?? '',
+          role: row.role,
+          rsvpStatus: row.rsvp_status,
+          invitedAt: row.created_at,
+        },
+      ];
+    });
+  }
 }

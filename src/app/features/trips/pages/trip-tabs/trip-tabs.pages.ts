@@ -297,6 +297,10 @@ export class TripOverviewPage {
           Email of a registered teammate
           <input type="email" required [(ngModel)]="inviteEmail" name="inviteEmail" placeholder="name@company.com" />
         </label>
+        <p class="invite-hint">
+          They must already have a Trip Hunter account with this email. After you send, they get an
+          in-app notification and can Accept/Decline from Notifications, Dashboard, or this Members tab.
+        </p>
         <app-button type="submit" [loading]="inviting()">Send invite</app-button>
         @if (inviteError()) {
           <p class="invite-error">{{ inviteError() }}</p>
@@ -427,6 +431,12 @@ export class TripOverviewPage {
         border-radius: var(--th-radius);
         border: 1px solid var(--th-border);
         background: var(--th-surface);
+      }
+      .invite-hint {
+        flex-basis: 100%;
+        margin: 0;
+        font-size: 0.82rem;
+        color: var(--th-text-muted);
       }
       .invite-error {
         margin: 0;

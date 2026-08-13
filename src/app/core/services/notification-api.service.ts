@@ -11,6 +11,8 @@ export interface ApiNotification {
   type: string;
   read: boolean;
   createdAt: string;
+  tripId?: string | null;
+  payload?: Record<string, unknown>;
 }
 
 @Injectable({ providedIn: 'root' })

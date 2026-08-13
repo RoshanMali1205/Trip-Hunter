@@ -235,6 +235,65 @@
   overflow-x: auto;
 }
 
+.invite-panel {
+  margin-bottom: 1.5rem;
+}
+
+.invite-grid {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.invite-card {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.85rem;
+  align-items: center;
+  padding: 1rem 1.1rem;
+  border-radius: var(--th-radius-lg);
+  border: 1px solid color-mix(in srgb, var(--th-primary) 28%, var(--th-border));
+  background: color-mix(in srgb, var(--th-primary) 6%, white);
+
+  p {
+    margin: 0.25rem 0 0;
+    color: var(--th-text-secondary);
+  }
+}
+
+.invite-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: center;
+
+  a {
+    font-weight: 700;
+    color: var(--th-primary-dark);
+    margin-right: 0.2rem;
+  }
+
+  .btn {
+    height: 36px;
+    padding: 0 0.9rem;
+    border-radius: 999px;
+    font-weight: 700;
+    border: 1px solid transparent;
+    cursor: pointer;
+  }
+
+  .btn.primary {
+    background: var(--th-primary);
+    color: white;
+  }
+
+  .btn.ghost {
+    background: white;
+    border-color: var(--th-border-strong);
+    color: var(--th-text-secondary);
+  }
+}
+
 .stat-card {
   background: var(--th-surface);
   border: 1px solid var(--th-border);

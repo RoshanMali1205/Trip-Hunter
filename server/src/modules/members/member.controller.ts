@@ -2,10 +2,12 @@ import type { RequestHandler } from 'express';
 import { AppError } from '../../middleware/error-handler.js';
 import { ok } from '../../types/api.js';
 import { TripRepository } from '../trips/trip.repository.js';
+import { NotificationRepository } from '../notifications/notification.repository.js';
 import { MemberRepository, type MemberRole, type RsvpStatus } from './member.repository.js';
 
 const repo = new MemberRepository();
 const tripRepo = new TripRepository();
+const notificationRepo = new NotificationRepository();
 const VALID_ROLES: MemberRole[] = ['organizer', 'traveler', 'viewer'];
 const VALID_RSVP: RsvpStatus[] = ['pending', 'accepted', 'declined', 'maybe'];
 
@@ -14,6 +16,18 @@ export const listMembers: RequestHandler = async (req, res, next) => {
     const tripId = String(req.params['tripId']);
     const members = await repo.findByTrip(tripId);
     res.json(ok(members, 'Trip members retrieved successfully'));
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const listMyInvites: RequestHandler = async (req, res, next) => {
+  try {
+    if (!req.user) {
+      throw new AppError(401, 'UNAUTHORIZED', 'Missing or invalid Bearer token');
+    }
+    const invites = await repo.findPendingInvitesForUser(req.user.id);
+    res.json(ok(invites, 'Pending trip invites retrieved successfully'));
   } catch (err) {
     next(err);
   }
@@ -44,6 +58,15 @@ export const inviteMember: RequestHandler = async (req, res, next) => {
         : 'traveler';
 
     const member = await repo.inviteByEmail(tripId, body.email.trim().toLowerCase(), role);
+
+    await notificationRepo.createTripInvite({
+      userId: member.userId,
+      organizationId: trip.organizationId,
+      tripId: trip.id,
+      tripName: trip.name,
+      invitedByName: req.user.displayName || req.user.email || 'A teammate',
+    });
+
     res.status(201).json(ok(member, 'Member invited successfully'));
   } catch (err) {
     next(err);

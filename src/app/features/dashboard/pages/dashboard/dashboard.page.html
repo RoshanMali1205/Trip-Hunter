@@ -90,12 +90,59 @@
     </article>
   </div>
 
+  @if (pendingInvites().length) {
+    <section class="invite-panel">
+      <div class="section-head">
+        <div>
+          <h2>Invites for you</h2>
+          <p>Someone invited you — accept to join, or decline.</p>
+        </div>
+        <app-button variant="secondary" size="sm" routerLink="/notifications">All notifications</app-button>
+      </div>
+      <div class="invite-grid">
+        @for (invite of pendingInvites(); track invite.tripId) {
+          <article class="invite-card">
+            <div>
+              <strong>{{ invite.tripName }}</strong>
+              <p>{{ invite.destination || 'Destination TBD' }}</p>
+            </div>
+            <div class="invite-card__actions">
+              <app-button
+                variant="ghost"
+                size="sm"
+                [routerLink]="['/trips', invite.tripId, 'members']"
+              >
+                Open
+              </app-button>
+              <app-button
+                size="sm"
+                [disabled]="respondingId() === invite.tripId"
+                [loading]="respondingId() === invite.tripId"
+                (click)="respondToInvite(invite.tripId, 'accepted')"
+              >
+                Accept
+              </app-button>
+              <app-button
+                variant="secondary"
+                size="sm"
+                [disabled]="respondingId() === invite.tripId"
+                (click)="respondToInvite(invite.tripId, 'declined')"
+              >
+                Decline
+              </app-button>
+            </div>
+          </article>
+        }
+      </div>
+    </section>
+  }
+
   <div class="section-head">
     <div>
       <h2>Upcoming trips</h2>
       <p>Photo-first cards — tap to manage itinerary, bookings, and votes.</p>
     </div>
-    <a routerLink="/trips">View all</a>
+    <app-button variant="secondary" size="sm" routerLink="/trips">View all</app-button>
   </div>
 
   <div class="trip-grid">
