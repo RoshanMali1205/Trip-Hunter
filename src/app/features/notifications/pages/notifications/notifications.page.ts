@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { TripStore } from '../../../../core/services/trip.store';
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
+import { PAGE_HERO_IMAGES } from '../../../../core/constants/page-hero-images';
 
 @Component({
   selector: 'app-notifications-page',
@@ -14,6 +15,7 @@ import { ButtonComponent } from '../../../../shared/components/button/button.com
 })
 export class NotificationsPage {
   private readonly store = inject(TripStore);
+  readonly heroImage = PAGE_HERO_IMAGES.notifications;
   readonly notifications = computed(() => this.store.getNotifications());
   readonly pendingInvites = computed(() => this.store.getPendingInvites());
   readonly unread = computed(() => this.notifications().filter((n) => !n.read).length);
