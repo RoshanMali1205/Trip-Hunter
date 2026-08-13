@@ -10,6 +10,7 @@ import { InrCurrencyPipe } from '../../../../shared/pipes/format.pipe';
 import { AvailabilityOption, DestinationOption, TripMember } from '../../../../core/models/trip.model';
 import { ApiItineraryItem, CreateBookingType, ExpenseCategory } from '../../../../core/services/trip-api.service';
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
+import { bookingImageUrl } from '../../../../core/constants/booking-images';
 import { destinationImageUrl } from '../../../../core/constants/destination-images';
 
 function tripIdFromParent(route: ActivatedRoute) {
@@ -1418,6 +1419,7 @@ export class TripItineraryPage {
           <select [(ngModel)]="bookingType" name="bookingType">
             <option value="FLIGHT">Flight</option>
             <option value="TRAIN">Train</option>
+            <option value="BUS">Bus (Volvo)</option>
             <option value="HOTEL">Hotel</option>
             <option value="CAB">Cab</option>
             <option value="ACTIVITY">Activity</option>
@@ -1426,7 +1428,13 @@ export class TripItineraryPage {
         </label>
         <label class="wide">
           Provider
-          <input type="text" required [(ngModel)]="provider" name="provider" placeholder="Taj Resorts" />
+          <input
+            type="text"
+            required
+            [(ngModel)]="provider"
+            name="provider"
+            [placeholder]="providerPlaceholder()"
+          />
         </label>
         <label>
           Booking reference
@@ -1456,8 +1464,7 @@ export class TripItineraryPage {
         <article class="th-panel card">
           <div
             class="photo"
-            [class.photo--fallback]="!b.imageUrl"
-            [style.--booking-image]="b.imageUrl ? 'url(' + b.imageUrl + ')' : 'none'"
+            [style.--booking-image]="'url(' + imageFor(b) + ')'"
             aria-hidden="true"
           >
             <em class="th-pill th-pill--solid type-chip">{{ b.bookingType }}</em>
@@ -1548,9 +1555,6 @@ export class TripItineraryPage {
           linear-gradient(180deg, transparent 35%, rgba(15, 23, 42, 0.55)),
           var(--booking-image) center/cover no-repeat;
       }
-      .photo--fallback {
-        background: var(--th-gradient-hero);
-      }
       .type-chip {
         position: absolute;
         left: 0.85rem;
@@ -1596,6 +1600,7 @@ export class TripBookingsPage {
   private readonly tripId = tripIdFromParent(this.route);
   readonly bookings = computed(() => this.store.getBookings(this.tripId()));
   formatWhen = formatDateTime;
+  imageFor = bookingImageUrl;
 
   readonly showForm = signal(false);
   readonly bookingType = signal<CreateBookingType>('HOTEL');
@@ -1606,6 +1611,25 @@ export class TripBookingsPage {
   readonly endDatetime = signal('');
   readonly adding = signal(false);
   readonly addError = signal('');
+
+  readonly providerPlaceholder = computed(() => {
+    switch (this.bookingType()) {
+      case 'HOTEL':
+        return 'Taj Resort Goa';
+      case 'BUS':
+        return 'Neeta Travels (Volvo AC)';
+      case 'FLIGHT':
+        return 'IndiGo / Air India';
+      case 'TRAIN':
+        return 'IRCTC / Rajdhani';
+      case 'CAB':
+        return 'Uber Airport Transfer';
+      case 'ACTIVITY':
+        return 'Calangute Water Sports';
+      default:
+        return 'Provider name';
+    }
+  });
 
   constructor() {
     effect(() => {

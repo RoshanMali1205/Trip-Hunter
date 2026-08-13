@@ -216,7 +216,14 @@ export interface CreateExpensePayload {
   expenseDate?: string;
 }
 
-export type CreateBookingType = 'FLIGHT' | 'TRAIN' | 'HOTEL' | 'CAB' | 'ACTIVITY' | 'OTHER';
+export type CreateBookingType =
+  | 'FLIGHT'
+  | 'TRAIN'
+  | 'BUS'
+  | 'HOTEL'
+  | 'CAB'
+  | 'ACTIVITY'
+  | 'OTHER';
 
 export interface CreateBookingPayload {
   bookingType: CreateBookingType;

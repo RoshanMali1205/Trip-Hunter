@@ -36,6 +36,7 @@ import {
   UpdateBudgetCategoryPayload,
 } from './trip-api.service';
 import { NotificationApiService } from './notification-api.service';
+import { bookingImageUrl } from '../constants/booking-images';
 import { destinationImageUrl } from '../constants/destination-images';
 
 const API_STATUS_TO_TRIP_STATUS: Record<ApiTripStatus, TripStatus> = {
@@ -82,7 +83,12 @@ function mapMember(api: ApiTripMember): TripMember {
 }
 
 function mapBooking(api: ApiBooking): Booking {
-  return { ...api, startDatetime: api.startDatetime ?? '', endDatetime: api.endDatetime ?? '' };
+  const booking: Booking = {
+    ...api,
+    startDatetime: api.startDatetime ?? '',
+    endDatetime: api.endDatetime ?? '',
+  };
+  return { ...booking, imageUrl: bookingImageUrl(booking) };
 }
 
 function mapDestination(api: ApiDestinationOption): DestinationOption {
