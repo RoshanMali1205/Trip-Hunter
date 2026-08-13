@@ -27,7 +27,6 @@ html {
 }
 
 body {
-  color-scheme: light dark;
   margin: 0;
   min-height: 100%;
   font-family: var(--th-font-body);
@@ -60,6 +59,31 @@ input,
 textarea,
 select {
   font: inherit;
+}
+
+/* Keep typed text/caret visible on light glass fields (esp. iOS + color-scheme). */
+input,
+textarea,
+select {
+  color: var(--th-text);
+  caret-color: var(--th-text);
+  -webkit-text-fill-color: var(--th-text);
+
+  &::placeholder {
+    color: var(--th-text-muted);
+    opacity: 1;
+    -webkit-text-fill-color: var(--th-text-muted);
+  }
+
+  &::-webkit-input-placeholder {
+    color: var(--th-text-muted);
+    -webkit-text-fill-color: var(--th-text-muted);
+  }
+}
+
+input[type='search'] {
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .th-page {

@@ -16,9 +16,17 @@ select {
   padding: 0.7rem 0.85rem;
   border-radius: var(--th-radius);
   border: 1px solid var(--th-border-strong);
-  background: color-mix(in srgb, var(--th-surface-strong) 75%, transparent);
+  background: var(--th-surface-strong);
   color: var(--th-text);
+  caret-color: var(--th-text);
+  -webkit-text-fill-color: var(--th-text);
   backdrop-filter: blur(8px);
+
+  &::placeholder {
+    color: var(--th-text-muted);
+    opacity: 1;
+    -webkit-text-fill-color: var(--th-text-muted);
+  }
 }
 
 .grid {
