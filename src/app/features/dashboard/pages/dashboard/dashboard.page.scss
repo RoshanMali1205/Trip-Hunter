@@ -55,25 +55,6 @@
   margin-top: 1.25rem;
 }
 
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.35rem;
-  min-height: 44px;
-  padding: 0.65rem 1.15rem;
-  border-radius: 999px;
-  font-weight: 750;
-  border: 1px solid transparent;
-}
-
-.btn.ghost {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.45);
-  color: white;
-  backdrop-filter: blur(8px);
-}
-
 .hero__float {
   position: absolute;
   right: 1.25rem;
@@ -329,7 +310,8 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
-  gap: 1rem;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
   margin: 0 0 0.9rem;
 
   h2 {
@@ -343,9 +325,9 @@
     font-size: 0.9rem;
   }
 
-  a {
-    font-weight: 750;
-    color: var(--th-primary);
+  > div:first-child {
+    flex: 1;
+    min-width: min(100%, 12rem);
   }
 }
 
@@ -606,7 +588,20 @@
   .stats-row {
     grid-auto-flow: column;
     grid-template-columns: none;
-    grid-auto-columns: minmax(160px, 72%);
+    grid-auto-columns: minmax(220px, 78%);
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 0.35rem;
+    margin-inline: -0.35rem;
+    padding-inline: 0.35rem;
+  }
+
+  .stat-card {
+    scroll-snap-align: start;
+
+    p {
+      overflow-wrap: anywhere;
+    }
   }
 }
 
@@ -615,11 +610,44 @@
     font-size: 0.72rem;
   }
 
+  .search-panel {
+    padding: 0.85rem;
+  }
+
+  .cats {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    margin-inline: -0.15rem;
+    padding-inline: 0.15rem 0.35rem;
+    padding-bottom: 0.2rem;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  .cat {
+    flex-shrink: 0;
+  }
+
+  .section-head {
+    align-items: flex-start;
+  }
+
   .inspire-grid {
     grid-auto-flow: column;
     grid-template-columns: none;
     grid-auto-columns: minmax(200px, 80%);
     overflow-x: auto;
     padding-bottom: 0.25rem;
+    scroll-snap-type: x mandatory;
+    margin-inline: -0.35rem;
+    padding-inline: 0.35rem;
+  }
+
+  .inspire-tile {
+    scroll-snap-align: start;
   }
 }

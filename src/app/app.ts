@@ -2,22 +2,27 @@ import { Component, OnInit, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { PwaInstallService } from './core/pwa/pwa-install.service';
 import { PwaUpdateService } from './core/pwa/pwa-update.service';
+import { ButtonComponent } from './shared/components/button/button.component';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
+  imports: [RouterOutlet, ButtonComponent],
   template: `
     @if (updates.updateAvailable()) {
       <div class="pwa-banner pwa-banner--update" role="status">
         <span>A new version of Trip Hunter is ready.</span>
-        <button type="button" (click)="updates.activateUpdate()">Refresh</button>
+        <app-button variant="ghost-inverted" size="sm" (click)="updates.activateUpdate()">
+          Refresh
+        </app-button>
       </div>
     } @else if (install.canInstall()) {
       <div class="pwa-banner pwa-banner--install" role="dialog" aria-label="Install app">
         <span>Install Trip Hunter for faster access offline-ready.</span>
         <div class="pwa-banner__actions">
-          <button type="button" class="ghost" (click)="install.dismiss()">Not now</button>
-          <button type="button" (click)="install.promptInstall()">Install</button>
+          <app-button variant="ghost-inverted" size="sm" (click)="install.dismiss()">
+            Not now
+          </app-button>
+          <app-button size="sm" (click)="install.promptInstall()">Install</app-button>
         </div>
       </div>
     }
@@ -58,22 +63,6 @@ import { PwaUpdateService } from './core/pwa/pwa-update.service';
       .pwa-banner__actions {
         display: flex;
         gap: 0.45rem;
-      }
-
-      button {
-        border: 0;
-        border-radius: 999px;
-        padding: 0.45rem 0.95rem;
-        font-weight: 700;
-        cursor: pointer;
-        background: #fff;
-        color: #14181f;
-      }
-
-      button.ghost {
-        background: transparent;
-        color: #fff;
-        border: 1px solid rgba(255, 255, 255, 0.35);
       }
     `,
   ],

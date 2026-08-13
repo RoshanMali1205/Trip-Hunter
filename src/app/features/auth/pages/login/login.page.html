@@ -97,13 +97,9 @@
                   />
                 </label>
                 @if (avatarPreview()) {
-                  <button
-                    type="button"
-                    class="login__photo-clear"
-                    (click)="clearAvatar(avatarInput)"
-                  >
+                  <app-button variant="link-danger" size="sm" (click)="clearAvatar(avatarInput)">
                     Remove
-                  </button>
+                  </app-button>
                 }
               </div>
             </div>
