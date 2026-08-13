@@ -376,7 +376,7 @@ export class AuthService {
       .eq('id', current.user.id);
 
     if (error) {
-      return { ok: false, message: error.message };
+      return { ok: false, message: friendlyProfileError(error.message) };
     }
 
     await supabase.auth.updateUser({ data: { avatar_url: upload.url } });
@@ -462,10 +462,7 @@ export class AuthService {
     }
 
     if (error) {
-      const hint = /bucket|not found|row-level security|policy/i.test(error.message)
-        ? ' Apply migration 008/009 (avatars bucket) in Supabase, then retry.'
-        : '';
-      return { ok: false, message: `${error.message}.${hint}`.replace(/\.\./g, '.') };
+      return { ok: false, message: friendlyStorageError(error.message) };
     }
 
     const { data } = supabase.storage.from('avatars').getPublicUrl(path);
@@ -578,4 +575,29 @@ export function normalizePhone(value: string): string {
   const digits = trimmed.replace(/\D/g, '');
   if (digits.length < 10 || digits.length > 15) return '';
   return hasPlus ? `+${digits}` : digits;
+}
+
+function friendlyStorageError(raw: string): string {
+  const message = (raw || '').trim();
+  if (/bucket|not found/i.test(message)) {
+    return 'Photo storage is not set up yet. Apply Supabase migrations 008/009 (avatars bucket), then try again.';
+  }
+  if (/row-level security|policy|permission|not authorized|jwt/i.test(message)) {
+    return 'You don’t have permission to upload photos. Sign in again, or check avatars storage policies in Supabase.';
+  }
+  if (/payload|too large|entity too large|413/i.test(message)) {
+    return 'That photo is still too large after compression. Try a smaller image.';
+  }
+  if (/network|fetch|failed to fetch/i.test(message)) {
+    return 'Network error while uploading. Check your connection and try again.';
+  }
+  return message || 'Could not upload photo. Try a JPG or PNG.';
+}
+
+function friendlyProfileError(raw: string): string {
+  const message = (raw || '').trim();
+  if (/row-level security|policy|permission/i.test(message)) {
+    return 'Photo uploaded, but profile could not be updated (permissions). Refresh and try again.';
+  }
+  return message || 'Could not save profile photo.';
 }

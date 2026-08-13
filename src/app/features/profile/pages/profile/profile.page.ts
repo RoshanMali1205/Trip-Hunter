@@ -2,6 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { AuthService, validateAvatarFile } from '../../../../core/auth/auth.service';
+import { ToastService } from '../../../../core/ui/toast.service';
 
 @Component({
   selector: 'app-profile-page',
@@ -13,12 +14,11 @@ import { AuthService, validateAvatarFile } from '../../../../core/auth/auth.serv
 export class ProfilePage {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly toast = inject(ToastService);
 
   readonly user = this.auth.user;
   readonly busy = signal(false);
   readonly loggingOut = signal(false);
-  readonly message = signal('');
-  readonly error = signal('');
 
   async onPhotoSelected(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
@@ -27,22 +27,23 @@ export class ProfilePage {
 
     const validation = validateAvatarFile(file);
     if (validation) {
-      this.error.set(validation);
-      this.message.set('');
+      this.toast.warning(validation, 'Photo not accepted');
       input.value = '';
       return;
     }
 
     this.busy.set(true);
-    this.error.set('');
-    this.message.set('');
     try {
       const result = await this.auth.updateAvatar(file);
       if (!result.ok) {
-        this.error.set(result.message ?? 'Could not update photo.');
+        this.toast.error(result.message ?? 'Could not update photo.', 'Upload failed');
         return;
       }
-      this.message.set('Profile photo updated.');
+      this.toast.success('Your profile photo was updated.', 'Photo updated');
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Could not update photo. Please try again.';
+      this.toast.error(message, 'Upload failed');
     } finally {
       this.busy.set(false);
       input.value = '';
@@ -53,6 +54,7 @@ export class ProfilePage {
     this.loggingOut.set(true);
     try {
       await this.auth.logout();
+      this.toast.info('You have been signed out.', 'Logged out');
       await this.router.navigateByUrl('/login');
     } finally {
       this.loggingOut.set(false);
