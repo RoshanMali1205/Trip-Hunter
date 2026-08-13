@@ -43,6 +43,16 @@
       @if (message()) {
         <p class="profile__ok" role="status">{{ message() }}</p>
       }
+
+      <button
+        type="button"
+        class="profile__logout"
+        [disabled]="loggingOut()"
+        (click)="logout()"
+      >
+        <mat-icon>logout</mat-icon>
+        {{ loggingOut() ? 'Signing out…' : 'Log out' }}
+      </button>
     </div>
   </div>
 </section>
