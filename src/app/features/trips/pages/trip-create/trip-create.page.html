@@ -1,132 +1,148 @@
-<section class="th-page create">
-  <nav class="crumbs">
-    <a routerLink="/trips">My Trips</a>
-    <span>/</span>
-    <span>New trip</span>
-  </nav>
-
-  <header class="th-page-header">
-    <div>
+<section class="create">
+  <header
+    class="create-hero"
+    style="--hero-image: url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1600&q=80')"
+    aria-label="Create a trip"
+  >
+    <div class="create-hero__inner">
+      <p class="create-hero__brand">Trip Hunter</p>
       <h1>Create a trip</h1>
+      <p class="create-hero__sub">
+        Shape the next team escape — destination, dates, budget, and approvals in one flow.
+      </p>
     </div>
   </header>
 
-  <ol class="stepper">
-    @for (label of steps; track label; let i = $index) {
-      <li [class.is-active]="step() === i" [class.is-done]="step() > i">
-        <span class="num">{{ i + 1 }}</span>
-        <span class="label">{{ label }}</span>
-      </li>
-    }
-  </ol>
+  <div class="create-body">
+    <nav class="crumbs">
+      <a routerLink="/trips">My Trips</a>
+      <span>/</span>
+      <span>New trip</span>
+    </nav>
 
-  <div class="th-panel form-panel" [formGroup]="form">
-    @switch (step()) {
-      @case (0) {
-        <label>
-          Trip name
-          <input formControlName="title" />
-        </label>
-        <div class="field">
-          <span class="field-label">Trip type</span>
-          <div class="chips">
-            @for (t of tripTypes; track t.value) {
-              <button
-                type="button"
-                [class.is-on]="form.controls.tripType.value === t.value"
-                (click)="selectType(t.value)"
-              >
-                {{ t.label }}
-              </button>
-            }
+    <ol class="stepper" aria-label="Create trip steps">
+      @for (label of steps; track label; let i = $index) {
+        <li [class.is-active]="step() === i" [class.is-done]="step() > i">
+          <span class="num">{{ i + 1 }}</span>
+          <span class="label">{{ label }}</span>
+        </li>
+      }
+    </ol>
+
+    <div class="th-panel form-panel" [formGroup]="form">
+      @switch (step()) {
+        @case (0) {
+          <label>
+            Trip name
+            <input formControlName="title" />
+          </label>
+          <div class="field">
+            <span class="field-label">Trip type</span>
+            <div class="chips">
+              @for (t of tripTypes; track t.value) {
+                <button
+                  type="button"
+                  [class.is-on]="form.controls.tripType.value === t.value"
+                  (click)="selectType(t.value)"
+                >
+                  {{ t.label }}
+                </button>
+              }
+            </div>
           </div>
-        </div>
-        <label>
-          Description
-          <textarea rows="4" formControlName="description"></textarea>
-        </label>
-      }
-      @case (1) {
-        <label>
-          Starting location
-          <input formControlName="origin" />
-        </label>
-        <label>
-          Destination
-          <input formControlName="destination" />
-        </label>
-      }
-      @case (2) {
-        <label>
-          Start date
-          <input type="date" formControlName="startDate" />
-        </label>
-        <label>
-          End date
-          <input type="date" formControlName="endDate" />
-        </label>
-        <p class="hint">Leave blank to run an availability poll later.</p>
-      }
-      @case (3) {
-        <label>
-          Max members
-          <input type="number" formControlName="maxMembers" />
-        </label>
-        <p class="hint">Invite individuals or whole teams after creation.</p>
-      }
-      @case (4) {
-        <label>
-          Currency
-          <select formControlName="currency">
-            <option value="INR">INR</option>
-            <option value="USD">USD</option>
-            <option value="EUR">EUR</option>
-          </select>
-        </label>
-        <label>
-          Expected budget
-          <input type="number" formControlName="estimatedBudget" />
-        </label>
-      }
-      @case (5) {
-        <label>
-          Approval required?
-          <select formControlName="approvalRequired">
-            <option value="yes">Yes — send to manager</option>
-            <option value="no">No — not required</option>
-          </select>
-        </label>
-      }
-      @case (6) {
-        <div class="review">
-          <h3>{{ form.value.title }}</h3>
-          <p>{{ form.value.origin }} → {{ form.value.destination }}</p>
-          <p>{{ tripTypes.find((t) => t.value === form.value.tripType)?.label }}</p>
-          <p>Budget: {{ form.value.estimatedBudget }} {{ form.value.currency }}</p>
-          <p>{{ form.value.description }}</p>
-        </div>
-      }
-    }
-
-    @if (error()) {
-      <p class="hint" style="color: #dc2626">{{ error() }}</p>
-    }
-
-    <div class="actions">
-      @if (step() === 0) {
-        <app-button variant="ghost" routerLink="/trips">Cancel</app-button>
-      } @else {
-        <app-button variant="ghost" (click)="back()">Back</app-button>
+          <label>
+            Description
+            <textarea rows="4" formControlName="description"></textarea>
+          </label>
+        }
+        @case (1) {
+          <div class="form-grid">
+            <label>
+              Starting location
+              <input formControlName="origin" />
+            </label>
+            <label>
+              Destination
+              <input formControlName="destination" />
+            </label>
+          </div>
+        }
+        @case (2) {
+          <div class="form-grid">
+            <label>
+              Start date
+              <input type="date" formControlName="startDate" />
+            </label>
+            <label>
+              End date
+              <input type="date" formControlName="endDate" />
+            </label>
+          </div>
+          <p class="hint">Leave blank to run an availability poll later.</p>
+        }
+        @case (3) {
+          <label class="form-narrow">
+            Max members
+            <input type="number" formControlName="maxMembers" />
+          </label>
+          <p class="hint">Invite individuals or whole teams after creation.</p>
+        }
+        @case (4) {
+          <div class="form-grid">
+            <label>
+              Currency
+              <select formControlName="currency">
+                <option value="INR">INR</option>
+                <option value="USD">USD</option>
+                <option value="EUR">EUR</option>
+              </select>
+            </label>
+            <label>
+              Expected budget
+              <input type="number" formControlName="estimatedBudget" />
+            </label>
+          </div>
+        }
+        @case (5) {
+          <label class="form-narrow">
+            Approval required?
+            <select formControlName="approvalRequired">
+              <option value="yes">Yes — send to manager</option>
+              <option value="no">No — not required</option>
+            </select>
+          </label>
+        }
+        @case (6) {
+          <div class="review">
+            <h3>{{ form.value.title }}</h3>
+            <p>{{ form.value.origin }} → {{ form.value.destination }}</p>
+            <p>{{ tripTypes.find((t) => t.value === form.value.tripType)?.label }}</p>
+            <p>Budget: {{ form.value.estimatedBudget }} {{ form.value.currency }}</p>
+            <p>{{ form.value.description }}</p>
+          </div>
+        }
       }
 
-      @if (step() < steps.length - 1) {
-        <app-button (click)="next()">
-          Next: {{ steps[step() + 1] }}
-          <mat-icon>chevron_right</mat-icon>
-        </app-button>
-      } @else {
-        <app-button [loading]="saving()" (click)="create()">Create trip</app-button>
+      @if (error()) {
+        <p class="hint hint--error">{{ error() }}</p>
       }
+
+      <div class="actions">
+        @if (step() === 0) {
+          <app-button variant="ghost" routerLink="/trips">Cancel</app-button>
+        } @else {
+          <app-button variant="ghost" (click)="back()">Back</app-button>
+        }
+
+        @if (step() < steps.length - 1) {
+          <app-button (click)="next()">
+            Next: {{ steps[step() + 1] }}
+            <mat-icon>chevron_right</mat-icon>
+          </app-button>
+        } @else {
+          <app-button [loading]="saving()" (click)="create()">Create trip</app-button>
+        }
+      </div>
     </div>
   </div>
 </section>

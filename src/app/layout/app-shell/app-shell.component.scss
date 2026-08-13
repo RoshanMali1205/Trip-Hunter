@@ -12,22 +12,58 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  background:
-    linear-gradient(180deg, #ffffff 0%, #f7f8fc 100%);
+  background: var(--th-sidebar-bg);
   border-right: 1px solid var(--th-border);
   box-shadow: 8px 0 28px rgba(20, 24, 31, 0.03);
   animation: th-slide-in 0.4s ease both;
+}
+
+.shell__brand-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.35rem;
+  padding-bottom: 0.85rem;
 }
 
 .shell__brand {
   display: flex;
   align-items: center;
   gap: 0.55rem;
-  padding: 0.35rem 0.6rem 1.5rem;
+  padding: 0.35rem 0.6rem;
   color: var(--th-text);
   font-family: var(--th-font-display);
   font-weight: 700;
   font-size: 1.05rem;
+}
+
+.shell__theme-btn {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  border: 1px solid var(--th-border-strong);
+  background: var(--th-surface);
+  color: var(--th-text-secondary);
+  cursor: pointer;
+  transition:
+    color 0.2s ease,
+    background 0.2s ease,
+    border-color 0.2s ease;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+
+  &:hover {
+    color: var(--th-primary-dark);
+    border-color: color-mix(in srgb, var(--th-primary) 40%, var(--th-border));
+    background: var(--th-accent-soft);
+  }
 }
 
 .shell__logo {
@@ -203,7 +239,7 @@
     justify-content: space-between;
     gap: 0.75rem;
     padding: 0.65rem 0.9rem;
-    background: color-mix(in srgb, var(--th-surface) 94%, transparent);
+    background: color-mix(in srgb, var(--th-surface) 92%, transparent);
     backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--th-border);
   }
@@ -218,6 +254,12 @@
     font-size: 0.98rem;
   }
 
+  .shell__mobile-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+  }
+
   .shell__mobile-logout {
     display: inline-flex;
     align-items: center;
@@ -226,7 +268,7 @@
     padding: 0 0.8rem;
     border-radius: 999px;
     border: 1px solid var(--th-border-strong);
-    background: white;
+    background: var(--th-surface);
     color: var(--th-text-secondary);
     font-weight: 700;
     font-size: 0.82rem;
@@ -241,8 +283,8 @@
     &:active,
     &:hover {
       color: var(--th-error);
-      border-color: color-mix(in srgb, var(--th-error) 40%, white);
-      background: color-mix(in srgb, var(--th-error) 8%, white);
+      border-color: color-mix(in srgb, var(--th-error) 40%, var(--th-border));
+      background: color-mix(in srgb, var(--th-error) 12%, var(--th-surface));
     }
   }
 
@@ -276,7 +318,7 @@
 
       &.is-active {
         color: var(--th-primary-dark);
-        background: color-mix(in srgb, var(--th-primary) 14%, white);
+        background: color-mix(in srgb, var(--th-primary) 16%, var(--th-surface));
       }
     }
 

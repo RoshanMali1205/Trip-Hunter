@@ -45,4 +45,47 @@
     radial-gradient(ellipse 60% 40% at 100% 0%, rgba(14, 165, 233, 0.08), transparent 50%),
     linear-gradient(180deg, #f7f8fc 0%, #f3f5fa 55%, #eef1f7 100%);
   --th-pattern: url("data:image/svg+xml,%3Csvg width='72' height='72' viewBox='0 0 72 72' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ff6a1a' fill-opacity='0.035'%3E%3Ccircle cx='6' cy='6' r='2'/%3E%3Ccircle cx='42' cy='30' r='1.5'/%3E%3Ccircle cx='66' cy='58' r='2'/%3E%3C/g%3E%3C/svg%3E");
+  --th-sidebar-bg: linear-gradient(180deg, #ffffff 0%, #f7f8fc 100%);
+  --th-input-bg: #f7f8fc;
+}
+
+:root[data-theme='dark'] {
+  --th-primary: #ff7a2e;
+  --th-primary-dark: #ff9a5c;
+  --th-primary-light: #ffb07a;
+  --th-accent: #ff7a2e;
+  --th-accent-soft: rgba(255, 122, 46, 0.16);
+  --th-success: #22c55e;
+  --th-warning: #eab308;
+  --th-error: #f87171;
+  --th-info: #38bdf8;
+
+  --th-bg: #0f1218;
+  --th-bg-elevated: #151922;
+  --th-surface: #1a1f2a;
+  --th-surface-muted: #232936;
+  --th-border: #2c3342;
+  --th-border-strong: #3d4658;
+
+  --th-text: #f3f5f9;
+  --th-text-secondary: #b8c0d0;
+  --th-text-muted: #8b95a8;
+  --th-text-inverse: #0f1218;
+
+  --th-shadow: 0 20px 44px rgba(0, 0, 0, 0.45);
+  --th-shadow-sm: 0 10px 24px rgba(0, 0, 0, 0.28);
+
+  --th-gradient-hero: linear-gradient(
+    120deg,
+    rgba(8, 10, 16, 0.72) 0%,
+    rgba(8, 10, 16, 0.4) 45%,
+    rgba(255, 122, 46, 0.4) 100%
+  );
+  --th-gradient-page:
+    radial-gradient(ellipse 80% 50% at 0% 0%, rgba(255, 122, 46, 0.14), transparent 55%),
+    radial-gradient(ellipse 60% 40% at 100% 0%, rgba(56, 189, 248, 0.08), transparent 50%),
+    linear-gradient(180deg, #0f1218 0%, #12161f 55%, #0d1016 100%);
+  --th-pattern: url("data:image/svg+xml,%3Csvg width='72' height='72' viewBox='0 0 72 72' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ff7a2e' fill-opacity='0.05'%3E%3Ccircle cx='6' cy='6' r='2'/%3E%3Ccircle cx='42' cy='30' r='1.5'/%3E%3Ccircle cx='66' cy='58' r='2'/%3E%3C/g%3E%3C/svg%3E");
+  --th-sidebar-bg: linear-gradient(180deg, #151922 0%, #0f1218 100%);
+  --th-input-bg: #12161f;
 }
