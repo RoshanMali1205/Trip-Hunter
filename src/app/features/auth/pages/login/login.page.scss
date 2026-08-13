@@ -119,16 +119,6 @@
   }
 }
 
-.login__brand {
-  margin: 0;
-  font-family: var(--th-font-display);
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  font-size: 0.85rem;
-  color: var(--th-primary-light);
-}
-
 .login__panel {
   display: grid;
   place-items: center;
@@ -218,6 +208,16 @@
   font-size: 0.75rem;
 }
 
+.login__brand {
+  margin: 0;
+  font-family: var(--th-font-display);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  color: #ffd7bf;
+}
+
 .login__sub,
 .login__hint {
   color: var(--th-text-secondary);
@@ -242,9 +242,9 @@
 }
 
 .btn.primary {
-  background: var(--th-accent);
+  background: var(--th-primary);
   color: white;
-  box-shadow: 0 12px 24px rgba(249, 115, 22, 0.28);
+  box-shadow: 0 12px 24px rgba(255, 106, 26, 0.28);
 }
 
 .btn.ghost {

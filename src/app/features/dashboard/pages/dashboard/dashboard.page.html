@@ -1,17 +1,69 @@
 <section class="th-page dashboard">
-  <header class="dashboard__header">
-    <div>
-      <h1 class="desktop-only">{{ greeting() }}</h1>
-      <h1 class="mobile-only">Dashboard</h1>
-      <p class="desktop-only">{{ todayLabel }}</p>
-      <p class="mobile-only">{{ mobileDate }}</p>
+  <section
+    class="hero"
+    [style.--hero-image]="'url(' + heroImage() + ')'"
+    aria-label="Trip Hunter highlight"
+  >
+    <div class="hero__overlay">
+      <p class="hero__brand">Trip Hunter</p>
+      <h1>{{ greeting() }}</h1>
+      <p class="hero__sub">
+        Plan team escapes like a travel brand — votes, bookings, budgets, and approvals in one
+        workspace.
+      </p>
+      <div class="hero__cta">
+        <a class="btn primary" routerLink="/trips">Explore trips</a>
+        <a class="btn ghost" routerLink="/trips/create">
+          <mat-icon>add</mat-icon>
+          New trip
+        </a>
+      </div>
     </div>
-    <div class="dashboard__actions">
-      <a class="icon-btn desktop-only" routerLink="/trips" aria-label="Search trips"><mat-icon>search</mat-icon></a>
-      <a class="icon-btn desktop-only" routerLink="/notifications" aria-label="Notifications"><mat-icon>notifications</mat-icon></a>
-      <a class="avatar" routerLink="/profile" [attr.aria-label]="user()?.firstName">{{ initials() }}</a>
+
+    @if (featuredTrip(); as feat) {
+      <a class="hero__float" [routerLink]="['/trips', feat.id]">
+        <span class="hero__float-media" [style.--cover]="coverStyle(feat.coverImageUrl)"></span>
+        <span class="hero__float-body">
+          <strong>{{ feat.destination || feat.title }}</strong>
+          <em>From {{ shortBudget(feat.estimatedBudget) }}</em>
+        </span>
+      </a>
+    }
+
+    <div class="hero__trust">
+      @for (item of valueProps; track item.label) {
+        <div>
+          <mat-icon>{{ item.icon }}</mat-icon>
+          <span>{{ item.label }}</span>
+        </div>
+      }
     </div>
-  </header>
+  </section>
+
+  <div class="search-panel">
+    <label class="search">
+      <mat-icon>search</mat-icon>
+      <input
+        type="search"
+        [ngModel]="search()"
+        (ngModelChange)="search.set($event)"
+        placeholder="Search destinations, team trips, cities…"
+      />
+    </label>
+    <div class="cats" role="tablist" aria-label="Trip categories">
+      @for (cat of categories; track cat.id) {
+        <button
+          type="button"
+          class="cat"
+          [class.cat--on]="category() === cat.id"
+          (click)="setCategory(cat.id)"
+        >
+          <mat-icon>{{ cat.icon }}</mat-icon>
+          {{ cat.label }}
+        </button>
+      }
+    </div>
+  </div>
 
   <div class="stats-row">
     <article class="stat-card">
@@ -23,7 +75,7 @@
       <span class="label">My tasks</span>
       <strong>{{ summary().myTasks.length }} open</strong>
       <p>
-        @for (t of summary().myTasks.slice(0, 3); track t.id; let last = $last) {
+        @for (t of summary().myTasks.slice(0, 2); track t.id; let last = $last) {
           {{ t.title }}@if (!last) { · }
         }
       </p>
@@ -32,60 +84,81 @@
       <span class="label">Expense balance</span>
       <strong>You receive {{ summary().expenseSummary.youReceive | inr }}</strong>
       <p>
-        You paid {{ summary().expenseSummary.youPaid | inr }} · your share
+        Paid {{ summary().expenseSummary.youPaid | inr }} · share
         {{ summary().expenseSummary.yourShare | inr }}
       </p>
     </article>
   </div>
 
   <div class="section-head">
-    <h2>Upcoming trips</h2>
+    <div>
+      <h2>Upcoming trips</h2>
+      <p>Photo-first cards — tap to manage itinerary, bookings, and votes.</p>
+    </div>
     <a routerLink="/trips">View all</a>
   </div>
 
   <div class="trip-grid">
-    @for (trip of summary().upcomingTrips; track trip.id) {
+    @for (trip of filteredTrips(); track trip.id) {
       <a
         class="trip-tile"
         [routerLink]="['/trips', trip.id]"
         [style.--cover]="coverStyle(trip.coverImageUrl)"
         [class.trip-tile--fallback]="!trip.coverImageUrl"
       >
-        <div class="trip-tile__media" aria-hidden="true"></div>
+        <div class="trip-tile__media" aria-hidden="true">
+          <button type="button" class="heart" aria-label="Save trip" (click)="$event.preventDefault()">
+            <mat-icon>favorite_border</mat-icon>
+          </button>
+          <span class="th-status" [class]="'th-status th-status--' + trip.status.toLowerCase()">
+            {{ trip.status | statusLabel }}
+          </span>
+        </div>
         <div class="trip-tile__body">
           <div class="trip-tile__top">
-            <span class="type">{{ trip.tripType.replaceAll('_', ' ') }}</span>
-            <span class="th-status" [class]="'th-status th-status--' + trip.status.toLowerCase()">
-              {{ trip.status | statusLabel }}
-            </span>
+            <h3>{{ trip.destination || trip.title }}</h3>
+            <span class="rating"><mat-icon>star</mat-icon>{{ ratingFor(trip) }}</span>
           </div>
-          <h3>{{ trip.title }}</h3>
           <p class="trip-tile__route">{{ trip.origin }} → {{ trip.destination }}</p>
-          <p>
+          <p class="trip-tile__meta">
             @if (trip.startDate) {
               {{ trip.startDate | date: 'd MMM' }} → {{ trip.endDate | date: 'd MMM' }}
             } @else {
               Dates TBD
             }
-            · {{ trip.memberCount }} members · {{ shortBudget(trip.estimatedBudget) }} budget
+            · {{ trip.memberCount }} members
           </p>
-          <span class="countdown">{{ daysToGo(trip.startDate) }}</span>
+          <div class="trip-tile__foot">
+            <strong>From {{ shortBudget(trip.estimatedBudget) }}</strong>
+            <em>{{ daysToGo(trip.startDate) }}</em>
+          </div>
         </div>
       </a>
+    } @empty {
+      <div class="th-panel empty">No trips match this filter. Try another category.</div>
     }
   </div>
 
   <div class="section-head">
-    <h2>Inspiration</h2>
+    <div>
+      <h2>Recommended for your team</h2>
+      <p>Inspiration boards for the next outing vote.</p>
+    </div>
   </div>
   <div class="inspire-grid">
     @for (tile of inspirationTiles; track tile.label) {
-      <article
-        class="inspire-tile"
-        [style.--tile-image]="'url(' + tile.imageUrl + ')'"
-      >
-        <span class="inspire-tile__label">{{ tile.label }}</span>
-        <p>{{ tile.caption }}</p>
+      <article class="inspire-tile" [style.--tile-image]="'url(' + tile.imageUrl + ')'">
+        <button type="button" class="heart" aria-label="Save inspiration">
+          <mat-icon>favorite_border</mat-icon>
+        </button>
+        <div class="inspire-tile__body">
+          <span class="inspire-tile__label">{{ tile.label }}</span>
+          <p>{{ tile.caption }}</p>
+          <div class="inspire-tile__meta">
+            <strong>From {{ tile.from }}</strong>
+            <em><mat-icon>star</mat-icon>{{ tile.rating }}</em>
+          </div>
+        </div>
       </article>
     }
   </div>
