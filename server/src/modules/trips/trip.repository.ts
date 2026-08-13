@@ -1,3 +1,10 @@
+import { allowMockData } from '../../config/env.js';
+import {
+  getSupabaseAdmin,
+  isSupabaseAdminConfigured,
+} from '../../config/supabase.js';
+import { AppError } from '../../middleware/error-handler.js';
+
 export type TripStatus =
   | 'draft'
   | 'planning'
@@ -9,24 +16,41 @@ export type TripStatus =
 export interface Trip {
   id: string;
   organizationId: string;
-  teamId: string;
+  teamId: string | null;
   name: string;
   description: string;
   destination: string;
   status: TripStatus;
-  startDate: string;
-  endDate: string;
+  startDate: string | null;
+  endDate: string | null;
   budgetCents: number;
   currency: string;
-  createdBy: string;
+  createdBy: string | null;
   createdAt: string;
   updatedAt: string;
 }
 
+interface TripRow {
+  id: string;
+  organization_id: string;
+  team_id: string | null;
+  name: string;
+  description: string | null;
+  destination_summary: string | null;
+  status: TripStatus;
+  start_date: string | null;
+  end_date: string | null;
+  currency: string;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  budgets?: { total_cents: number | null }[] | null;
+}
+
 const now = '2026-08-01T10:00:00.000Z';
 
-/** In-memory seed: Acme eng team outing to Goa */
-const trips: Trip[] = [
+/** In-memory seed: Acme eng team outing to Goa (used when Supabase is not configured). */
+const memoryTrips: Trip[] = [
   {
     id: '33333333-3333-3333-3333-333333333333',
     organizationId: '22222222-2222-2222-2222-222222222222',
@@ -49,7 +73,8 @@ const trips: Trip[] = [
     organizationId: '22222222-2222-2222-2222-222222222222',
     teamId: '44444444-4444-4444-4444-444444444444',
     name: 'Goa Reunion Weekend',
-    description: 'Follow-up long weekend for remote teammates who missed the main outing.',
+    description:
+      'Follow-up long weekend for remote teammates who missed the main outing.',
     destination: 'Goa, India',
     status: 'draft',
     startDate: '2027-01-09',
@@ -62,16 +87,97 @@ const trips: Trip[] = [
   },
 ];
 
+function mapRow(row: TripRow): Trip {
+  const budgetCents = Array.isArray(row.budgets)
+    ? Number(row.budgets[0]?.total_cents ?? 0)
+    : 0;
+
+  return {
+    id: row.id,
+    organizationId: row.organization_id,
+    teamId: row.team_id,
+    name: row.name,
+    description: row.description ?? '',
+    destination: row.destination_summary ?? '',
+    status: row.status,
+    startDate: row.start_date,
+    endDate: row.end_date,
+    budgetCents,
+    currency: row.currency,
+    createdBy: row.created_by,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+const TRIP_SELECT =
+  'id, organization_id, team_id, name, description, destination_summary, status, start_date, end_date, currency, created_by, created_at, updated_at, budgets(total_cents)';
+
+function assertDbOrMock(): 'supabase' | 'memory' {
+  if (isSupabaseAdminConfigured()) {
+    return 'supabase';
+  }
+  if (allowMockData()) {
+    return 'memory';
+  }
+  throw new AppError(
+    503,
+    'SUPABASE_NOT_CONFIGURED',
+    'SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required to query trips',
+  );
+}
+
 export class TripRepository {
-  findAll(): Trip[] {
-    return [...trips];
+  async findAll(): Promise<Trip[]> {
+    if (assertDbOrMock() === 'memory') {
+      return [...memoryTrips];
+    }
+
+    const { data, error } = await getSupabaseAdmin()
+      .from('trips')
+      .select(TRIP_SELECT)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw new AppError(502, 'DB_ERROR', error.message);
+    }
+
+    return ((data ?? []) as TripRow[]).map(mapRow);
   }
 
-  findById(id: string): Trip | undefined {
-    return trips.find((t) => t.id === id);
+  async findById(id: string): Promise<Trip | undefined> {
+    if (assertDbOrMock() === 'memory') {
+      return memoryTrips.find((t) => t.id === id);
+    }
+
+    const { data, error } = await getSupabaseAdmin()
+      .from('trips')
+      .select(TRIP_SELECT)
+      .eq('id', id)
+      .maybeSingle();
+
+    if (error) {
+      throw new AppError(502, 'DB_ERROR', error.message);
+    }
+
+    return data ? mapRow(data as TripRow) : undefined;
   }
 
-  findByOrganization(organizationId: string): Trip[] {
-    return trips.filter((t) => t.organizationId === organizationId);
+  async findByOrganization(organizationId: string): Promise<Trip[]> {
+    if (assertDbOrMock() === 'memory') {
+      return memoryTrips.filter((t) => t.organizationId === organizationId);
+    }
+
+    const { data, error } = await getSupabaseAdmin()
+      .from('trips')
+      .select(TRIP_SELECT)
+      .eq('organization_id', organizationId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw new AppError(502, 'DB_ERROR', error.message);
+    }
+
+    return ((data ?? []) as TripRow[]).map(mapRow);
   }
 }

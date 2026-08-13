@@ -30,18 +30,20 @@ Protected routes expect:
 Authorization: Bearer <supabase-access-token>
 ```
 
-The server currently attaches a mock user when any non-empty Bearer token is present. Production will validate the JWT against Supabase.
+When `SUPABASE_URL` + keys are set, the API validates the JWT with Supabase `auth.getUser` and loads `profiles` / `org_members`. Without keys (non-production), any non-empty Bearer token attaches the mock Acme user.
 
-## Current v1 routes (stubs)
+## Current v1 routes
 
 | Method | Path | Auth | Notes |
 | --- | --- | --- | --- |
-| `GET` | `/api/v1/health` | No | Liveness |
-| `GET` | `/api/v1/me` | Yes | Current user stub |
-| `GET` | `/api/v1/trips` | Yes | Sample Goa trips |
+| `GET` | `/api/v1/health` | No | Liveness + `auth` / `data` mode |
+| `GET` | `/api/v1/me` | Yes | Authenticated user |
+| `GET` | `/api/v1/trips` | Yes | Org-scoped trips (Supabase or memory) |
 | `GET` | `/api/v1/trips/:id` | Yes | Single trip |
+
+Integration details: [nodejs-db-integration.md](./nodejs-db-integration.md).
 
 ## Local vs Netlify
 
 - Local: `cd server && npm run dev` → Express on `PORT` (default `3000`).
-- Netlify: `/api/*` redirects to `/.netlify/functions/api/:splat`. Full Express mounting lands when `serverless-http` is connected.
+- Netlify: `/api/*` → `/.netlify/functions/api/:splat` → Express via `serverless-http`.

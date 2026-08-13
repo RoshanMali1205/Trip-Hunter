@@ -35,8 +35,10 @@ Responses use a uniform envelope:
 
 See [API README](../api/README.md) for versioning notes.
 
-## Near-term wiring
+## Node ↔ DB wiring
 
-- Replace auth stub with Supabase JWT verification.
-- Swap in-memory trip repository for Supabase queries.
-- Mount Express in `netlify/functions/api.ts` with `serverless-http`.
+- Auth: Supabase JWT via `auth.getUser` (`server/src/middleware/authentication.ts`).
+- Data: `TripRepository` queries `trips` (+ `budgets`) through the service-role client when configured; otherwise in-memory seed (non-production).
+- Edge: `netlify/functions/api.ts` mounts Express with `serverless-http`.
+
+See [Node.js ↔ DB integration](../api/nodejs-db-integration.md).

@@ -1,11 +1,14 @@
 [build]
-  command = "npm run build"
+  command = "npm run build && npm --prefix server ci && npm --prefix server run build"
   publish = "dist/trip-hunter/browser"
   functions = "netlify/functions"
 
 [functions]
   node_bundler = "esbuild"
-  external_node_modules = ["express", "cors", "zod", "@supabase/supabase-js"]
+  # Keep Express external (dynamic requires). Bundle server's zod@3 via esbuild
+  # so root zod@4 used by the SPA does not leak into the API function.
+  external_node_modules = ["express", "cors", "@supabase/supabase-js", "serverless-http", "dotenv"]
+  included_files = ["server/dist/**"]
 
 [[redirects]]
   from = "/api/*"
