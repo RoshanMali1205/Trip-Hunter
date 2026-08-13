@@ -1,0 +1,40 @@
+<section class="th-page--full expenses-page">
+  <header
+    class="th-hero-backdrop"
+    style="--hero-image: url('https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?auto=format&fit=crop&w=1600&q=80')"
+    aria-label="Expenses"
+  >
+    <div class="th-hero-backdrop__inner">
+      <p class="th-hero-banner__brand">Trip Hunter</p>
+      <h1>Expenses</h1>
+      <p>Shared spend and settlement across trips — track who paid, who owes, and what's left.</p>
+
+      <div class="th-hero-backdrop__stats">
+        <article class="th-stat-glass">
+          <span class="label">You paid</span>
+          <strong>{{ summary.youPaid | inr }}</strong>
+        </article>
+        <article class="th-stat-glass">
+          <span class="label">Your share</span>
+          <strong>{{ summary.yourShare | inr }}</strong>
+        </article>
+        <article class="th-stat-glass">
+          <span class="label">You receive</span>
+          <strong>{{ summary.youReceive | inr }}</strong>
+        </article>
+      </div>
+    </div>
+  </header>
+
+  <div class="th-page-body">
+    <div class="th-panel settle">
+      <h2>Settlement</h2>
+      <p class="settle-sub">Who owes whom across your active trips.</p>
+      <ul>
+        <li><span>Rahul owes Roshan</span><strong>₹2,450</strong></li>
+        <li><span>Amit owes Roshan</span><strong>₹1,800</strong></li>
+        <li><span>Roshan owes Mayuri</span><strong>₹750</strong></li>
+      </ul>
+    </div>
+  </div>
+</section>
