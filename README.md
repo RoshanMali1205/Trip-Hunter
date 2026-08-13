@@ -2,7 +2,7 @@
 
 Collaborative trip planning and trip management for office teams — from idea and availability voting through approvals, itinerary, bookings, expenses, and settlement.
 
-**Stack:** Angular 22 · Angular Material · Signals · PWA · Node.js/Express (Netlify Functions) · Supabase (planned)
+**Stack:** Angular 22 · Angular Material · Signals · PWA · Node.js/Express (Netlify Functions) · Supabase Postgres/Auth
 
 ## Quick start
 
@@ -13,13 +13,16 @@ npm start
 
 Open `http://localhost:4200`. Demo auth accepts any valid email (or Microsoft button). The UI uses mock trip data so you can explore the full shell without a backend.
 
-### API stub (optional)
+### API (Node + DB)
 
 ```bash
+cp .env.example .env   # add Supabase keys, or leave blank for mock data
 cd server
 npm install
 npm run dev
 ```
+
+`GET /api/v1/health` reports whether auth/data use Supabase or in-memory mocks. Details: [docs/api/nodejs-db-integration.md](docs/api/nodejs-db-integration.md).
 
 ## What's included (Sprint 1–2 foundation)
 
