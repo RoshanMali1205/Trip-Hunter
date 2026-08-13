@@ -1,0 +1,95 @@
+<button
+  type="button"
+  class="buddy-fab"
+  (click)="toggle()"
+  [attr.aria-expanded]="open()"
+  aria-controls="buddy-panel"
+  aria-label="Open Buddy India trip advisor"
+>
+  <span class="buddy-fab__glow" aria-hidden="true"></span>
+  <mat-icon>{{ open() ? 'close' : 'travel_explore' }}</mat-icon>
+  @if (!open()) {
+    <em class="buddy-fab__label">Ask Buddy</em>
+  }
+</button>
+
+@if (open()) {
+  <div class="buddy-backdrop" (click)="close()" aria-hidden="true"></div>
+
+  <section
+    id="buddy-panel"
+    class="buddy-panel"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Buddy India trip advisor"
+  >
+    <header class="buddy-panel__head">
+      <div class="buddy-panel__identity">
+        <span class="buddy-panel__avatar" aria-hidden="true">
+          <mat-icon>smart_toy</mat-icon>
+        </span>
+        <div>
+          <p class="buddy-panel__eyebrow">Trip Hunter · AI</p>
+          <h2>{{ info()?.name || 'Buddy' }}</h2>
+          <p class="buddy-panel__title">{{ info()?.title || 'India Trip Advisor' }}</p>
+        </div>
+      </div>
+      <button type="button" class="buddy-panel__close" (click)="close()" aria-label="Close">
+        <mat-icon>close</mat-icon>
+      </button>
+    </header>
+
+    <div class="buddy-panel__intro">
+      <p>
+        Specialized for <strong>India destinations</strong>, seasons &amp; weather windows, budgets,
+        and day-by-day itineraries for team trips.
+      </p>
+      @if (info() && !info()!.configured) {
+        <p class="buddy-panel__warn">Add <code>GEMINI_API_KEY</code> on Netlify to enable live answers.</p>
+      }
+    </div>
+
+    <div class="buddy-panel__messages" #scrollRegion>
+      @for (m of messages(); track $index) {
+        <article class="bubble" [class.bubble--user]="m.role === 'user'" [class.bubble--bot]="m.role === 'model'">
+          @if (m.role === 'model') {
+            <span class="bubble__tag">Buddy</span>
+          }
+          <p>{{ m.text }}</p>
+        </article>
+      }
+      @if (busy()) {
+        <article class="bubble bubble--bot bubble--typing">
+          <span></span><span></span><span></span>
+        </article>
+      }
+    </div>
+
+    @if (info()?.suggestions?.length && messages().length <= 2) {
+      <div class="buddy-panel__chips" aria-label="Suggested questions">
+        @for (s of info()!.suggestions; track s) {
+          <button type="button" (click)="useSuggestion(s)" [disabled]="busy()">{{ s }}</button>
+        }
+      </div>
+    }
+
+    @if (error()) {
+      <p class="buddy-panel__error" role="alert">{{ error() }}</p>
+    }
+
+    <form class="buddy-panel__composer" (ngSubmit)="send()">
+      <input
+        type="text"
+        [ngModel]="draft()"
+        (ngModelChange)="draft.set($event)"
+        name="buddyDraft"
+        placeholder="Ask about Goa, Manali, budgets, itineraries…"
+        autocomplete="off"
+        [disabled]="busy()"
+      />
+      <app-button type="submit" size="sm" [loading]="busy()" [disabled]="!draft().trim()">
+        <mat-icon>send</mat-icon>
+      </app-button>
+    </form>
+  </section>
+}

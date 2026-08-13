@@ -28,6 +28,10 @@ const envSchema = z.object({
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).optional(),
   DATABASE_URL: z.string().min(1).optional(),
   EMAIL_API_KEY: z.string().min(1).optional(),
+  /** Google AI Studio / Gemini API key — server only, never ship to the browser. */
+  GEMINI_API_KEY: z.string().min(1).optional(),
+  /** Optional model override (default: gemini-2.0-flash). */
+  GEMINI_MODEL: z.string().min(1).optional(),
   /**
    * When true (default in development), missing Supabase credentials fall back
    * to the in-memory mock user / trips. Production refuses the fallback.
