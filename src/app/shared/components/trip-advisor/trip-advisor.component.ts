@@ -84,8 +84,11 @@ export class TripAdvisorComponent implements OnInit {
     this.busy.set(true);
     this.scrollToBottom();
 
-    const history: AdvisorChatMessage[] = this.messages()
-      .slice(0, -1)
+    const prior = this.messages().slice(0, -1);
+    let start = 0;
+    while (start < prior.length && prior[start].role === 'model') start += 1;
+    const history: AdvisorChatMessage[] = prior
+      .slice(start)
       .filter((m) => m.text.trim())
       .slice(-12)
       .map((m) => ({ role: m.role, text: m.text }));
@@ -101,12 +104,12 @@ export class TripAdvisorComponent implements OnInit {
           err?.error?.error?.message ||
           err?.message ||
           'Could not reach Buddy. Check GEMINI_API_KEY and try again.';
-        this.error.set(msg);
+        this.error.set('');
         this.messages.update((list) => [
           ...list,
           {
             role: 'model',
-            text: `Hmm — ${msg}`,
+            text: msg.startsWith('Hmm') ? msg : `Hmm — ${msg}`,
           },
         ]);
         this.busy.set(false);
