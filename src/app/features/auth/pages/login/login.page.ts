@@ -10,13 +10,14 @@ import {
   validateAvatarFile,
 } from '../../../../core/auth/auth.service';
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
+import { IndependenceDayBadgeComponent } from '../../../../shared/components/independence-day-badge/independence-day-badge.component';
 
 type AuthPanel = 'signin' | 'signup';
 
 @Component({
   selector: 'app-login-page',
   standalone: true,
-  imports: [ReactiveFormsModule, MatIconModule, ButtonComponent],
+  imports: [ReactiveFormsModule, MatIconModule, ButtonComponent, IndependenceDayBadgeComponent],
   templateUrl: './login.page.html',
   styleUrl: './login.page.scss',
 })
