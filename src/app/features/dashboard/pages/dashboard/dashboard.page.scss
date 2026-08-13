@@ -3,7 +3,15 @@
   justify-content: space-between;
   align-items: flex-start;
   gap: 1rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.35rem;
+  padding: 1.15rem 1.25rem;
+  border-radius: var(--th-radius-lg);
+  border: 1px solid color-mix(in srgb, var(--th-primary) 18%, var(--th-border));
+  background:
+    linear-gradient(120deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.72)),
+    linear-gradient(135deg, rgba(15, 118, 110, 0.12), rgba(249, 115, 22, 0.1));
+  box-shadow: var(--th-shadow-sm);
+  animation: th-fade-up 0.45s ease both;
 
   h1 {
     margin: 0;
@@ -32,10 +40,19 @@
   border: 1px solid var(--th-border);
   background: var(--th-surface);
   color: var(--th-text-secondary);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.icon-btn:hover,
+.avatar:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--th-shadow-sm);
 }
 
 .avatar {
-  background: color-mix(in srgb, var(--th-primary) 40%, var(--th-surface));
+  background: var(--th-gradient-hero);
   color: white;
   font-weight: 700;
   border-color: transparent;
@@ -51,19 +68,40 @@
 }
 
 .stat-card {
+  position: relative;
+  overflow: hidden;
   background: var(--th-surface);
   border: 1px solid var(--th-border);
   border-radius: var(--th-radius-lg);
   padding: 1.1rem 1.2rem;
   min-width: 180px;
+  box-shadow: var(--th-shadow-sm);
+  transition:
+    transform 0.22s ease,
+    box-shadow 0.22s ease;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: auto -20% -55% auto;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--th-primary) 12%, transparent);
+  }
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--th-shadow);
+  }
 
   .label {
     display: block;
     font-size: 0.72rem;
-    font-weight: 700;
+    font-weight: 750;
     letter-spacing: 0.06em;
     text-transform: uppercase;
-    color: var(--th-primary-light);
+    color: var(--th-primary);
     margin-bottom: 0.45rem;
   }
 
@@ -89,14 +127,15 @@
 
   h2 {
     margin: 0;
-    font-size: 1.1rem;
-    color: var(--th-text-secondary);
-    font-weight: 600;
+    font-size: 1.15rem;
+    color: var(--th-text);
+    font-weight: 700;
   }
 
   a {
-    font-weight: 650;
+    font-weight: 700;
     font-size: 0.9rem;
+    color: var(--th-accent);
   }
 }
 
@@ -109,29 +148,35 @@
 
 .trip-tile {
   display: grid;
-  grid-template-rows: 150px 1fr;
+  grid-template-rows: 190px 1fr;
   border-radius: var(--th-radius-lg);
   overflow: hidden;
   border: 1px solid var(--th-border);
   background: var(--th-surface);
   color: inherit;
+  box-shadow: var(--th-shadow-sm);
   transition:
-    transform 0.25s ease,
+    transform 0.28s ease,
     border-color 0.2s ease,
-    box-shadow 0.25s ease;
+    box-shadow 0.28s ease;
 
   &:hover {
-    transform: translateY(-3px);
-    border-color: var(--th-border-strong);
-    box-shadow: var(--th-shadow-sm);
+    transform: translateY(-5px) scale(1.01);
+    border-color: color-mix(in srgb, var(--th-primary) 35%, var(--th-border));
+    box-shadow: var(--th-shadow);
+  }
+
+  &:hover .trip-tile__media {
+    transform: scale(1.04);
   }
 }
 
 .trip-tile__media {
   background:
-    linear-gradient(180deg, transparent 30%, rgba(10, 12, 24, 0.55)),
+    linear-gradient(180deg, transparent 25%, rgba(15, 23, 42, 0.55)),
     var(--cover) center/cover no-repeat;
-  min-height: 150px;
+  min-height: 190px;
+  transition: transform 0.45s ease;
 }
 
 .trip-tile--fallback .trip-tile__media {
@@ -167,22 +212,22 @@
 
 .trip-tile__route {
   color: var(--th-text-secondary) !important;
-  font-weight: 600;
+  font-weight: 650;
 }
 
 .type {
   font-size: 0.7rem;
-  font-weight: 700;
+  font-weight: 750;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: var(--th-primary-light);
+  color: var(--th-primary);
 }
 
 .countdown {
   margin-top: auto;
   font-size: 0.85rem;
-  font-weight: 650;
-  color: var(--th-text-secondary);
+  font-weight: 700;
+  color: var(--th-accent);
 }
 
 .inspire-grid {
@@ -194,19 +239,28 @@
 
 .inspire-tile {
   position: relative;
-  min-height: 140px;
+  min-height: 168px;
   border-radius: var(--th-radius-lg);
   overflow: hidden;
   border: 1px solid var(--th-border);
   background:
-    linear-gradient(165deg, rgba(8, 10, 18, 0.15), rgba(8, 10, 18, 0.78)),
+    linear-gradient(165deg, rgba(15, 23, 42, 0.05), rgba(15, 23, 42, 0.72)),
     var(--tile-image) center/cover no-repeat;
   padding: 1rem;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
   color: white;
+  box-shadow: var(--th-shadow-sm);
   animation: th-fade-up 0.5s ease both;
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
+
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--th-shadow);
+  }
 
   &:nth-child(2) {
     animation-delay: 0.06s;
@@ -222,7 +276,7 @@
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(180deg, transparent 35%, rgba(6, 8, 14, 0.78));
+    background: linear-gradient(180deg, transparent 35%, rgba(15, 23, 42, 0.78));
     pointer-events: none;
   }
 
@@ -241,16 +295,20 @@
   p {
     margin: 0.2rem 0 0;
     font-size: 0.82rem;
-    opacity: 0.85;
+    opacity: 0.9;
   }
 }
 
 .activity {
   list-style: none;
   margin: 0;
-  padding: 0;
+  padding: 1rem 1.1rem;
   display: grid;
   gap: 0.85rem;
+  border-radius: var(--th-radius-lg);
+  border: 1px solid var(--th-border);
+  background: var(--th-surface);
+  box-shadow: var(--th-shadow-sm);
 
   li {
     display: grid;
@@ -264,7 +322,7 @@
     height: 8px;
     margin-top: 0.45rem;
     border-radius: 999px;
-    background: var(--th-primary);
+    background: var(--th-accent);
   }
 
   span {

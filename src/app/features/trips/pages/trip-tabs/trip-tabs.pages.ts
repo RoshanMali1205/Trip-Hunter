@@ -545,7 +545,12 @@ export class TripMembersPage {
       <div class="dest-grid">
         @for (d of destinations(); track d.id) {
           <article class="th-panel dest" [class.leading]="isLeadingDest(d)">
-            <div class="img-ph" aria-hidden="true"></div>
+            <div
+              class="dest-photo"
+              [class.dest-photo--fallback]="!d.imageUrl"
+              [style.--dest-image]="d.imageUrl ? 'url(' + d.imageUrl + ')' : 'none'"
+              aria-hidden="true"
+            ></div>
             <div class="opt-top">
               <strong>{{ d.destinationName }}</strong>
               @if (isLeadingDest(d)) {
@@ -687,12 +692,24 @@ export class TripMembersPage {
         background: color-mix(in srgb, var(--th-primary) 10%, var(--th-surface-muted));
         margin-bottom: 0.75rem;
       }
+      .dest-photo {
+        height: 140px;
+        border-radius: var(--th-radius);
+        margin: -0.15rem -0.15rem 0.85rem;
+        background:
+          linear-gradient(180deg, transparent 40%, rgba(15, 23, 42, 0.35)),
+          var(--dest-image) center/cover no-repeat;
+        overflow: hidden;
+      }
+      .dest-photo--fallback {
+        background: var(--th-gradient-hero);
+      }
       .vote-btn {
         width: 100%;
         margin-top: 0.35rem;
         border: 1px solid var(--th-primary);
         background: transparent;
-        color: var(--th-primary-light);
+        color: var(--th-primary-dark);
         border-radius: 999px;
         padding: 0.55rem;
         font-weight: 700;
@@ -704,6 +721,7 @@ export class TripMembersPage {
       }
       .leading {
         border-color: color-mix(in srgb, var(--th-primary) 55%, var(--th-border));
+        box-shadow: 0 12px 28px rgba(15, 118, 110, 0.12);
       }
     `,
   ],
@@ -895,16 +913,20 @@ export class TripItineraryPage {
     <div class="grid">
       @for (b of bookings(); track b.id) {
         <article class="th-panel card">
-          @if (b.bookingType === 'HOTEL') {
-            <div class="img-ph" aria-hidden="true"></div>
-          }
+          <div
+            class="photo"
+            [class.photo--fallback]="!b.imageUrl"
+            [style.--booking-image]="b.imageUrl ? 'url(' + b.imageUrl + ')' : 'none'"
+            aria-hidden="true"
+          >
+            <em class="th-pill th-pill--solid type-chip">{{ b.bookingType }}</em>
+          </div>
           <div class="top">
-            <em class="th-pill th-pill--outline">{{ b.bookingType }}</em>
+            <span class="status">{{ b.status }}</span>
             <strong>{{ b.amount | inr: b.currency }}</strong>
           </div>
           <h3>{{ b.provider }}</h3>
           <p>Booking #: {{ b.bookingReference }}</p>
-          <p class="status">{{ b.status }}</p>
           <p class="when">{{ formatWhen(b.startDatetime) }}</p>
           <a href="#" class="view" (click)="$event.preventDefault()">View booking →</a>
         </article>
@@ -928,7 +950,7 @@ export class TripItineraryPage {
       }
       .outline-btn {
         background: transparent;
-        color: var(--th-primary-light);
+        color: var(--th-primary-dark);
         border: 1px solid var(--th-primary);
         border-radius: 999px;
         padding: 0.5rem 0.95rem;
@@ -945,42 +967,62 @@ export class TripItineraryPage {
           grid-template-columns: repeat(2, minmax(0, 1fr));
         }
       }
-      .img-ph {
-        height: 100px;
-        border: 1px dashed var(--th-border-strong);
-        border-radius: var(--th-radius);
-        margin-bottom: 0.75rem;
-        background: color-mix(in srgb, var(--th-primary) 8%, var(--th-surface-muted));
+      .card {
+        overflow: hidden;
+        padding: 0;
+        transition:
+          transform 0.22s ease,
+          box-shadow 0.22s ease;
+      }
+      .card:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--th-shadow);
+      }
+      .photo {
+        position: relative;
+        height: 150px;
+        background:
+          linear-gradient(180deg, transparent 35%, rgba(15, 23, 42, 0.55)),
+          var(--booking-image) center/cover no-repeat;
+      }
+      .photo--fallback {
+        background: var(--th-gradient-hero);
+      }
+      .type-chip {
+        position: absolute;
+        left: 0.85rem;
+        top: 0.85rem;
+        text-transform: uppercase;
+        font-size: 0.65rem;
+        letter-spacing: 0.05em;
       }
       .top {
         display: flex;
         justify-content: space-between;
         align-items: center;
         gap: 0.5rem;
-      }
-      .th-pill--outline {
-        text-transform: uppercase;
-        font-size: 0.65rem;
-        letter-spacing: 0.05em;
+        padding: 0.95rem 1.1rem 0;
       }
       h3 {
-        margin: 0.45rem 0 0.25rem;
+        margin: 0.35rem 1.1rem 0.25rem;
       }
       p {
-        margin: 0.2rem 0;
+        margin: 0.2rem 1.1rem;
         color: var(--th-text-secondary);
         font-size: 0.88rem;
       }
       .status {
         text-transform: capitalize;
         color: var(--th-success);
+        font-weight: 700;
+        font-size: 0.82rem;
       }
       .view {
         display: inline-block;
-        margin-top: 0.65rem;
-        color: var(--th-primary-light);
+        margin: 0.75rem 1.1rem 1.1rem;
+        color: var(--th-accent);
         text-decoration: none;
-        font-weight: 650;
+        font-weight: 700;
       }
     `,
   ],
