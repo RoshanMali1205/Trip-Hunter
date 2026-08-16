@@ -84,5 +84,5 @@ This is how production “keeps the server running” without renting a VM: each
 ## Near-term follow-ups
 
 - Add RLS policies and prefer a user-scoped client for reads where possible.
-- Documents upload API (schema exists; UI still stubbed).
-- Comments and remaining CRUD delete/update endpoints for bookings/itinerary.
+- Comments API (schema exists).
+- Remaining CRUD delete/update endpoints for bookings/itinerary/members.

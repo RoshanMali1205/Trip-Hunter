@@ -66,6 +66,11 @@ import {
   listRecentActivity,
   listTripActivity,
 } from './modules/activity/activity.controller.js';
+import {
+  createDocument,
+  deleteDocument,
+  listDocuments,
+} from './modules/documents/document.controller.js';
 import { chatWithAdvisor, getAdvisorInfo } from './modules/advisor/advisor.controller.js';
 import { ok } from './types/api.js';
 
@@ -145,6 +150,9 @@ export function createApp() {
   v1.get('/trips/:tripId/approvals', authenticate, listTripApprovals);
   v1.patch('/approvals/:id', authenticate, reviewApproval);
   v1.get('/trips/:tripId/activity', authenticate, listTripActivity);
+  v1.get('/trips/:tripId/documents', authenticate, listDocuments);
+  v1.post('/trips/:tripId/documents', authenticate, createDocument);
+  v1.delete('/trips/:tripId/documents/:id', authenticate, deleteDocument);
 
   v1.get('/notifications', authenticate, listNotifications);
   v1.patch('/notifications/:id/read', authenticate, markNotificationRead);

@@ -52,12 +52,18 @@ When `SUPABASE_URL` + keys are set, the API validates the JWT with Supabase `aut
 | `GET` | `/api/v1/trips/:tripId/approvals` | Yes | Trip approvals |
 | `PATCH` | `/api/v1/approvals/:id` | Yes | Approve / reject |
 | `GET` | `/api/v1/trips/:tripId/activity` | Yes | Trip activity feed |
+| `GET` | `/api/v1/trips/:tripId/documents` | Yes | List trip documents |
+| `POST` | `/api/v1/trips/:tripId/documents` | Yes | Upload (base64, max 5MB) |
+| `DELETE` | `/api/v1/trips/:tripId/documents/:id` | Yes | Remove document + storage object |
 | `GET` | `/api/v1/advisor` | Yes | Buddy advisor metadata |
 | `POST` | `/api/v1/advisor/chat` | Yes | Gemini India trip chat |
 
 Also: members, polls, itinerary, bookings, budget, expenses, tasks list/status, notifications — see controllers under `server/src/modules/`.
 
-Apply `supabase/migrations/012_trip_meta_fields.sql` for origin / trip type / max members / approval status columns.
+Apply:
+
+- `012_trip_meta_fields.sql` for origin / trip type / max members / approval status
+- `013_trip_documents_storage.sql` for the `trip-documents` storage bucket
 
 ## Local vs Netlify
 

@@ -22,6 +22,7 @@ import {
   ApiActivity,
   ApiApproval,
   ApiBooking,
+  ApiDocument,
   ApiDestinationOption,
   ApiExpenseSummary,
   ApiMyVotes,
@@ -37,6 +38,7 @@ import {
   CreateBookingPayload,
   CreateBudgetCategoryPayload,
   CreateDestinationPayload,
+  CreateDocumentPayload,
   CreateExpensePayload,
   CreateItineraryItemPayload,
   CreateTaskPayload,
@@ -167,6 +169,7 @@ export class TripStore {
   private readonly expensesByTrip = signal<Record<string, Expense[]>>({});
   private readonly settlementsByTrip = signal<Record<string, ApiSettlement[]>>({});
   private readonly activityByTrip = signal<Record<string, ApiActivity[]>>({});
+  private readonly documentsByTrip = signal<Record<string, ApiDocument[]>>({});
   private readonly approvalsByTrip = signal<Record<string, ApiApproval[]>>({});
   private readonly pendingApprovalsSignal = signal<ApiApproval[]>([]);
   private readonly recentActivitySignal = signal<ApiActivity[]>([]);
@@ -545,6 +548,29 @@ export class TripStore {
     } catch {
       this.activityByTrip.update((a) => ({ ...a, [tripId]: [] }));
     }
+  }
+
+  getDocuments(tripId: string): ApiDocument[] {
+    return this.documentsByTrip()[tripId] ?? [];
+  }
+
+  async loadDocuments(tripId: string): Promise<void> {
+    try {
+      const documents = await firstValueFrom(this.tripApi.documents(tripId));
+      this.documentsByTrip.update((d) => ({ ...d, [tripId]: documents }));
+    } catch {
+      this.documentsByTrip.update((d) => ({ ...d, [tripId]: [] }));
+    }
+  }
+
+  async uploadDocument(tripId: string, payload: CreateDocumentPayload): Promise<void> {
+    await firstValueFrom(this.tripApi.createDocument(tripId, payload));
+    await Promise.all([this.loadDocuments(tripId), this.loadRecentActivity()]);
+  }
+
+  async deleteDocument(tripId: string, documentId: string): Promise<void> {
+    await firstValueFrom(this.tripApi.deleteDocument(tripId, documentId));
+    await this.loadDocuments(tripId);
   }
 
   async loadRecentActivity(): Promise<void> {
