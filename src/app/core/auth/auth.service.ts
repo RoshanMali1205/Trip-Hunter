@@ -580,13 +580,13 @@ export function normalizePhone(value: string): string {
 function friendlyStorageError(raw: string): string {
   const message = (raw || '').trim();
   if (/bucket|not found/i.test(message)) {
-    return 'Photo storage is not set up yet. Apply Supabase migrations 008/009 (avatars bucket), then try again.';
+    return 'Photo storage is not set up yet. Apply Supabase migrations 008/009/014 (avatars bucket), then try again.';
   }
   if (/row-level security|policy|permission|not authorized|jwt/i.test(message)) {
     return 'You don’t have permission to upload photos. Sign in again, or check avatars storage policies in Supabase.';
   }
-  if (/payload|too large|entity too large|413/i.test(message)) {
-    return 'That photo is still too large after compression. Try a smaller image.';
+  if (/maximum allowed size|exceeded the maximum|file size limit|object exceeded|payload|too large|entity too large|413/i.test(message)) {
+    return 'Storage still has a size limit. Apply migration 014 (removes the avatars bucket cap), then try again.';
   }
   if (/network|fetch|failed to fetch/i.test(message)) {
     return 'Network error while uploading. Check your connection and try again.';

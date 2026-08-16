@@ -1,8 +1,5 @@
 /** Client-side avatar prep: accept large phone photos, shrink before upload. */
 
-/** Raw pick limit — phone camera shots are often 3–12 MB. */
-export const AVATAR_PICK_MAX_BYTES = 15 * 1024 * 1024;
-
 /** After resize/compress we keep uploads small for Storage + localStorage. */
 export const AVATAR_UPLOAD_MAX_EDGE = 1280;
 export const AVATAR_JPEG_QUALITY = 0.82;
@@ -22,9 +19,6 @@ export function validateAvatarFile(file: File): string | null {
   if (!file || file.size <= 0) {
     return 'Choose a photo to upload.';
   }
-  if (file.size > AVATAR_PICK_MAX_BYTES) {
-    return 'Photo must be 15 MB or smaller.';
-  }
   if (!isLikelyImageFile(file)) {
     return 'Photo must be an image (JPG, PNG, WebP, HEIC, etc.).';
   }
@@ -41,7 +35,7 @@ export function isLikelyImageFile(file: File): boolean {
 
 /**
  * Decode + resize + re-encode as JPEG so Storage always gets a consistent,
- * reasonably sized file (fixes 2 MB rejections and upsert path mismatches).
+ * reasonably sized file (avoids bucket size rejections and upsert path mismatches).
  */
 export async function prepareAvatarFile(file: File): Promise<File> {
   const validation = validateAvatarFile(file);

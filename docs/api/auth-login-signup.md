@@ -18,7 +18,7 @@ Trip Hunter supports two auth modes:
 ## Enable Supabase Auth (free)
 
 1. Create a Supabase project.
-2. Apply migrations `001`–`009` (`006` profile trigger + RLS; `008`/`009` phone + avatars storage).
+2. Apply migrations `001`–`014` (`006` profile trigger + RLS; `008`/`009`/`014` phone + avatars storage).
 3. Auth → Providers → Email enabled; optionally Azure for Microsoft.
 4. Auth → URL config → add redirect URLs:
    - `http://localhost:4200/auth/callback`
@@ -31,10 +31,10 @@ Never put `SUPABASE_SERVICE_ROLE_KEY` in the browser.
 ### Profile photo
 
 - Optional at signup and changeable on `/profile`
-- Accepts phone photos up to **15 MB**; the app resizes/compresses to JPEG before upload
+- Accepts any phone photo size; the app resizes/compresses to JPEG before upload
 - Stored in the public `avatars` storage bucket under `{userId}/avatar.jpg`
 - `profiles.avatar_url` and `profiles.phone` are updated after signup (or after first login if email confirmation was required)
-- Apply migrations through `009` so the Storage bucket size limit matches
+- Apply migrations through `014` so the Storage bucket has **no file size limit** (008 set 2 MB; 009 raised to 15 MB; 014 removes the cap)
 
 ## Local demo
 
