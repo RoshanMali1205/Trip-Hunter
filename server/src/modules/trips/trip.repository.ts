@@ -14,6 +14,21 @@ export type TripStatus =
   | 'completed'
   | 'cancelled';
 
+export type TripType =
+  | 'business'
+  | 'team_outing'
+  | 'corporate_offsite'
+  | 'training_conference'
+  | 'project_visit'
+  | 'personal_group';
+
+export type TripApprovalStatus =
+  | 'not_required'
+  | 'pending'
+  | 'approved'
+  | 'rejected'
+  | 'changes_requested';
+
 export interface Trip {
   id: string;
   organizationId: string;
@@ -21,12 +36,16 @@ export interface Trip {
   name: string;
   description: string;
   destination: string;
+  origin: string;
+  tripType: TripType;
   status: TripStatus;
+  approvalStatus: TripApprovalStatus;
   startDate: string | null;
   endDate: string | null;
   budgetCents: number;
   actualCents: number;
   currency: string;
+  maxMembers: number | null;
   createdBy: string | null;
   createdAt: string;
   updatedAt: string;
@@ -37,11 +56,30 @@ export interface CreateTripInput {
   name: string;
   description: string;
   destination: string;
+  origin?: string;
+  tripType?: TripType;
   startDate: string | null;
   endDate: string | null;
   currency: string;
   budgetCents: number;
+  maxMembers?: number | null;
+  approvalStatus?: TripApprovalStatus;
   createdBy: string | null;
+}
+
+export interface UpdateTripInput {
+  name?: string;
+  description?: string;
+  destination?: string;
+  origin?: string;
+  tripType?: TripType;
+  status?: TripStatus;
+  approvalStatus?: TripApprovalStatus;
+  startDate?: string | null;
+  endDate?: string | null;
+  currency?: string;
+  budgetCents?: number;
+  maxMembers?: number | null;
 }
 
 interface TripRow {
@@ -51,10 +89,14 @@ interface TripRow {
   name: string;
   description: string | null;
   destination_summary: string | null;
+  origin: string | null;
+  trip_type: TripType | null;
   status: TripStatus;
+  approval_status: TripApprovalStatus | null;
   start_date: string | null;
   end_date: string | null;
   currency: string;
+  max_members: number | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -73,12 +115,16 @@ const memoryTrips: Trip[] = [
     description:
       'Annual engineering offsite — beaches, team bonding, and a light planning day in North Goa.',
     destination: 'Goa, India',
+    origin: 'Bengaluru',
+    tripType: 'team_outing',
     status: 'planning',
+    approvalStatus: 'approved',
     startDate: '2026-11-14',
     endDate: '2026-11-17',
     budgetCents: 45000000,
     actualCents: 0,
     currency: 'INR',
+    maxMembers: 12,
     createdBy: '11111111-1111-1111-1111-111111111111',
     createdAt: now,
     updatedAt: now,
@@ -91,12 +137,16 @@ const memoryTrips: Trip[] = [
     description:
       'Follow-up long weekend for remote teammates who missed the main outing.',
     destination: 'Goa, India',
+    origin: 'Bengaluru',
+    tripType: 'team_outing',
     status: 'draft',
+    approvalStatus: 'not_required',
     startDate: '2027-01-09',
     endDate: '2027-01-11',
     budgetCents: 18000000,
     actualCents: 0,
     currency: 'INR',
+    maxMembers: 8,
     createdBy: '11111111-1111-1111-1111-111111111111',
     createdAt: now,
     updatedAt: now,
@@ -115,12 +165,16 @@ function mapRow(row: TripRow): Trip {
     name: row.name,
     description: row.description ?? '',
     destination: row.destination_summary ?? '',
+    origin: row.origin ?? '',
+    tripType: row.trip_type ?? 'team_outing',
     status: row.status,
+    approvalStatus: row.approval_status ?? 'not_required',
     startDate: row.start_date,
     endDate: row.end_date,
     budgetCents,
     actualCents: 0,
     currency: row.currency,
+    maxMembers: row.max_members,
     createdBy: row.created_by,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -158,7 +212,7 @@ async function attachActualSpend(
 }
 
 const TRIP_SELECT =
-  'id, organization_id, team_id, name, description, destination_summary, status, start_date, end_date, currency, created_by, created_at, updated_at, budgets(total_cents)';
+  'id, organization_id, team_id, name, description, destination_summary, origin, trip_type, status, approval_status, start_date, end_date, currency, max_members, created_by, created_at, updated_at, budgets(total_cents)';
 
 function assertDbOrMock(): 'supabase' | 'memory' {
   if (isSupabaseAdminConfigured()) {
@@ -294,12 +348,16 @@ export class TripRepository {
         name: input.name,
         description: input.description,
         destination: input.destination,
+        origin: input.origin ?? '',
+        tripType: input.tripType ?? 'team_outing',
         status: 'draft',
+        approvalStatus: input.approvalStatus ?? 'not_required',
         startDate: input.startDate,
         endDate: input.endDate,
         budgetCents: input.budgetCents,
         actualCents: 0,
         currency: input.currency,
+        maxMembers: input.maxMembers ?? null,
         createdBy: input.createdBy,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -317,13 +375,17 @@ export class TripRepository {
         name: input.name,
         description: input.description || null,
         destination_summary: input.destination || null,
+        origin: input.origin || null,
+        trip_type: input.tripType ?? 'team_outing',
         start_date: input.startDate,
         end_date: input.endDate,
         currency: input.currency,
+        max_members: input.maxMembers ?? null,
+        approval_status: input.approvalStatus ?? 'not_required',
         created_by: input.createdBy,
       })
       .select(
-        'id, organization_id, team_id, name, description, destination_summary, status, start_date, end_date, currency, created_by, created_at, updated_at',
+        'id, organization_id, team_id, name, description, destination_summary, origin, trip_type, status, approval_status, start_date, end_date, currency, max_members, created_by, created_at, updated_at',
       )
       .single();
 
@@ -367,6 +429,91 @@ export class TripRepository {
     }
 
     return mapRow({ ...row, budgets: [{ total_cents: budgetCents }] });
+  }
+
+  async update(id: string, input: UpdateTripInput): Promise<Trip> {
+    if (assertDbOrMock() === 'memory') {
+      const index = memoryTrips.findIndex((t) => t.id === id);
+      if (index === -1) {
+        throw new AppError(404, 'TRIP_NOT_FOUND', `Trip ${id} was not found`);
+      }
+      const current = memoryTrips[index]!;
+      const updated: Trip = {
+        ...current,
+        name: input.name ?? current.name,
+        description: input.description ?? current.description,
+        destination: input.destination ?? current.destination,
+        origin: input.origin ?? current.origin,
+        tripType: input.tripType ?? current.tripType,
+        status: input.status ?? current.status,
+        approvalStatus: input.approvalStatus ?? current.approvalStatus,
+        startDate: input.startDate !== undefined ? input.startDate : current.startDate,
+        endDate: input.endDate !== undefined ? input.endDate : current.endDate,
+        currency: input.currency ?? current.currency,
+        budgetCents: input.budgetCents ?? current.budgetCents,
+        maxMembers: input.maxMembers !== undefined ? input.maxMembers : current.maxMembers,
+        updatedAt: new Date().toISOString(),
+      };
+      memoryTrips[index] = updated;
+      return updated;
+    }
+
+    const db = getSupabaseAdmin();
+    const patch: Record<string, unknown> = {};
+    if (input.name !== undefined) patch['name'] = input.name;
+    if (input.description !== undefined) patch['description'] = input.description || null;
+    if (input.destination !== undefined) patch['destination_summary'] = input.destination || null;
+    if (input.origin !== undefined) patch['origin'] = input.origin || null;
+    if (input.tripType !== undefined) patch['trip_type'] = input.tripType;
+    if (input.status !== undefined) patch['status'] = input.status;
+    if (input.approvalStatus !== undefined) patch['approval_status'] = input.approvalStatus;
+    if (input.startDate !== undefined) patch['start_date'] = input.startDate;
+    if (input.endDate !== undefined) patch['end_date'] = input.endDate;
+    if (input.currency !== undefined) patch['currency'] = input.currency;
+    if (input.maxMembers !== undefined) patch['max_members'] = input.maxMembers;
+
+    if (Object.keys(patch).length > 0) {
+      const { error } = await db.from('trips').update(patch).eq('id', id);
+      if (error) {
+        throw new AppError(502, 'DB_ERROR', error.message);
+      }
+    }
+
+    if (input.budgetCents !== undefined) {
+      const { data: existingBudget, error: budgetLookupError } = await db
+        .from('budgets')
+        .select('id')
+        .eq('trip_id', id)
+        .maybeSingle();
+      if (budgetLookupError) {
+        throw new AppError(502, 'DB_ERROR', budgetLookupError.message);
+      }
+      if (existingBudget) {
+        const { error: budgetUpdateError } = await db
+          .from('budgets')
+          .update({ total_cents: input.budgetCents })
+          .eq('trip_id', id);
+        if (budgetUpdateError) {
+          throw new AppError(502, 'DB_ERROR', budgetUpdateError.message);
+        }
+      } else if (input.budgetCents > 0) {
+        const currency = input.currency ?? (await this.findById(id))?.currency ?? 'INR';
+        const { error: budgetInsertError } = await db.from('budgets').insert({
+          trip_id: id,
+          total_cents: input.budgetCents,
+          currency,
+        });
+        if (budgetInsertError) {
+          throw new AppError(502, 'DB_ERROR', budgetInsertError.message);
+        }
+      }
+    }
+
+    const trip = await this.findById(id);
+    if (!trip) {
+      throw new AppError(404, 'TRIP_NOT_FOUND', `Trip ${id} was not found`);
+    }
+    return trip;
   }
 
   async delete(id: string): Promise<void> {

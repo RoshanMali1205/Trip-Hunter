@@ -84,5 +84,5 @@ This is how production “keeps the server running” without renting a VM: each
 ## Near-term follow-ups
 
 - Add RLS policies and prefer a user-scoped client for reads where possible.
-- Align Angular `TripStore` with `/api/v1` instead of localStorage mocks.
-- Expand write endpoints (create trip, members, expenses) on the same repository pattern.
+- Documents upload API (schema exists; UI still stubbed).
+- Comments and remaining CRUD delete/update endpoints for bookings/itinerary.

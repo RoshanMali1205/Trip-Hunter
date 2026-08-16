@@ -12,28 +12,38 @@ import {
   TripMember,
   TripStatus,
   TripTask,
+  TripType,
+  ApprovalStatus,
   AppNotification,
 } from '../models/trip.model';
 import { AuthService } from '../auth/auth.service';
 import {
   ApiAvailVote,
+  ApiActivity,
+  ApiApproval,
   ApiBooking,
   ApiDestinationOption,
+  ApiExpenseSummary,
   ApiMyVotes,
   ApiPendingInvite,
+  ApiSettlement,
   ApiTrip,
+  ApiTripApprovalStatus,
   ApiTripMember,
   ApiTripStatus,
   ApiTripTask,
+  ApiTripType,
   CreateAvailabilityOptionPayload,
   CreateBookingPayload,
   CreateBudgetCategoryPayload,
   CreateDestinationPayload,
   CreateExpensePayload,
   CreateItineraryItemPayload,
+  CreateTaskPayload,
   CreateTripPayload,
   TripApiService,
   UpdateBudgetCategoryPayload,
+  UpdateTripPayload,
 } from './trip-api.service';
 import { NotificationApiService } from './notification-api.service';
 import { bookingImageUrl } from '../constants/booking-images';
@@ -46,6 +56,32 @@ const API_STATUS_TO_TRIP_STATUS: Record<ApiTripStatus, TripStatus> = {
   in_progress: 'IN_PROGRESS',
   completed: 'COMPLETED',
   cancelled: 'CANCELLED',
+};
+
+const API_TYPE_TO_TRIP_TYPE: Record<ApiTripType, TripType> = {
+  business: 'BUSINESS',
+  team_outing: 'TEAM_OUTING',
+  corporate_offsite: 'CORPORATE_OFFSITE',
+  training_conference: 'TRAINING_CONFERENCE',
+  project_visit: 'PROJECT_VISIT',
+  personal_group: 'PERSONAL_GROUP',
+};
+
+const TRIP_TYPE_TO_API: Record<TripType, ApiTripType> = {
+  BUSINESS: 'business',
+  TEAM_OUTING: 'team_outing',
+  CORPORATE_OFFSITE: 'corporate_offsite',
+  TRAINING_CONFERENCE: 'training_conference',
+  PROJECT_VISIT: 'project_visit',
+  PERSONAL_GROUP: 'personal_group',
+};
+
+const API_APPROVAL_TO_APP: Record<ApiTripApprovalStatus, ApprovalStatus> = {
+  not_required: 'NOT_REQUIRED',
+  pending: 'PENDING',
+  approved: 'APPROVED',
+  rejected: 'REJECTED',
+  changes_requested: 'CHANGES_REQUESTED',
 };
 
 const MEMBER_ROLE_MAP: Record<ApiTripMember['role'], TripMember['role']> = {
@@ -129,6 +165,17 @@ export class TripStore {
   private readonly bookingsByTrip = signal<Record<string, Booking[]>>({});
   private readonly budgetByTrip = signal<Record<string, BudgetCategory[]>>({});
   private readonly expensesByTrip = signal<Record<string, Expense[]>>({});
+  private readonly settlementsByTrip = signal<Record<string, ApiSettlement[]>>({});
+  private readonly activityByTrip = signal<Record<string, ApiActivity[]>>({});
+  private readonly approvalsByTrip = signal<Record<string, ApiApproval[]>>({});
+  private readonly pendingApprovalsSignal = signal<ApiApproval[]>([]);
+  private readonly recentActivitySignal = signal<ApiActivity[]>([]);
+  private readonly expenseSummarySignal = signal<ApiExpenseSummary>({
+    youPaid: 0,
+    yourShare: 0,
+    youReceive: 0,
+    currency: 'INR',
+  });
   private readonly myVotesByTrip = signal<Record<string, ApiMyVotes>>({});
 
   readonly trips = this.tripsSignal.asReadonly();
@@ -142,6 +189,9 @@ export class TripStore {
     void this.loadNotifications();
     void this.loadPendingInvites();
     void this.loadAllTasks();
+    void this.loadPendingApprovals();
+    void this.loadRecentActivity();
+    void this.loadExpenseSummary();
   }
 
   private mapApiTrip(api: ApiTrip): Trip {
@@ -156,17 +206,19 @@ export class TripStore {
       organizationId: api.organizationId,
       title: api.name,
       description: api.description,
-      tripType: 'TEAM_OUTING',
+      tripType: api.tripType ? API_TYPE_TO_TRIP_TYPE[api.tripType] : 'TEAM_OUTING',
       startDate: api.startDate,
       endDate: api.endDate,
-      origin: '',
+      origin: api.origin ?? '',
       destination: api.destination,
       status: API_STATUS_TO_TRIP_STATUS[api.status],
-      approvalStatus: 'NOT_REQUIRED',
+      approvalStatus: api.approvalStatus
+        ? API_APPROVAL_TO_APP[api.approvalStatus]
+        : 'NOT_REQUIRED',
       currency: api.currency,
       estimatedBudget: api.budgetCents / 100,
       actualBudget: api.actualCents / 100,
-      maxMembers: 20,
+      maxMembers: api.maxMembers ?? 20,
       memberCount: 1,
       organizerId: api.createdBy ?? '',
       organizerName,
@@ -189,25 +241,41 @@ export class TripStore {
     return this.tripsSignal().find((t) => t.id === id);
   }
 
-  async createTrip(partial: Partial<Trip>): Promise<Trip> {
+  async createTrip(partial: Partial<Trip> & { approvalRequired?: boolean }): Promise<Trip> {
     const payload: CreateTripPayload = {
       name: partial.title || 'Untitled trip',
       description: partial.description || '',
       destination: partial.destination || '',
+      origin: partial.origin || '',
+      tripType: partial.tripType ? TRIP_TYPE_TO_API[partial.tripType] : 'team_outing',
       startDate: partial.startDate ?? null,
       endDate: partial.endDate ?? null,
       currency: partial.currency || 'INR',
       budgetCents: Math.round((partial.estimatedBudget || 0) * 100),
+      maxMembers: partial.maxMembers ?? null,
+      approvalRequired:
+        partial.approvalRequired === true || partial.approvalStatus === 'PENDING',
     };
     const apiTrip = await firstValueFrom(this.tripApi.create(payload));
     const trip = this.mapApiTrip(apiTrip);
     this.tripsSignal.update((list) => [trip, ...list]);
+    void this.loadPendingApprovals();
+    void this.loadRecentActivity();
+    return trip;
+  }
+
+  async updateTrip(id: string, patch: UpdateTripPayload): Promise<Trip> {
+    const apiTrip = await firstValueFrom(this.tripApi.update(id, patch));
+    const trip = this.mapApiTrip(apiTrip);
+    this.tripsSignal.update((list) => list.map((t) => (t.id === id ? trip : t)));
+    void this.loadRecentActivity();
     return trip;
   }
 
   async deleteTrip(id: string): Promise<void> {
     await firstValueFrom(this.tripApi.delete(id));
     this.tripsSignal.update((list) => list.filter((t) => t.id !== id));
+    void this.loadRecentActivity();
   }
 
   getMembers(tripId: string): TripMember[] {
@@ -371,12 +439,36 @@ export class TripStore {
 
   async addExpense(tripId: string, payload: CreateExpensePayload): Promise<void> {
     await firstValueFrom(this.tripApi.createExpense(tripId, payload));
-    await Promise.all([this.loadExpenses(tripId), this.loadTrips()]);
+    await Promise.all([
+      this.loadExpenses(tripId),
+      this.loadSettlements(tripId),
+      this.loadTrips(),
+      this.loadExpenseSummary(),
+      this.loadRecentActivity(),
+    ]);
   }
 
   async updateExpenseStatus(tripId: string, expenseId: string, status: 'APPROVED' | 'REJECTED'): Promise<void> {
     await firstValueFrom(this.tripApi.updateExpenseStatus(expenseId, status));
-    await Promise.all([this.loadExpenses(tripId), this.loadTrips()]);
+    await Promise.all([
+      this.loadExpenses(tripId),
+      this.loadSettlements(tripId),
+      this.loadTrips(),
+      this.loadExpenseSummary(),
+    ]);
+  }
+
+  getSettlements(tripId: string): ApiSettlement[] {
+    return this.settlementsByTrip()[tripId] ?? [];
+  }
+
+  async loadSettlements(tripId: string): Promise<void> {
+    try {
+      const settlements = await firstValueFrom(this.tripApi.settlements(tripId));
+      this.settlementsByTrip.update((s) => ({ ...s, [tripId]: settlements }));
+    } catch {
+      this.settlementsByTrip.update((s) => ({ ...s, [tripId]: [] }));
+    }
   }
 
   getTasks(tripId?: string): TripTask[] {
@@ -390,11 +482,92 @@ export class TripStore {
     this.tasksSignal.set(tasks.map(mapTask));
   }
 
+  async createTask(tripId: string, payload: CreateTaskPayload): Promise<void> {
+    await firstValueFrom(this.tripApi.createTask(tripId, payload));
+    await Promise.all([this.loadAllTasks(), this.loadRecentActivity()]);
+  }
+
   async updateTaskStatus(taskId: string, status: TripTask['status']): Promise<void> {
     this.tasksSignal.update((list) =>
       list.map((t) => (t.id === taskId ? { ...t, status } : t)),
     );
     await firstValueFrom(this.tripApi.updateTaskStatus(taskId, status));
+  }
+
+  getApprovals(tripId: string): ApiApproval[] {
+    return this.approvalsByTrip()[tripId] ?? [];
+  }
+
+  async loadApprovals(tripId: string): Promise<void> {
+    try {
+      const approvals = await firstValueFrom(this.tripApi.tripApprovals(tripId));
+      this.approvalsByTrip.update((a) => ({ ...a, [tripId]: approvals }));
+    } catch {
+      this.approvalsByTrip.update((a) => ({ ...a, [tripId]: [] }));
+    }
+  }
+
+  getPendingApprovals(): ApiApproval[] {
+    return this.pendingApprovalsSignal();
+  }
+
+  async loadPendingApprovals(): Promise<void> {
+    try {
+      const approvals = await firstValueFrom(this.tripApi.pendingApprovals());
+      this.pendingApprovalsSignal.set(approvals);
+    } catch {
+      this.pendingApprovalsSignal.set([]);
+    }
+  }
+
+  async reviewApproval(
+    approvalId: string,
+    status: 'APPROVED' | 'REJECTED',
+    tripId?: string,
+  ): Promise<void> {
+    await firstValueFrom(this.tripApi.reviewApproval(approvalId, status));
+    await Promise.all([
+      this.loadPendingApprovals(),
+      this.loadTrips(),
+      this.loadRecentActivity(),
+      tripId ? this.loadApprovals(tripId) : Promise.resolve(),
+    ]);
+  }
+
+  getActivity(tripId: string): ApiActivity[] {
+    return this.activityByTrip()[tripId] ?? [];
+  }
+
+  async loadActivity(tripId: string): Promise<void> {
+    try {
+      const activity = await firstValueFrom(this.tripApi.tripActivity(tripId));
+      this.activityByTrip.update((a) => ({ ...a, [tripId]: activity }));
+    } catch {
+      this.activityByTrip.update((a) => ({ ...a, [tripId]: [] }));
+    }
+  }
+
+  async loadRecentActivity(): Promise<void> {
+    try {
+      const activity = await firstValueFrom(this.tripApi.recentActivity());
+      this.recentActivitySignal.set(activity);
+    } catch {
+      this.recentActivitySignal.set([]);
+    }
+  }
+
+  async loadExpenseSummary(): Promise<void> {
+    try {
+      const summary = await firstValueFrom(this.tripApi.expenseSummary());
+      this.expenseSummarySignal.set(summary);
+    } catch {
+      this.expenseSummarySignal.set({
+        youPaid: 0,
+        yourShare: 0,
+        youReceive: 0,
+        currency: 'INR',
+      });
+    }
   }
 
   getNotifications(): AppNotification[] {
@@ -431,20 +604,21 @@ export class TripStore {
 
   getDashboard(): DashboardSummary {
     const openTasks = this.getTasks().filter((t) => t.status !== 'COMPLETED');
+    const summary = this.expenseSummarySignal();
     return {
       upcomingTrips: this.upcomingTrips().slice(0, 4),
-      pendingApprovals: this.tripsSignal().filter((t) => t.approvalStatus === 'PENDING').length,
+      pendingApprovals: this.pendingApprovalsSignal().length,
       myTasks: openTasks,
       expenseSummary: {
-        youPaid: 18500,
-        yourShare: 12300,
-        youReceive: 6200,
+        youPaid: summary.youPaid,
+        yourShare: summary.yourShare,
+        youReceive: summary.youReceive,
       },
-      recentActivity: [
-        { id: 'a1', message: 'Amit updated the hotel booking', createdAt: new Date(Date.now() - 2 * 3600000).toISOString() },
-        { id: 'a2', message: 'Ravi added a ₹2,500 expense', createdAt: new Date(Date.now() - 5 * 3600000).toISOString() },
-        { id: 'a3', message: 'Manager approved the Goa trip', createdAt: new Date(Date.now() - 86400000).toISOString() },
-      ],
+      recentActivity: this.recentActivitySignal().map((a) => ({
+        id: a.id,
+        message: a.message,
+        createdAt: a.createdAt,
+      })),
     };
   }
 }

@@ -15,6 +15,7 @@ import {
   deleteTrip,
   getTrip,
   listTrips,
+  updateTrip,
 } from './modules/trips/trip.controller.js';
 import {
   inviteMember,
@@ -40,15 +41,31 @@ import {
 } from './modules/budgets/budget.controller.js';
 import {
   createExpense,
+  expenseSummary,
   listExpenses,
+  listSettlements,
   updateExpenseStatus,
 } from './modules/expenses/expense.controller.js';
-import { listMyOrgTasks, listTasks, updateTaskStatus } from './modules/tasks/task.controller.js';
+import {
+  createTask,
+  listMyOrgTasks,
+  listTasks,
+  updateTaskStatus,
+} from './modules/tasks/task.controller.js';
 import {
   listNotifications,
   markAllNotificationsRead,
   markNotificationRead,
 } from './modules/notifications/notification.controller.js';
+import {
+  listPendingApprovals,
+  listTripApprovals,
+  reviewApproval,
+} from './modules/approvals/approval.controller.js';
+import {
+  listRecentActivity,
+  listTripActivity,
+} from './modules/activity/activity.controller.js';
 import { chatWithAdvisor, getAdvisorInfo } from './modules/advisor/advisor.controller.js';
 import { ok } from './types/api.js';
 
@@ -89,10 +106,14 @@ export function createApp() {
     res.json(ok(req.user, 'Current user'));
   });
   v1.get('/me/invites', authenticate, listMyInvites);
+  v1.get('/me/approvals', authenticate, listPendingApprovals);
+  v1.get('/me/expense-summary', authenticate, expenseSummary);
+  v1.get('/me/activity', authenticate, listRecentActivity);
 
   v1.get('/trips', authenticate, listTrips);
   v1.get('/trips/:id', authenticate, getTrip);
   v1.post('/trips', authenticate, createTrip);
+  v1.patch('/trips/:id', authenticate, updateTrip);
   v1.delete('/trips/:id', authenticate, deleteTrip);
 
   v1.get('/trips/:tripId/members', authenticate, listMembers);
@@ -114,10 +135,16 @@ export function createApp() {
   v1.patch('/trips/:tripId/budget/:categoryId', authenticate, updateBudgetCategory);
   v1.get('/trips/:tripId/expenses', authenticate, listExpenses);
   v1.post('/trips/:tripId/expenses', authenticate, createExpense);
+  v1.get('/trips/:tripId/settlements', authenticate, listSettlements);
   v1.patch('/expenses/:id', authenticate, updateExpenseStatus);
   v1.get('/trips/:tripId/tasks', authenticate, listTasks);
+  v1.post('/trips/:tripId/tasks', authenticate, createTask);
   v1.get('/tasks', authenticate, listMyOrgTasks);
   v1.patch('/tasks/:id', authenticate, updateTaskStatus);
+
+  v1.get('/trips/:tripId/approvals', authenticate, listTripApprovals);
+  v1.patch('/approvals/:id', authenticate, reviewApproval);
+  v1.get('/trips/:tripId/activity', authenticate, listTripActivity);
 
   v1.get('/notifications', authenticate, listNotifications);
   v1.patch('/notifications/:id/read', authenticate, markNotificationRead);

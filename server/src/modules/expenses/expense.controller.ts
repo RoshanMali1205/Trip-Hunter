@@ -1,9 +1,13 @@
 import type { RequestHandler } from 'express';
 import { AppError } from '../../middleware/error-handler.js';
 import { ok } from '../../types/api.js';
+import { MemberRepository } from '../members/member.repository.js';
+import { TripRepository } from '../trips/trip.repository.js';
 import { ExpenseRepository } from './expense.repository.js';
 
 const repo = new ExpenseRepository();
+const members = new MemberRepository();
+const trips = new TripRepository();
 const VALID_CATEGORIES = ['travel', 'lodging', 'food', 'activity', 'supplies', 'other'];
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -12,6 +16,34 @@ export const listExpenses: RequestHandler = async (req, res, next) => {
     const tripId = String(req.params['tripId']);
     const expenses = await repo.findByTrip(tripId);
     res.json(ok(expenses, 'Expenses retrieved successfully'));
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const listSettlements: RequestHandler = async (req, res, next) => {
+  try {
+    const tripId = String(req.params['tripId']);
+    const settlements = await repo.settlementsForTrip(tripId);
+    res.json(ok(settlements, 'Settlements retrieved successfully'));
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const expenseSummary: RequestHandler = async (req, res, next) => {
+  try {
+    if (!req.user) {
+      throw new AppError(401, 'UNAUTHORIZED', 'Missing or invalid Bearer token');
+    }
+    const orgTrips = req.user.organizationId
+      ? await trips.findByOrganization(req.user.organizationId)
+      : [];
+    const summary = await repo.summaryForUser(
+      orgTrips.map((t) => t.id),
+      req.user.id,
+    );
+    res.json(ok(summary, 'Expense summary retrieved successfully'));
   } catch (err) {
     next(err);
   }
@@ -42,6 +74,11 @@ export const createExpense: RequestHandler = async (req, res, next) => {
         ? body.expenseDate
         : new Date().toISOString().slice(0, 10);
 
+    const tripMembers = await members.findByTrip(tripId);
+    const accepted = tripMembers
+      .filter((m) => m.rsvpStatus === 'accepted' || m.role === 'organizer')
+      .map((m) => ({ userId: m.userId, name: m.name }));
+
     const expense = await repo.create({
       tripId,
       title: body.description.trim(),
@@ -51,6 +88,9 @@ export const createExpense: RequestHandler = async (req, res, next) => {
       incurredOn,
       paidBy: req.user?.id ?? null,
       createdBy: req.user?.id ?? null,
+      createdByName: req.user?.displayName ?? req.user?.email,
+      organizationId: req.user?.organizationId ?? null,
+      memberIds: accepted.length > 0 ? accepted : undefined,
     });
     res.status(201).json(ok(expense, 'Expense added successfully'));
   } catch (err) {

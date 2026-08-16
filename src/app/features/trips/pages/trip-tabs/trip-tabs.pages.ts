@@ -73,12 +73,55 @@ type AvailVote = 'available' | 'maybe' | 'not';
 @Component({
   selector: 'app-trip-overview',
   standalone: true,
-  imports: [MatIconModule, RouterLink, InrCurrencyPipe],
+  imports: [MatIconModule, RouterLink, InrCurrencyPipe, FormsModule, ButtonComponent],
   template: `
     @if (trip(); as t) {
       <div class="layout">
         <div class="main">
-          <h2>Trip summary</h2>
+          <div class="head">
+            <h2>Trip summary</h2>
+            <app-button variant="secondary" size="sm" (click)="showEdit.set(!showEdit())">
+              {{ showEdit() ? 'Cancel' : 'Edit trip' }}
+            </app-button>
+          </div>
+
+          @if (showEdit()) {
+            <form class="th-panel edit-form" (ngSubmit)="saveEdit()">
+              <label>
+                Title
+                <input type="text" required [(ngModel)]="editTitle" name="editTitle" />
+              </label>
+              <label>
+                Destination
+                <input type="text" [(ngModel)]="editDestination" name="editDestination" />
+              </label>
+              <label>
+                Origin
+                <input type="text" [(ngModel)]="editOrigin" name="editOrigin" />
+              </label>
+              <label>
+                Start
+                <input type="date" [(ngModel)]="editStart" name="editStart" />
+              </label>
+              <label>
+                End
+                <input type="date" [(ngModel)]="editEnd" name="editEnd" />
+              </label>
+              <label>
+                Budget (₹)
+                <input type="number" min="0" [(ngModel)]="editBudget" name="editBudget" />
+              </label>
+              <label class="wide">
+                Description
+                <textarea rows="3" [(ngModel)]="editDescription" name="editDescription"></textarea>
+              </label>
+              <app-button type="submit" [loading]="saving()">Save changes</app-button>
+              @if (editError()) {
+                <p class="add-error">{{ editError() }}</p>
+              }
+            </form>
+          }
+
           <div class="stats">
             <article class="th-panel card">
               <span class="label">Estimated budget</span>
@@ -97,6 +140,27 @@ type AvailVote = 'available' | 'maybe' | 'not';
               <strong>{{ nextActivity() }}</strong>
             </article>
           </div>
+
+          @if (pendingTripApprovals().length) {
+            <article class="th-panel approvals">
+              <span class="label">Pending approvals</span>
+              @for (a of pendingTripApprovals(); track a.id) {
+                <div class="approval-row">
+                  <div>
+                    <strong>{{ a.tripName }}</strong>
+                    <small>Requested by {{ a.requestedByName }}</small>
+                  </div>
+                  <div class="approval-actions">
+                    <app-button size="sm" (click)="review(a.id, 'APPROVED')">Approve</app-button>
+                    <app-button variant="secondary" size="sm" (click)="review(a.id, 'REJECTED')"
+                      >Reject</app-button
+                    >
+                  </div>
+                </div>
+              }
+            </article>
+          }
+
           <article class="th-panel announce">
             <span class="label">Announcement</span>
             <p>Please upload your ID proof by 15 Aug. — Roshan</p>
@@ -140,10 +204,47 @@ type AvailVote = 'available' | 'maybe' | 'not';
           align-items: start;
         }
       }
+      .head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+      }
       h2 {
-        margin: 0 0 1rem;
+        margin: 0;
         font-family: var(--th-font-display);
         font-size: 1.35rem;
+      }
+      .edit-form {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+      }
+      .edit-form label {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+        font-size: 0.85rem;
+        color: var(--th-text-secondary);
+      }
+      .edit-form label.wide {
+        grid-column: 1 / -1;
+      }
+      .edit-form input,
+      .edit-form textarea {
+        padding: 0.6rem 0.75rem;
+        border-radius: var(--th-radius);
+        border: 1px solid var(--th-border);
+        background: var(--th-surface);
+        color: var(--th-text);
+      }
+      .add-error {
+        margin: 0;
+        color: #dc2626;
+        font-size: 0.85rem;
+        grid-column: 1 / -1;
       }
       .stats {
         display: grid;
@@ -171,6 +272,24 @@ type AvailVote = 'available' | 'maybe' | 'not';
       }
       .approve {
         color: var(--th-success);
+      }
+      .approvals {
+        margin-bottom: 0.85rem;
+      }
+      .approval-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        align-items: center;
+        padding: 0.5rem 0;
+      }
+      .approval-row small {
+        display: block;
+        color: var(--th-text-muted);
+      }
+      .approval-actions {
+        display: flex;
+        gap: 0.5rem;
       }
       .announce {
         border-top: 3px solid var(--th-primary);
@@ -236,11 +355,38 @@ export class TripOverviewPage {
   private readonly store = inject(TripStore);
   private readonly tripId = tripIdFromParent(this.route);
   readonly trip = computed(() => this.store.getById(this.tripId()));
+  readonly pendingTripApprovals = computed(() =>
+    this.store.getApprovals(this.tripId()).filter((a) => a.status === 'PENDING'),
+  );
+
+  readonly showEdit = signal(false);
+  readonly saving = signal(false);
+  readonly editError = signal('');
+  editTitle = '';
+  editDestination = '';
+  editOrigin = '';
+  editStart = '';
+  editEnd = '';
+  editBudget: number | null = null;
+  editDescription = '';
 
   constructor() {
     effect(() => {
       const id = this.tripId();
-      if (id) void this.store.loadItinerary(id);
+      if (id) {
+        void this.store.loadItinerary(id);
+        void this.store.loadApprovals(id);
+      }
+      const t = this.trip();
+      if (t) {
+        this.editTitle = t.title;
+        this.editDestination = t.destination;
+        this.editOrigin = t.origin;
+        this.editStart = t.startDate ?? '';
+        this.editEnd = t.endDate ?? '';
+        this.editBudget = t.estimatedBudget;
+        this.editDescription = t.description;
+      }
     });
   }
 
@@ -270,6 +416,33 @@ export class TripOverviewPage {
       .replaceAll('_', ' ')
       .toLowerCase()
       .replace(/\b\w/g, (c) => c.toUpperCase());
+  }
+
+  async saveEdit(): Promise<void> {
+    const id = this.tripId();
+    if (!id || !this.editTitle.trim()) return;
+    this.saving.set(true);
+    this.editError.set('');
+    try {
+      await this.store.updateTrip(id, {
+        name: this.editTitle.trim(),
+        destination: this.editDestination.trim(),
+        origin: this.editOrigin.trim(),
+        startDate: this.editStart || null,
+        endDate: this.editEnd || null,
+        budgetCents: Math.round((this.editBudget ?? 0) * 100),
+        description: this.editDescription.trim(),
+      });
+      this.showEdit.set(false);
+    } catch {
+      this.editError.set('Could not save trip changes.');
+    } finally {
+      this.saving.set(false);
+    }
+  }
+
+  review(approvalId: string, status: 'APPROVED' | 'REJECTED'): void {
+    void this.store.reviewApproval(approvalId, status, this.tripId());
   }
 }
 
@@ -2022,9 +2195,9 @@ export class TripBudgetPage {
     @if (settlements().length) {
       <h3 class="settle-title">Settlements</h3>
       <div class="settle-grid">
-        @for (s of settlements(); track s) {
+        @for (s of settlements(); track s.message) {
           <article class="th-panel settle">
-            <p>{{ s }}</p>
+            <p>{{ s.message }}</p>
           </article>
         }
       </div>
@@ -2151,9 +2324,7 @@ export class TripExpensesPage {
   private readonly store = inject(TripStore);
   private readonly tripId = tripIdFromParent(this.route);
   readonly expenses = computed(() => this.store.getExpenses(this.tripId()));
-  readonly settlements = computed(() =>
-    this.expenses().length ? ['Rahul owes Roshan ₹2,450'] : [],
-  );
+  readonly settlements = computed(() => this.store.getSettlements(this.tripId()));
 
   readonly showForm = signal(false);
   readonly description = signal('');
@@ -2166,7 +2337,10 @@ export class TripExpensesPage {
   constructor() {
     effect(() => {
       const id = this.tripId();
-      if (id) void this.store.loadExpenses(id);
+      if (id) {
+        void this.store.loadExpenses(id);
+        void this.store.loadSettlements(id);
+      }
     });
   }
 
@@ -2205,15 +2379,52 @@ export class TripExpensesPage {
 @Component({
   selector: 'app-trip-tasks',
   standalone: true,
+  imports: [FormsModule, ButtonComponent],
   template: `
-    <h2>Tasks</h2>
+    <div class="head">
+      <h2>Tasks</h2>
+      <app-button variant="secondary" size="sm" (click)="showForm.set(!showForm())">
+        {{ showForm() ? 'Cancel' : 'Add task' }}
+      </app-button>
+    </div>
+
+    @if (showForm()) {
+      <form class="add-form th-panel" (ngSubmit)="submit()">
+        <label class="wide">
+          Title
+          <input type="text" required [(ngModel)]="title" name="title" placeholder="Book cab to airport" />
+        </label>
+        <label class="wide">
+          Description
+          <input type="text" [(ngModel)]="description" name="description" placeholder="Optional details" />
+        </label>
+        <label>
+          Priority
+          <select [(ngModel)]="priority" name="priority">
+            <option value="LOW">Low</option>
+            <option value="MEDIUM">Medium</option>
+            <option value="HIGH">High</option>
+            <option value="CRITICAL">Critical</option>
+          </select>
+        </label>
+        <label>
+          Due date
+          <input type="date" [(ngModel)]="dueDate" name="dueDate" />
+        </label>
+        <app-button type="submit" [loading]="adding()">Add task</app-button>
+        @if (addError()) {
+          <p class="add-error">{{ addError() }}</p>
+        }
+      </form>
+    }
+
     <div class="th-panel">
       <ul>
         @for (t of tasks(); track t.id) {
           <li>
             <div>
               <strong>{{ t.title }}</strong>
-              <span>{{ t.assignedToName }} · {{ t.priority }} · due {{ t.dueDate }}</span>
+              <span>{{ t.assignedToName }} · {{ t.priority }} · due {{ t.dueDate || '—' }}</span>
             </div>
             <em
               class="th-pill"
@@ -2231,9 +2442,46 @@ export class TripExpensesPage {
   `,
   styles: [
     `
+      .head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+      }
       h2 {
-        margin: 0 0 1rem;
+        margin: 0;
         font-family: var(--th-font-display);
+      }
+      .add-form {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+      }
+      .add-form label {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+        font-size: 0.85rem;
+        color: var(--th-text-secondary);
+      }
+      .add-form label.wide {
+        grid-column: 1 / -1;
+      }
+      .add-form input,
+      .add-form select {
+        padding: 0.6rem 0.75rem;
+        border-radius: var(--th-radius);
+        border: 1px solid var(--th-border);
+        background: var(--th-surface);
+        color: var(--th-text);
+      }
+      .add-error {
+        margin: 0;
+        color: #dc2626;
+        font-size: 0.85rem;
+        grid-column: 1 / -1;
       }
       ul {
         list-style: none;
@@ -2265,6 +2513,38 @@ export class TripTasksTabPage {
   private readonly store = inject(TripStore);
   private readonly tripId = tripIdFromParent(this.route);
   readonly tasks = computed(() => this.store.getTasks(this.tripId()));
+
+  readonly showForm = signal(false);
+  readonly title = signal('');
+  readonly description = signal('');
+  readonly priority = signal<'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'>('MEDIUM');
+  readonly dueDate = signal('');
+  readonly adding = signal(false);
+  readonly addError = signal('');
+
+  async submit(): Promise<void> {
+    const id = this.tripId();
+    const title = this.title().trim();
+    if (!id || !title) return;
+    this.adding.set(true);
+    this.addError.set('');
+    try {
+      await this.store.createTask(id, {
+        title,
+        description: this.description().trim() || undefined,
+        priority: this.priority(),
+        dueDate: this.dueDate() || null,
+      });
+      this.title.set('');
+      this.description.set('');
+      this.dueDate.set('');
+      this.showForm.set(false);
+    } catch {
+      this.addError.set('Could not create that task. Please try again.');
+    } finally {
+      this.adding.set(false);
+    }
+  }
 }
 
 @Component({
@@ -2350,12 +2630,20 @@ export class TripDocumentsPage {
     <h2>Activity</h2>
     <div class="th-panel">
       <ul>
-        @for (a of activity; track a) {
+        @for (a of activity(); track a.id) {
           <li>
             <span class="dot"></span>
             <div>
-              <strong>{{ a }}</strong>
-              <small>Recently</small>
+              <strong>{{ a.message }}</strong>
+              <small>{{ formatWhen(a.createdAt) }}</small>
+            </div>
+          </li>
+        } @empty {
+          <li>
+            <span class="dot"></span>
+            <div>
+              <strong>No activity yet</strong>
+              <small>Updates will show up as the trip progresses</small>
             </div>
           </li>
         }
@@ -2399,10 +2687,19 @@ export class TripDocumentsPage {
   ],
 })
 export class TripActivityPage {
-  readonly activity = [
-    'Roshan created the trip',
-    'Manager approved Goa Trip 2026',
-    'Rahul uploaded hotel booking',
-    'Mayuri added an expense',
-  ];
+  private readonly route = inject(ActivatedRoute);
+  private readonly store = inject(TripStore);
+  private readonly tripId = tripIdFromParent(this.route);
+  readonly activity = computed(() => this.store.getActivity(this.tripId()));
+
+  constructor() {
+    effect(() => {
+      const id = this.tripId();
+      if (id) void this.store.loadActivity(id);
+    });
+  }
+
+  formatWhen(iso: string): string {
+    return formatDateTime(iso);
+  }
 }
