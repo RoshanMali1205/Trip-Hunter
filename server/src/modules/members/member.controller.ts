@@ -91,3 +91,35 @@ export const respondToInvite: RequestHandler = async (req, res, next) => {
     next(err);
   }
 };
+
+export const removeMember: RequestHandler = async (req, res, next) => {
+  try {
+    if (!req.user) {
+      throw new AppError(401, 'UNAUTHORIZED', 'Missing or invalid Bearer token');
+    }
+    const tripId = String(req.params['tripId']);
+    const memberId = String(req.params['memberId']);
+
+    const trip = await tripRepo.findById(tripId);
+    if (!trip) {
+      throw new AppError(404, 'TRIP_NOT_FOUND', `Trip ${tripId} was not found`);
+    }
+    if (trip.createdBy !== req.user.id) {
+      throw new AppError(403, 'FORBIDDEN', 'Only the trip owner can remove members');
+    }
+
+    const members = await repo.findByTrip(tripId);
+    const target = members.find((m) => m.id === memberId);
+    if (!target) {
+      throw new AppError(404, 'MEMBERSHIP_NOT_FOUND', `Member ${memberId} was not found`);
+    }
+    if (target.userId === trip.createdBy) {
+      throw new AppError(400, 'VALIDATION_ERROR', 'Cannot remove the trip owner');
+    }
+
+    await repo.remove(tripId, memberId);
+    res.json(ok(null, 'Member removed successfully'));
+  } catch (err) {
+    next(err);
+  }
+};

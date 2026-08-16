@@ -52,6 +52,12 @@ When `SUPABASE_URL` + keys are set, the API validates the JWT with Supabase `aut
 | `GET` | `/api/v1/trips/:tripId/approvals` | Yes | Trip approvals |
 | `PATCH` | `/api/v1/approvals/:id` | Yes | Approve / reject |
 | `GET` | `/api/v1/trips/:tripId/activity` | Yes | Trip activity feed |
+| `GET` | `/api/v1/trips/:tripId/comments` | Yes | Trip comments |
+| `POST` | `/api/v1/trips/:tripId/comments` | Yes | Add comment |
+| `DELETE` | `/api/v1/trips/:tripId/comments/:id` | Yes | Delete own comment |
+| `DELETE` | `/api/v1/trips/:tripId/bookings/:id` | Yes | Delete booking |
+| `DELETE` | `/api/v1/trips/:tripId/itinerary/:id` | Yes | Delete itinerary item |
+| `DELETE` | `/api/v1/trips/:tripId/members/:memberId` | Yes | Remove member (owner) |
 | `GET` | `/api/v1/advisor` | Yes | Buddy advisor metadata |
 | `POST` | `/api/v1/advisor/chat` | Yes | Gemini India trip chat |
 

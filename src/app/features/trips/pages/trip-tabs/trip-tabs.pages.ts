@@ -161,9 +161,39 @@ type AvailVote = 'available' | 'maybe' | 'not';
             </article>
           }
 
-          <article class="th-panel announce">
-            <span class="label">Announcement</span>
-            <p>Please upload your ID proof by 15 Aug. — Roshan</p>
+          <article class="th-panel comments">
+            <span class="label">Comments</span>
+            <ul class="comment-list">
+              @for (c of comments(); track c.id) {
+                <li>
+                  <div>
+                    <strong>{{ c.authorName }}</strong>
+                    <small>{{ formatWhen(c.createdAt) }}</small>
+                    <p>{{ c.body }}</p>
+                  </div>
+                  @if (canDeleteComment(c.authorId)) {
+                    <app-button variant="link-danger" size="sm" (click)="removeComment(c.id)"
+                      >Delete</app-button
+                    >
+                  }
+                </li>
+              } @empty {
+                <li class="empty">No comments yet — start the discussion.</li>
+              }
+            </ul>
+            <form class="comment-form" (ngSubmit)="postComment()">
+              <input
+                type="text"
+                required
+                [(ngModel)]="commentBody"
+                name="commentBody"
+                placeholder="Write a comment…"
+              />
+              <app-button type="submit" size="sm" [loading]="postingComment()">Post</app-button>
+            </form>
+            @if (commentError()) {
+              <p class="add-error">{{ commentError() }}</p>
+            }
           </article>
         </div>
         <aside class="side">
@@ -291,13 +321,55 @@ type AvailVote = 'available' | 'maybe' | 'not';
         display: flex;
         gap: 0.5rem;
       }
-      .announce {
-        border-top: 3px solid var(--th-primary);
+      .comments {
+        margin-top: 0.25rem;
       }
-      .announce p {
-        margin: 0;
+      .comment-list {
+        list-style: none;
+        margin: 0 0 0.85rem;
+        padding: 0;
+        display: grid;
+        gap: 0.75rem;
+      }
+      .comment-list li {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.75rem;
+        align-items: flex-start;
+        padding-bottom: 0.65rem;
+        border-bottom: 1px solid var(--th-border);
+      }
+      .comment-list li:last-child {
+        border-bottom: 0;
+        padding-bottom: 0;
+      }
+      .comment-list li.empty {
+        color: var(--th-text-muted);
+        border-bottom: 0;
+      }
+      .comment-list strong {
+        display: block;
+      }
+      .comment-list small {
+        color: var(--th-text-muted);
+        font-size: 0.75rem;
+      }
+      .comment-list p {
+        margin: 0.35rem 0 0;
         color: var(--th-text);
-        line-height: 1.45;
+        line-height: 1.4;
+      }
+      .comment-form {
+        display: flex;
+        gap: 0.5rem;
+      }
+      .comment-form input {
+        flex: 1;
+        padding: 0.6rem 0.75rem;
+        border-radius: var(--th-radius);
+        border: 1px solid var(--th-border);
+        background: var(--th-surface);
+        color: var(--th-text);
       }
       .countdown {
         text-align: center;
@@ -353,15 +425,20 @@ type AvailVote = 'available' | 'maybe' | 'not';
 export class TripOverviewPage {
   private readonly route = inject(ActivatedRoute);
   private readonly store = inject(TripStore);
+  private readonly auth = inject(AuthService);
   private readonly tripId = tripIdFromParent(this.route);
   readonly trip = computed(() => this.store.getById(this.tripId()));
   readonly pendingTripApprovals = computed(() =>
     this.store.getApprovals(this.tripId()).filter((a) => a.status === 'PENDING'),
   );
+  readonly comments = computed(() => this.store.getComments(this.tripId()));
 
   readonly showEdit = signal(false);
   readonly saving = signal(false);
   readonly editError = signal('');
+  readonly commentBody = signal('');
+  readonly postingComment = signal(false);
+  readonly commentError = signal('');
   editTitle = '';
   editDestination = '';
   editOrigin = '';
@@ -376,6 +453,7 @@ export class TripOverviewPage {
       if (id) {
         void this.store.loadItinerary(id);
         void this.store.loadApprovals(id);
+        void this.store.loadComments(id);
       }
       const t = this.trip();
       if (t) {
@@ -416,6 +494,33 @@ export class TripOverviewPage {
       .replaceAll('_', ' ')
       .toLowerCase()
       .replace(/\b\w/g, (c) => c.toUpperCase());
+  }
+
+  formatWhen = formatDateTime;
+
+  canDeleteComment(authorId: string): boolean {
+    return this.auth.user()?.id === authorId;
+  }
+
+  async postComment(): Promise<void> {
+    const id = this.tripId();
+    const body = this.commentBody().trim();
+    if (!id || !body) return;
+    this.postingComment.set(true);
+    this.commentError.set('');
+    try {
+      await this.store.addComment(id, { body });
+      this.commentBody.set('');
+    } catch {
+      this.commentError.set('Could not post that comment.');
+    } finally {
+      this.postingComment.set(false);
+    }
+  }
+
+  removeComment(commentId: string): void {
+    const id = this.tripId();
+    if (id) void this.store.deleteComment(id, commentId);
   }
 
   async saveEdit(): Promise<void> {
@@ -501,6 +606,9 @@ export class TripOverviewPage {
             <th>Role</th>
             <th>Status</th>
             <th>Attendance</th>
+            @if (isOwner()) {
+              <th></th>
+            }
           </tr>
         </thead>
         <tbody>
@@ -526,10 +634,17 @@ export class TripOverviewPage {
                 >
               </td>
               <td>{{ attendanceLabel(m) }}</td>
+              @if (isOwner()) {
+                <td>
+                  @if (canRemove(m)) {
+                    <app-button variant="link-danger" size="sm" (click)="remove(m.id)">Remove</app-button>
+                  }
+                </td>
+              }
             </tr>
           } @empty {
             <tr>
-              <td colspan="4">No members yet.</td>
+              <td [attr.colspan]="isOwner() ? 5 : 4">No members yet.</td>
             </tr>
           }
         </tbody>
@@ -546,13 +661,18 @@ export class TripOverviewPage {
               <small>{{ m.role.toLowerCase() }} · {{ attendanceLabel(m) }}</small>
             </div>
           </div>
-          <em
-            class="th-pill"
-            [class.th-pill--solid]="m.inviteStatus === 'ACCEPTED'"
-            [class.th-pill--outline]="m.inviteStatus === 'INVITED' || m.inviteStatus === 'MAYBE'"
-            [class.th-pill--muted]="m.inviteStatus === 'DECLINED'"
-            >{{ statusLabel(m.inviteStatus) }}</em
-          >
+          <div class="mobile-actions">
+            <em
+              class="th-pill"
+              [class.th-pill--solid]="m.inviteStatus === 'ACCEPTED'"
+              [class.th-pill--outline]="m.inviteStatus === 'INVITED' || m.inviteStatus === 'MAYBE'"
+              [class.th-pill--muted]="m.inviteStatus === 'DECLINED'"
+              >{{ statusLabel(m.inviteStatus) }}</em
+            >
+            @if (isOwner() && canRemove(m)) {
+              <app-button variant="link-danger" size="sm" (click)="remove(m.id)">Remove</app-button>
+            }
+          </div>
         </li>
       }
     </ul>
@@ -694,6 +814,12 @@ export class TripOverviewPage {
         align-items: center;
         gap: 0.75rem;
       }
+      .mobile-actions {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 0.35rem;
+      }
       .desktop {
         display: block;
       }
@@ -759,6 +885,18 @@ export class TripMembersPage {
   respond(rsvpStatus: 'accepted' | 'declined'): void {
     const id = this.tripId();
     if (id) void this.store.respondToInvite(id, rsvpStatus);
+  }
+
+  canRemove(m: TripMember): boolean {
+    const trip = this.store.getById(this.tripId());
+    return !!trip && m.userId !== trip.organizerId;
+  }
+
+  remove(memberId: string): void {
+    const id = this.tripId();
+    if (id && confirm('Remove this member from the trip?')) {
+      void this.store.removeMember(id, memberId);
+    }
   }
 
   readonly stats = computed(() => {
@@ -1380,9 +1518,12 @@ export class TripVotingPage {
           <li>
             <time>{{ formatTime(item.startTime) }}</time>
             <article class="th-panel item">
-              <em class="th-pill" [class.th-pill--solid]="i % 2 === 0" [class.th-pill--outline]="i % 2 === 1">{{
-                item.type
-              }}</em>
+              <div class="item-top">
+                <em class="th-pill" [class.th-pill--solid]="i % 2 === 0" [class.th-pill--outline]="i % 2 === 1">{{
+                  item.type
+                }}</em>
+                <app-button variant="link-danger" size="sm" (click)="removeItem(item.id)">Delete</app-button>
+              </div>
               <strong>{{ item.title }}</strong>
               <span>{{ item.locationName }}</span>
             </article>
@@ -1501,6 +1642,13 @@ export class TripVotingPage {
         color: var(--th-text-muted);
         font-size: 0.85rem;
       }
+      .item-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.35rem;
+      }
       @media (max-width: 520px) {
         li {
           grid-template-columns: 1fr;
@@ -1573,6 +1721,13 @@ export class TripItineraryPage {
   });
   dayPill = dayPillLabel;
   formatTime = formatTime;
+
+  removeItem(itemId: string): void {
+    const id = this.tripId();
+    if (id && confirm('Delete this itinerary item?')) {
+      void this.store.deleteItineraryItem(id, itemId);
+    }
+  }
 }
 
 @Component({
@@ -1649,6 +1804,7 @@ export class TripItineraryPage {
           <h3>{{ b.provider }}</h3>
           <p>Booking #: {{ b.bookingReference }}</p>
           <p class="when">{{ formatWhen(b.startDatetime) }}</p>
+          <app-button variant="link-danger" size="sm" (click)="remove(b.id)">Delete</app-button>
         </article>
       } @empty {
         <div class="th-panel">No bookings yet.</div>
@@ -1838,6 +1994,13 @@ export class TripBookingsPage {
       this.addError.set('Could not add that booking. Please try again.');
     } finally {
       this.adding.set(false);
+    }
+  }
+
+  remove(bookingId: string): void {
+    const id = this.tripId();
+    if (id && confirm('Delete this booking?')) {
+      void this.store.deleteBooking(id, bookingId);
     }
   }
 }
