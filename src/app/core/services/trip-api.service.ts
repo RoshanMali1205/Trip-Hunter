@@ -11,6 +11,21 @@ export type ApiTripStatus =
   | 'completed'
   | 'cancelled';
 
+export type ApiTripType =
+  | 'business'
+  | 'team_outing'
+  | 'corporate_offsite'
+  | 'training_conference'
+  | 'project_visit'
+  | 'personal_group';
+
+export type ApiTripApprovalStatus =
+  | 'not_required'
+  | 'pending'
+  | 'approved'
+  | 'rejected'
+  | 'changes_requested';
+
 export interface ApiTrip {
   id: string;
   organizationId: string;
@@ -18,12 +33,16 @@ export interface ApiTrip {
   name: string;
   description: string;
   destination: string;
+  origin?: string;
+  tripType?: ApiTripType;
   status: ApiTripStatus;
+  approvalStatus?: ApiTripApprovalStatus;
   startDate: string | null;
   endDate: string | null;
   budgetCents: number;
   actualCents: number;
   currency: string;
+  maxMembers?: number | null;
   createdBy: string | null;
   createdAt: string;
   updatedAt: string;
@@ -33,10 +52,29 @@ export interface CreateTripPayload {
   name: string;
   description?: string;
   destination?: string;
+  origin?: string;
+  tripType?: ApiTripType;
   startDate?: string | null;
   endDate?: string | null;
   currency?: string;
   budgetCents?: number;
+  maxMembers?: number | null;
+  approvalRequired?: boolean;
+}
+
+export interface UpdateTripPayload {
+  name?: string;
+  description?: string;
+  destination?: string;
+  origin?: string;
+  tripType?: ApiTripType;
+  status?: ApiTripStatus;
+  approvalStatus?: ApiTripApprovalStatus;
+  startDate?: string | null;
+  endDate?: string | null;
+  currency?: string;
+  budgetCents?: number;
+  maxMembers?: number | null;
 }
 
 export interface ApiEnvelope<T> {
@@ -235,10 +273,64 @@ export interface CreateBookingPayload {
   endDatetime?: string;
 }
 
+export interface CreateTaskPayload {
+  title: string;
+  description?: string;
+  priority?: ApiTripTask['priority'];
+  assignedTo?: string | null;
+  dueDate?: string | null;
+}
+
+export interface ApiApproval {
+  id: string;
+  tripId: string;
+  tripName: string;
+  subjectType: 'expense' | 'booking' | 'budget' | 'trip';
+  subjectId: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
+  requestedBy: string | null;
+  requestedByName: string;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
+  notes: string;
+  createdAt: string;
+}
+
+export interface ApiSettlement {
+  fromUserId: string;
+  fromName: string;
+  toUserId: string;
+  toName: string;
+  amount: number;
+  currency: string;
+  message: string;
+}
+
+export interface ApiExpenseSummary {
+  youPaid: number;
+  yourShare: number;
+  youReceive: number;
+  currency: string;
+}
+
+export interface ApiActivity {
+  id: string;
+  organizationId: string | null;
+  tripId: string | null;
+  actorId: string | null;
+  actorName: string;
+  action: string;
+  entityType: string;
+  entityId: string | null;
+  message: string;
+  createdAt: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class TripApiService {
   private readonly http = inject(HttpClient);
   private readonly base = `${getAppConfig().apiBaseUrl}/trips`;
+  private readonly api = getAppConfig().apiBaseUrl;
 
   list(): Observable<ApiTrip[]> {
     return this.http
@@ -255,6 +347,12 @@ export class TripApiService {
   create(payload: CreateTripPayload): Observable<ApiTrip> {
     return this.http
       .post<ApiEnvelope<ApiTrip>>(this.base, payload)
+      .pipe(map((res) => res.data));
+  }
+
+  update(id: string, payload: UpdateTripPayload): Observable<ApiTrip> {
+    return this.http
+      .patch<ApiEnvelope<ApiTrip>>(`${this.base}/${id}`, payload)
       .pipe(map((res) => res.data));
   }
 
@@ -375,7 +473,19 @@ export class TripApiService {
 
   updateExpenseStatus(expenseId: string, status: 'APPROVED' | 'REJECTED'): Observable<ApiExpense> {
     return this.http
-      .patch<ApiEnvelope<ApiExpense>>(`${getAppConfig().apiBaseUrl}/expenses/${expenseId}`, { status })
+      .patch<ApiEnvelope<ApiExpense>>(`${this.api}/expenses/${expenseId}`, { status })
+      .pipe(map((res) => res.data));
+  }
+
+  settlements(tripId: string): Observable<ApiSettlement[]> {
+    return this.http
+      .get<ApiEnvelope<ApiSettlement[]>>(`${this.base}/${tripId}/settlements`)
+      .pipe(map((res) => res.data));
+  }
+
+  expenseSummary(): Observable<ApiExpenseSummary> {
+    return this.http
+      .get<ApiEnvelope<ApiExpenseSummary>>(`${this.api}/me/expense-summary`)
       .pipe(map((res) => res.data));
   }
 
@@ -385,15 +495,55 @@ export class TripApiService {
       .pipe(map((res) => res.data));
   }
 
+  createTask(tripId: string, payload: CreateTaskPayload): Observable<ApiTripTask> {
+    return this.http
+      .post<ApiEnvelope<ApiTripTask>>(`${this.base}/${tripId}/tasks`, payload)
+      .pipe(map((res) => res.data));
+  }
+
   allTasks(): Observable<ApiTripTask[]> {
     return this.http
-      .get<ApiEnvelope<ApiTripTask[]>>(`${getAppConfig().apiBaseUrl}/tasks`)
+      .get<ApiEnvelope<ApiTripTask[]>>(`${this.api}/tasks`)
       .pipe(map((res) => res.data));
   }
 
   updateTaskStatus(taskId: string, status: ApiTripTask['status']): Observable<ApiTripTask> {
     return this.http
-      .patch<ApiEnvelope<ApiTripTask>>(`${getAppConfig().apiBaseUrl}/tasks/${taskId}`, { status })
+      .patch<ApiEnvelope<ApiTripTask>>(`${this.api}/tasks/${taskId}`, { status })
+      .pipe(map((res) => res.data));
+  }
+
+  tripApprovals(tripId: string): Observable<ApiApproval[]> {
+    return this.http
+      .get<ApiEnvelope<ApiApproval[]>>(`${this.base}/${tripId}/approvals`)
+      .pipe(map((res) => res.data));
+  }
+
+  pendingApprovals(): Observable<ApiApproval[]> {
+    return this.http
+      .get<ApiEnvelope<ApiApproval[]>>(`${this.api}/me/approvals`)
+      .pipe(map((res) => res.data));
+  }
+
+  reviewApproval(
+    approvalId: string,
+    status: 'APPROVED' | 'REJECTED',
+    notes?: string,
+  ): Observable<ApiApproval> {
+    return this.http
+      .patch<ApiEnvelope<ApiApproval>>(`${this.api}/approvals/${approvalId}`, { status, notes })
+      .pipe(map((res) => res.data));
+  }
+
+  tripActivity(tripId: string): Observable<ApiActivity[]> {
+    return this.http
+      .get<ApiEnvelope<ApiActivity[]>>(`${this.base}/${tripId}/activity`)
+      .pipe(map((res) => res.data));
+  }
+
+  recentActivity(): Observable<ApiActivity[]> {
+    return this.http
+      .get<ApiEnvelope<ApiActivity[]>>(`${this.api}/me/activity`)
       .pipe(map((res) => res.data));
   }
 

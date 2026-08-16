@@ -1,6 +1,8 @@
+import { randomUUID } from 'node:crypto';
 import { getSupabaseAdmin } from '../../config/supabase.js';
 import { assertDbOrMock } from '../../config/data-mode.js';
 import { AppError } from '../../middleware/error-handler.js';
+import { recordActivity } from '../activity/activity.repository.js';
 
 export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 export type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'BLOCKED' | 'COMPLETED';
@@ -53,6 +55,27 @@ const PRIORITY_TO_APP: Record<DbTaskPriority, TaskPriority> = {
   urgent: 'CRITICAL',
 };
 
+const PRIORITY_TO_DB: Record<TaskPriority, DbTaskPriority> = {
+  LOW: 'low',
+  MEDIUM: 'medium',
+  HIGH: 'high',
+  CRITICAL: 'urgent',
+};
+
+const memoryTasks: TripTask[] = [];
+
+export interface CreateTaskInput {
+  tripId: string;
+  title: string;
+  description?: string;
+  priority?: TaskPriority;
+  assignedTo?: string | null;
+  dueDate?: string | null;
+  createdBy?: string | null;
+  createdByName?: string;
+  organizationId?: string | null;
+}
+
 function mapRow(row: TaskRow): TripTask {
   return {
     id: row.id,
@@ -73,7 +96,7 @@ const TASK_SELECT =
 export class TaskRepository {
   async findByTrip(tripId: string): Promise<TripTask[]> {
     if (assertDbOrMock('tasks') === 'memory') {
-      return [];
+      return memoryTasks.filter((t) => t.tripId === tripId);
     }
 
     const { data, error } = await getSupabaseAdmin()
@@ -91,7 +114,7 @@ export class TaskRepository {
 
   async findByOrganization(organizationId: string): Promise<TripTask[]> {
     if (assertDbOrMock('tasks') === 'memory') {
-      return [];
+      return [...memoryTasks];
     }
 
     const db = getSupabaseAdmin();
@@ -123,9 +146,74 @@ export class TaskRepository {
     return ((data ?? []) as unknown as TaskRow[]).map(mapRow);
   }
 
+  async create(input: CreateTaskInput): Promise<TripTask> {
+    if (assertDbOrMock('tasks') === 'memory') {
+      const task: TripTask = {
+        id: randomUUID(),
+        tripId: input.tripId,
+        title: input.title,
+        description: input.description ?? '',
+        assignedTo: input.assignedTo ?? '',
+        assignedToName: input.assignedTo ? 'Teammate' : 'Unassigned',
+        priority: input.priority ?? 'MEDIUM',
+        status: 'TODO',
+        dueDate: input.dueDate ?? null,
+      };
+      memoryTasks.unshift(task);
+      await recordActivity({
+        organizationId: input.organizationId ?? null,
+        tripId: input.tripId,
+        actorId: input.createdBy ?? null,
+        actorName: input.createdByName,
+        action: 'created',
+        entityType: 'task',
+        entityId: task.id,
+        message: `${input.createdByName ?? 'Someone'} created task “${task.title}”`,
+      });
+      return task;
+    }
+
+    const { data, error } = await getSupabaseAdmin()
+      .from('tasks')
+      .insert({
+        trip_id: input.tripId,
+        title: input.title,
+        description: input.description || null,
+        priority: PRIORITY_TO_DB[input.priority ?? 'MEDIUM'],
+        status: 'todo',
+        assignee_id: input.assignedTo || null,
+        due_at: input.dueDate || null,
+        created_by: input.createdBy ?? null,
+      })
+      .select(TASK_SELECT)
+      .single();
+
+    if (error) {
+      throw new AppError(502, 'DB_ERROR', error.message);
+    }
+
+    const task = mapRow(data as unknown as TaskRow);
+    await recordActivity({
+      organizationId: input.organizationId ?? null,
+      tripId: input.tripId,
+      actorId: input.createdBy ?? null,
+      actorName: input.createdByName,
+      action: 'created',
+      entityType: 'task',
+      entityId: task.id,
+      message: `${input.createdByName ?? 'Someone'} created task “${task.title}”`,
+    });
+    return task;
+  }
+
   async updateStatus(id: string, status: TaskStatus): Promise<TripTask> {
     if (assertDbOrMock('tasks') === 'memory') {
-      throw new AppError(503, 'SUPABASE_NOT_CONFIGURED', 'Supabase is required to update tasks');
+      const task = memoryTasks.find((t) => t.id === id);
+      if (!task) {
+        throw new AppError(404, 'TASK_NOT_FOUND', `Task ${id} was not found`);
+      }
+      task.status = status;
+      return task;
     }
 
     const { data, error } = await getSupabaseAdmin()

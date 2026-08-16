@@ -38,12 +38,26 @@ When `SUPABASE_URL` + keys are set, the API validates the JWT with Supabase `aut
 | --- | --- | --- | --- |
 | `GET` | `/api/v1/health` | No | Liveness + `auth` / `data` mode |
 | `GET` | `/api/v1/me` | Yes | Authenticated user |
-| `GET` | `/api/v1/trips` | Yes | Org-scoped trips (Supabase or memory) |
+| `GET` | `/api/v1/me/invites` | Yes | Pending trip invites |
+| `GET` | `/api/v1/me/approvals` | Yes | Pending org approvals |
+| `GET` | `/api/v1/me/expense-summary` | Yes | Paid / share / receive totals |
+| `GET` | `/api/v1/me/activity` | Yes | Recent org activity |
+| `GET` | `/api/v1/trips` | Yes | Org-scoped trips |
 | `GET` | `/api/v1/trips/:id` | Yes | Single trip |
+| `POST` | `/api/v1/trips` | Yes | Create trip (`approvalRequired` optional) |
+| `PATCH` | `/api/v1/trips/:id` | Yes | Update trip fields + budget |
+| `DELETE` | `/api/v1/trips/:id` | Yes | Delete trip (owner) |
+| `POST` | `/api/v1/trips/:tripId/tasks` | Yes | Create task |
+| `GET` | `/api/v1/trips/:tripId/settlements` | Yes | Who owes whom |
+| `GET` | `/api/v1/trips/:tripId/approvals` | Yes | Trip approvals |
+| `PATCH` | `/api/v1/approvals/:id` | Yes | Approve / reject |
+| `GET` | `/api/v1/trips/:tripId/activity` | Yes | Trip activity feed |
 | `GET` | `/api/v1/advisor` | Yes | Buddy advisor metadata |
 | `POST` | `/api/v1/advisor/chat` | Yes | Gemini India trip chat |
 
-Integration details: [nodejs-db-integration.md](./nodejs-db-integration.md). Auth UI notes: [auth-login-signup.md](./auth-login-signup.md). PWA / mobile updates: [pwa.md](./pwa.md). Member invites: [member-invites.md](./member-invites.md). Gemini Buddy advisor: [gemini-trip-advisor.md](./gemini-trip-advisor.md).
+Also: members, polls, itinerary, bookings, budget, expenses, tasks list/status, notifications — see controllers under `server/src/modules/`.
+
+Apply `supabase/migrations/012_trip_meta_fields.sql` for origin / trip type / max members / approval status columns.
 
 ## Local vs Netlify
 

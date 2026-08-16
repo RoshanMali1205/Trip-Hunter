@@ -107,6 +107,7 @@ export class TripCreatePage {
         maxMembers: v.maxMembers,
         estimatedBudget: v.estimatedBudget,
         currency: v.currency,
+        approvalRequired: v.approvalRequired === 'yes',
         approvalStatus: v.approvalRequired === 'yes' ? 'PENDING' : 'NOT_REQUIRED',
         memberCount: 1,
       });
