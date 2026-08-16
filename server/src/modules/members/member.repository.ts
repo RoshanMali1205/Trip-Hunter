@@ -172,4 +172,25 @@ export class MemberRepository {
       ];
     });
   }
+
+  async remove(tripId: string, memberId: string): Promise<void> {
+    if (assertDbOrMock('trip members') === 'memory') {
+      throw new AppError(503, 'SUPABASE_NOT_CONFIGURED', 'Supabase is required to remove members');
+    }
+
+    const { data, error } = await getSupabaseAdmin()
+      .from('trip_members')
+      .delete()
+      .eq('id', memberId)
+      .eq('trip_id', tripId)
+      .select('id')
+      .maybeSingle();
+
+    if (error) {
+      throw new AppError(502, 'DB_ERROR', error.message);
+    }
+    if (!data) {
+      throw new AppError(404, 'MEMBERSHIP_NOT_FOUND', `Member ${memberId} was not found`);
+    }
+  }
 }

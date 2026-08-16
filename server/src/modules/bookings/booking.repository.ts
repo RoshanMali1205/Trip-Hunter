@@ -141,4 +141,25 @@ export class BookingRepository {
 
     return mapRow(data as BookingRow);
   }
+
+  async delete(tripId: string, id: string): Promise<void> {
+    if (assertDbOrMock('bookings') === 'memory') {
+      throw new AppError(503, 'SUPABASE_NOT_CONFIGURED', 'Supabase is required to delete bookings');
+    }
+
+    const { data, error } = await getSupabaseAdmin()
+      .from('bookings')
+      .delete()
+      .eq('id', id)
+      .eq('trip_id', tripId)
+      .select('id')
+      .maybeSingle();
+
+    if (error) {
+      throw new AppError(502, 'DB_ERROR', error.message);
+    }
+    if (!data) {
+      throw new AppError(404, 'BOOKING_NOT_FOUND', `Booking ${id} was not found`);
+    }
+  }
 }
