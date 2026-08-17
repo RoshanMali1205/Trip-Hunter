@@ -55,6 +55,9 @@ When `SUPABASE_URL` + keys are set, the API validates the JWT with Supabase `aut
 | `GET` | `/api/v1/trips/:tripId/comments` | Yes | Trip comments |
 | `POST` | `/api/v1/trips/:tripId/comments` | Yes | Add comment |
 | `DELETE` | `/api/v1/trips/:tripId/comments/:id` | Yes | Delete own comment |
+| `GET` | `/api/v1/trips/:tripId/documents` | Yes | List trip documents |
+| `POST` | `/api/v1/trips/:tripId/documents` | Yes | Upload (base64, max 5MB) |
+| `DELETE` | `/api/v1/trips/:tripId/documents/:id` | Yes | Remove document + storage object |
 | `DELETE` | `/api/v1/trips/:tripId/bookings/:id` | Yes | Delete booking |
 | `DELETE` | `/api/v1/trips/:tripId/itinerary/:id` | Yes | Delete itinerary item |
 | `DELETE` | `/api/v1/trips/:tripId/members/:memberId` | Yes | Remove member (owner) |
@@ -63,7 +66,11 @@ When `SUPABASE_URL` + keys are set, the API validates the JWT with Supabase `aut
 
 Also: members, polls, itinerary, bookings, budget, expenses, tasks list/status, notifications — see controllers under `server/src/modules/`.
 
-Apply `supabase/migrations/012_trip_meta_fields.sql` for origin / trip type / max members / approval status columns.
+Apply:
+
+- `012_trip_meta_fields.sql` for origin / trip type / max members / approval status
+- `013_trip_documents_storage.sql` for the `trip-documents` storage bucket
+- `014_avatar_remove_size_limit.sql` to remove the avatars bucket size cap
 
 ## Local vs Netlify
 

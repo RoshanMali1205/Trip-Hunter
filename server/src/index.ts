@@ -76,6 +76,11 @@ import {
   deleteComment,
   listComments,
 } from './modules/comments/comment.controller.js';
+import {
+  createDocument,
+  deleteDocument,
+  listDocuments,
+} from './modules/documents/document.controller.js';
 import { chatWithAdvisor, getAdvisorInfo } from './modules/advisor/advisor.controller.js';
 import { ok } from './types/api.js';
 
@@ -161,6 +166,9 @@ export function createApp() {
   v1.get('/trips/:tripId/comments', authenticate, listComments);
   v1.post('/trips/:tripId/comments', authenticate, createComment);
   v1.delete('/trips/:tripId/comments/:id', authenticate, deleteComment);
+  v1.get('/trips/:tripId/documents', authenticate, listDocuments);
+  v1.post('/trips/:tripId/documents', authenticate, createDocument);
+  v1.delete('/trips/:tripId/documents/:id', authenticate, deleteDocument);
 
   v1.get('/notifications', authenticate, listNotifications);
   v1.patch('/notifications/:id/read', authenticate, markNotificationRead);

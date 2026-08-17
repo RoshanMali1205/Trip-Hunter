@@ -326,6 +326,30 @@ export interface ApiActivity {
   createdAt: string;
 }
 
+export type ApiDocumentType = 'itinerary' | 'receipt' | 'ticket' | 'policy' | 'other';
+
+export interface ApiDocument {
+  id: string;
+  tripId: string;
+  title: string;
+  docType: ApiDocumentType;
+  storagePath: string;
+  mimeType: string;
+  sizeBytes: number;
+  url: string;
+  uploadedBy: string | null;
+  uploadedByName: string;
+  createdAt: string;
+}
+
+export interface CreateDocumentPayload {
+  title: string;
+  docType?: ApiDocumentType;
+  fileName: string;
+  mimeType: string;
+  contentBase64: string;
+}
+
 export interface ApiComment {
   id: string;
   tripId: string;
@@ -583,6 +607,24 @@ export class TripApiService {
     return this.http
       .get<ApiEnvelope<ApiActivity[]>>(`${this.api}/me/activity`)
       .pipe(map((res) => res.data));
+  }
+
+  documents(tripId: string): Observable<ApiDocument[]> {
+    return this.http
+      .get<ApiEnvelope<ApiDocument[]>>(`${this.base}/${tripId}/documents`)
+      .pipe(map((res) => res.data));
+  }
+
+  createDocument(tripId: string, payload: CreateDocumentPayload): Observable<ApiDocument> {
+    return this.http
+      .post<ApiEnvelope<ApiDocument>>(`${this.base}/${tripId}/documents`, payload)
+      .pipe(map((res) => res.data));
+  }
+
+  deleteDocument(tripId: string, documentId: string): Observable<void> {
+    return this.http
+      .delete<ApiEnvelope<null>>(`${this.base}/${tripId}/documents/${documentId}`)
+      .pipe(map(() => undefined));
   }
 
   comments(tripId: string): Observable<ApiComment[]> {

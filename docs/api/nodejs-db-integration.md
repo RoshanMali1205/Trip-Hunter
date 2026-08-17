@@ -84,5 +84,4 @@ This is how production “keeps the server running” without renting a VM: each
 ## Near-term follow-ups
 
 - Add RLS policies and prefer a user-scoped client for reads where possible.
-- Documents upload API (open PR / schema exists; UI still stubbed on main until merged).
 - Broader update endpoints for bookings/itinerary fields.

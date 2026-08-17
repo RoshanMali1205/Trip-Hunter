@@ -2713,34 +2713,123 @@ export class TripTasksTabPage {
 @Component({
   selector: 'app-trip-documents',
   standalone: true,
-  imports: [MatIconModule],
+  imports: [MatIconModule, FormsModule, ButtonComponent],
   template: `
-    <h2>Documents</h2>
+    <div class="head">
+      <h2>Documents</h2>
+      <app-button variant="secondary" size="sm" (click)="showForm.set(!showForm())">
+        {{ showForm() ? 'Cancel' : 'Upload' }}
+      </app-button>
+    </div>
+
+    @if (showForm()) {
+      <form class="add-form th-panel" (ngSubmit)="submit()">
+        <label class="wide">
+          Title
+          <input type="text" required [(ngModel)]="title" name="title" placeholder="Hotel confirmation" />
+        </label>
+        <label>
+          Type
+          <select [(ngModel)]="docType" name="docType">
+            <option value="ticket">Ticket</option>
+            <option value="receipt">Receipt</option>
+            <option value="itinerary">Itinerary</option>
+            <option value="policy">Policy</option>
+            <option value="other">Other</option>
+          </select>
+        </label>
+        <label class="wide">
+          File (PDF or image, max 5MB)
+          <input type="file" accept=".pdf,image/*,.txt,.doc,.docx" (change)="onFile($event)" />
+        </label>
+        @if (fileName()) {
+          <p class="file-name">Selected: {{ fileName() }}</p>
+        }
+        <app-button type="submit" [loading]="uploading()" [disabled]="!fileBase64()">Upload</app-button>
+        @if (uploadError()) {
+          <p class="add-error">{{ uploadError() }}</p>
+        }
+      </form>
+    }
+
     <div class="th-panel">
       <p class="lead">Hotel confirmations, tickets, invoices, and ID proofs.</p>
       <ul>
-        @for (doc of docs; track doc) {
+        @for (doc of documents(); track doc.id) {
           <li>
             <span class="icon"><mat-icon>description</mat-icon></span>
-            <div>
-              <strong>{{ doc }}</strong>
-              <small>PDF · uploaded recently</small>
+            <div class="meta">
+              <strong>{{ doc.title }}</strong>
+              <small
+                >{{ doc.docType }} · {{ formatSize(doc.sizeBytes) }} ·
+                {{ doc.uploadedByName }}</small
+              >
             </div>
-            <em class="th-pill th-pill--outline">View</em>
+            <div class="actions">
+              <a class="th-pill th-pill--outline" [href]="doc.url" target="_blank" rel="noopener"
+                >View</a
+              >
+              <app-button variant="link-danger" size="sm" (click)="remove(doc.id)">Delete</app-button>
+            </div>
           </li>
+        } @empty {
+          <li class="empty">No documents yet — upload a PDF or photo.</li>
         }
       </ul>
     </div>
   `,
   styles: [
     `
+      .head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+      }
       h2 {
-        margin: 0 0 1rem;
+        margin: 0;
         font-family: var(--th-font-display);
       }
       .lead {
         margin: 0 0 1rem;
         color: var(--th-text-secondary);
+      }
+      .add-form {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+      }
+      .add-form label {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+        font-size: 0.85rem;
+        color: var(--th-text-secondary);
+      }
+      .add-form label.wide {
+        grid-column: 1 / -1;
+      }
+      .add-form input,
+      .add-form select {
+        padding: 0.6rem 0.75rem;
+        border-radius: var(--th-radius);
+        border: 1px solid var(--th-border);
+        background: var(--th-surface);
+        color: var(--th-text);
+      }
+      .file-name {
+        margin: 0;
+        grid-column: 1 / -1;
+        font-size: 0.85rem;
+        color: var(--th-text-muted);
+      }
+      .add-error {
+        margin: 0;
+        color: #dc2626;
+        font-size: 0.85rem;
+        grid-column: 1 / -1;
       }
       ul {
         list-style: none;
@@ -2759,6 +2848,10 @@ export class TripTasksTabPage {
       li:last-child {
         border-bottom: 0;
       }
+      li.empty {
+        color: var(--th-text-muted);
+        border-bottom: 0;
+      }
       .icon {
         width: 40px;
         height: 40px;
@@ -2767,22 +2860,118 @@ export class TripTasksTabPage {
         place-items: center;
         background: color-mix(in srgb, var(--th-primary) 18%, var(--th-surface));
         color: var(--th-primary-light);
+        flex-shrink: 0;
+      }
+      .meta {
+        min-width: 0;
+        flex: 1;
       }
       strong {
         display: block;
       }
       small {
         color: var(--th-text-muted);
+        text-transform: capitalize;
       }
-      em {
+      .actions {
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
         margin-left: auto;
+      }
+      .actions a {
+        text-decoration: none;
         font-style: normal;
       }
     `,
   ],
 })
 export class TripDocumentsPage {
-  readonly docs = ['Taj Resort booking PDF', 'Neeta Travels bus tickets', 'ID proof checklist'];
+  private readonly route = inject(ActivatedRoute);
+  private readonly store = inject(TripStore);
+  private readonly tripId = tripIdFromParent(this.route);
+  readonly documents = computed(() => this.store.getDocuments(this.tripId()));
+
+  readonly showForm = signal(false);
+  readonly title = signal('');
+  readonly docType = signal<'itinerary' | 'receipt' | 'ticket' | 'policy' | 'other'>('ticket');
+  readonly fileName = signal('');
+  readonly fileMime = signal('');
+  readonly fileBase64 = signal('');
+  readonly uploading = signal(false);
+  readonly uploadError = signal('');
+
+  constructor() {
+    effect(() => {
+      const id = this.tripId();
+      if (id) void this.store.loadDocuments(id);
+    });
+  }
+
+  formatSize(bytes: number): string {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  onFile(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    this.uploadError.set('');
+    this.fileBase64.set('');
+    this.fileName.set('');
+    this.fileMime.set('');
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      this.uploadError.set('File must be 5MB or smaller.');
+      return;
+    }
+    this.fileName.set(file.name);
+    this.fileMime.set(file.type || 'application/octet-stream');
+    if (!this.title().trim()) {
+      this.title.set(file.name.replace(/\.[^.]+$/, ''));
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = String(reader.result ?? '');
+      const base64 = result.includes(',') ? result.slice(result.indexOf(',') + 1) : result;
+      this.fileBase64.set(base64);
+    };
+    reader.onerror = () => this.uploadError.set('Could not read that file.');
+    reader.readAsDataURL(file);
+  }
+
+  async submit(): Promise<void> {
+    const id = this.tripId();
+    const title = this.title().trim();
+    const contentBase64 = this.fileBase64();
+    if (!id || !title || !contentBase64) return;
+    this.uploading.set(true);
+    this.uploadError.set('');
+    try {
+      await this.store.uploadDocument(id, {
+        title,
+        docType: this.docType(),
+        fileName: this.fileName() || 'document',
+        mimeType: this.fileMime() || 'application/octet-stream',
+        contentBase64,
+      });
+      this.title.set('');
+      this.fileName.set('');
+      this.fileMime.set('');
+      this.fileBase64.set('');
+      this.showForm.set(false);
+    } catch {
+      this.uploadError.set('Upload failed. Try a smaller PDF or image.');
+    } finally {
+      this.uploading.set(false);
+    }
+  }
+
+  remove(documentId: string): void {
+    const id = this.tripId();
+    if (id) void this.store.deleteDocument(id, documentId);
+  }
 }
 
 @Component({
