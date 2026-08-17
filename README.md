@@ -1,85 +1,217 @@
 # Trip Hunter
 
-Collaborative trip planning and trip management for office teams — from idea and availability voting through approvals, itinerary, bookings, expenses, and settlement.
+Collaborative trip planning for office teams — from idea and voting through bookings, approvals, expenses, and settlement.
 
-**Stack:** Angular 22 · Angular Material · Signals · PWA · Node.js/Express (Netlify Functions) · Supabase Auth/Postgres
+**Stack:** Angular 22 · Angular Material · Signals · PWA · Node.js / Express · Supabase Auth + Postgres · Netlify (static + Functions)
 
-## Quick start
+```text
+Browser (Angular SPA)
+        │  Bearer JWT
+        ▼
+Netlify  →  /api/v1  →  Express (Functions)
+                            │
+                            ▼
+                     Supabase Auth + Postgres + Storage
+```
+
+## What works today
+
+Trip tabs and the dashboard talk to the live `/api/v1` API (not a stub). With Supabase keys, data is shared. Without keys, the app runs in local demo / in-memory mode.
+
+| Area | In the product |
+|------|----------------|
+| Auth | Email sign-in / sign-up, optional profile photo + phone, Azure OAuth hook |
+| Trips | List, create, edit, delete; origin, dates, budget, approval status |
+| Members | Invite by existing account email, accept/decline, owner can remove |
+| Polls | Destination + availability options, votes, destination photo cards |
+| Itinerary | Add and delete day items |
+| Bookings | Add and delete (hotel, flight, bus, etc.) |
+| Budget | Categories create / update |
+| Expenses | Create, status, splits, trip-level who-owes-whom |
+| Tasks | Create, list, cycle status (trip tab + `/tasks`) |
+| Approvals | Pending list, approve / reject |
+| Documents | Upload / list / delete (Storage bucket `trip-documents`) |
+| Comments | Trip discussion on Overview (add / delete own) |
+| Activity | Trip feed + dashboard recent activity |
+| Notifications | In-app list, mark read, trip invites |
+| Buddy | Gemini India trip advisor chat (needs `GEMINI_API_KEY`) |
+| PWA | Installable production build, update + install banners |
+
+### Known gaps
+
+- Global `/expenses` settlement list is still hardcoded (trip Expenses tab is live)
+- Bookings and itinerary have create + delete, not edit (`PATCH`)
+- Settlements are computed, not recorded as paid
+- Teams table exists; no team UI
+- Calendar highlights trip start dates in the current month only
+- Notifications are in-app only (schema allows email / push)
+- Table RLS is on profiles / orgs only; trip data is authorized in the API via the service-role client
+
+## Requirements
+
+- **Node.js 22** (see `.nvmrc`)
+- npm 11+ (repo `packageManager` is `npm@11.6.4`)
+
+## Local development
 
 ```bash
+git clone https://github.com/RoshanMali1205/Trip-Hunter.git
+cd Trip-Hunter
+cp .env.example .env          # fill keys, or leave blank for demo mode
 npm install
+npm --prefix server install
+```
+
+Run **two processes**:
+
+```bash
+# Terminal A — API (http://localhost:3000)
+npm run server:dev
+
+# Terminal B — Angular (http://localhost:4200)
 npm start
 ```
 
-Open `http://localhost:4200/login`. Use **Sign in** or **Create account**. Without Supabase keys the app runs in demo auth (any email + password 6+ chars). With keys, it uses Supabase Auth — see [docs/api/auth-login-signup.md](docs/api/auth-login-signup.md).
+Open [http://localhost:4200/login](http://localhost:4200/login).
 
-### API (Node + DB)
+### Point the SPA at the local API
+
+The browser defaults to `/api/v1` (same origin). Local `ng serve` is on port 4200, so set a full API URL:
+
+1. In `.env`: `API_BASE_URL=http://localhost:3000/api/v1`
+2. `node scripts/write-browser-env.js` (writes `public/env.js`)
+3. Restart `npm start`
+
+The Express app enables CORS, so the SPA on `:4200` can call `:3000`.
+
+### Demo vs Supabase
+
+| Mode | When | Behavior |
+|------|------|----------|
+| Demo | `SUPABASE_URL` / `SUPABASE_PUBLIC_KEY` missing | Any email + password (6+ chars); in-memory trips |
+| Live | Keys present in `.env` / Netlify | Real Auth, Postgres, Storage |
+
+Health check:
 
 ```bash
-cp .env.example .env   # add Supabase keys, or leave blank for mock data
-cd server
-npm install
-npm run dev
+curl -s http://localhost:3000/api/v1/health
 ```
 
-`GET /api/v1/health` reports whether auth/data use Supabase or in-memory mocks. Details: [docs/api/nodejs-db-integration.md](docs/api/nodejs-db-integration.md).
+`auth` is `supabase` or `mock`; `data` is `supabase`, `memory`, or `unavailable`.
 
-## What's included (Sprint 1–2 foundation)
+## Environment
 
-- Standalone Angular 22 app with lazy-loaded routes
-- App shell (sidebar / mobile bottom nav)
-- Login, dashboard, trip list / create wizard / detail tabs
-- Feature modules aligned to the LLD (`core`, `shared`, `layout`, `features`)
-- Design tokens + Material theme (orange travel accents on a light canvas)
-- PWA manifest + service worker with update/install banners (see [docs/api/pwa.md](docs/api/pwa.md))
-- Express API stub under `server/`
-- Netlify config + function entry (cache headers for mobile SW updates)
-- Supabase SQL migrations under `supabase/migrations/`
+Copy `.env.example` → `.env`. Never commit secrets. Never put `SUPABASE_SERVICE_ROLE_KEY` in the browser.
 
-## Main routes
+| Variable | Used by | Purpose |
+|----------|---------|---------|
+| `SUPABASE_URL` | SPA + API | Project URL |
+| `SUPABASE_PUBLIC_KEY` | SPA + API | Anon key (`auth.getUser`, browser Auth) |
+| `SUPABASE_SERVICE_ROLE_KEY` | API only | Server queries (bypasses RLS) |
+| `API_BASE_URL` | SPA (`public/env.js`) | Default `/api/v1`; local use `http://localhost:3000/api/v1` |
+| `GEMINI_API_KEY` | API only | Buddy chat |
+| `PORT` | API | Default `3000` |
+| `ALLOW_MOCK_DATA` | API | In-memory fallback; allowed outside production by default |
+
+`scripts/write-browser-env.js` writes `public/env.js` from `SUPABASE_URL`, `SUPABASE_PUBLIC_KEY`, and `API_BASE_URL`. Netlify runs this during build.
+
+## Database
+
+SQL lives in `supabase/migrations/` (`001`–`014`). Apply in order (`supabase db push` or the SQL editor).
+
+On an existing project, confirm these are applied:
+
+| Migration | Why |
+|-----------|-----|
+| `012_trip_meta_fields.sql` | Origin, trip type, max members, approval status |
+| `013_trip_documents_storage.sql` | `trip-documents` Storage bucket |
+| `014_avatar_remove_size_limit.sql` | Remove avatars bucket size cap |
+
+Details: [docs/api/nodejs-db-integration.md](docs/api/nodejs-db-integration.md), [docs/api/auth-login-signup.md](docs/api/auth-login-signup.md).
+
+## App routes
 
 | Path | Purpose |
 |------|---------|
 | `/login` | Sign in / create account |
-| `/auth/callback` | OAuth / email confirm redirect |
-| `/dashboard` | Attention widgets |
+| `/auth/callback` | OAuth / email-confirm redirect |
+| `/dashboard` | Upcoming trips, invites, tasks, activity |
 | `/trips` | Trip list |
-| `/trips/create` | Creation wizard |
-| `/trips/:tripId/*` | Overview, members, polls, itinerary, bookings, budget, expenses, tasks, documents, activity |
-| `/notifications` `/profile` `/calendar` `/tasks` `/expenses` | Supporting surfaces |
+| `/trips/create` | Create wizard |
+| `/trips/:tripId/overview` | Summary, edit trip, comments, approvals |
+| `/trips/:tripId/members` | Invite, RSVP, remove |
+| `/trips/:tripId/voting` | Destinations + availability polls |
+| `/trips/:tripId/itinerary` | Day plan |
+| `/trips/:tripId/bookings` | Stay / travel bookings |
+| `/trips/:tripId/budget` | Budget categories |
+| `/trips/:tripId/expenses` | Expenses + settlements |
+| `/trips/:tripId/tasks` | Trip tasks |
+| `/trips/:tripId/documents` | File uploads |
+| `/trips/:tripId/activity` | Audit feed |
+| `/notifications` | In-app inbox + invites |
+| `/profile` | Name, phone, avatar |
+| `/calendar` | Month grid of trip start dates |
+| `/tasks` | Tasks across trips |
+| `/expenses` | Org expense summary (settlement list still sample data) |
+
+## API
+
+All HTTP APIs are under `/api/v1`. Authenticated routes expect:
+
+```http
+Authorization: Bearer <supabase-access-token>
+```
+
+Envelope:
+
+```json
+{ "success": true, "data": {}, "message": "optional" }
+```
+
+```json
+{ "success": false, "error": { "code": "TRIP_NOT_FOUND", "message": "..." } }
+```
+
+Full route table: [docs/api/README.md](docs/api/README.md).
 
 ## Repository layout
 
 ```text
 trip-hunter/
-├── src/                 # Angular application
-├── server/              # Node + Express API
-├── netlify/functions/   # Serverless entry
-├── supabase/migrations/ # PostgreSQL schema
-├── docs/                # Architecture & API notes
-└── netlify.toml
+├── src/                      # Angular SPA
+├── server/                   # Express API (`/api/v1`)
+├── netlify/functions/        # serverless-http wrapper
+├── supabase/migrations/      # Postgres + Storage
+├── public/                   # PWA assets, env.js
+├── scripts/                  # Netlify build + browser env
+├── docs/                     # Architecture and API notes
+├── netlify.toml
+└── .env.example
 ```
 
-## Design note
+## Deploy (free)
 
-The linked Claude artifact requires sign-in, so the first UI pass follows the LLD (clean travel dashboard, Material + custom SCSS). Share exported screens/Figma and we can align pixel-perfect.
+Netlify serves the Angular build and runs the **same Express app** as Functions (`/api/*`). Supabase free tier holds Auth, Postgres, and Storage. No always-on Node host.
 
-## Deploy live for free (team URL)
+1. Connect this repo to [Netlify](https://app.netlify.com) (build uses `netlify.toml` / `scripts/netlify-build.sh`).
+2. Set `SUPABASE_URL`, `SUPABASE_PUBLIC_KEY`, `SUPABASE_SERVICE_ROLE_KEY`. Optional: `GEMINI_API_KEY`.
+3. Apply migrations `001`–`014` on the Supabase project.
+4. Add Auth redirect URL `https://YOUR_SITE.netlify.app/auth/callback`.
 
-You do **not** need a paid Node host. Netlify serves Angular **and** runs the Express API as **serverless Functions** (only when `/api` is called). Supabase free tier holds Auth + Postgres.
+Step-by-step: [docs/api/free-live-hosting.md](docs/api/free-live-hosting.md). PWA notes: [docs/api/pwa.md](docs/api/pwa.md).
 
-```text
-Netlify free  →  Angular SPA + /api (Express via Functions)
-Supabase free →  Auth + database
-```
+## Docs
 
-Step-by-step: [docs/api/free-live-hosting.md](docs/api/free-live-hosting.md).
-
-**Short path**
-
-1. Connect [RoshanMali1205/Trip-Hunter](https://github.com/RoshanMali1205/Trip-Hunter) to [Netlify](https://app.netlify.com) (import from GitHub).
-2. Deploy — teammates open `https://….netlify.app` (UI works with local mocks immediately).
-3. Optional shared DB: create free Supabase project, apply `supabase/migrations/`, add `SUPABASE_*` env vars in Netlify, redeploy.
+| Doc | Contents |
+|-----|----------|
+| [docs/architecture/overview.md](docs/architecture/overview.md) | Layers and domain |
+| [docs/api/README.md](docs/api/README.md) | Versioning, envelope, route table |
+| [docs/api/nodejs-db-integration.md](docs/api/nodejs-db-integration.md) | Auth + service-role data access |
+| [docs/api/auth-login-signup.md](docs/api/auth-login-signup.md) | Demo vs Supabase Auth, avatars |
+| [docs/api/member-invites.md](docs/api/member-invites.md) | Invite flow |
+| [docs/api/gemini-trip-advisor.md](docs/api/gemini-trip-advisor.md) | Buddy / Gemini |
+| [docs/api/pwa.md](docs/api/pwa.md) | Service worker, install, cache |
+| [docs/api/free-live-hosting.md](docs/api/free-live-hosting.md) | Netlify + Supabase go-live |
 
 ## License
 

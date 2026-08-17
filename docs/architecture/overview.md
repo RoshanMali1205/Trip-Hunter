@@ -15,8 +15,8 @@ Trip Hunter is a team trip planning product with an Angular SPA front end, a Nod
 
 1. Browser loads the Angular app from Netlify (`dist/trip-hunter/browser`).
 2. Client calls `/api/v1/...` with a Bearer JWT (Supabase session).
-3. Netlify redirects `/api/*` to the `api` function, which will mount the Express app (via `serverless-http` when wired).
-4. Locally, run `server` with `npm run dev` for the same Express surface without Netlify.
+3. Netlify redirects `/api/*` to the `api` function, which mounts the Express app via `serverless-http`.
+4. Locally, run `npm run server:dev` for the same Express surface without Netlify.
 
 ## Domain shape
 
@@ -38,7 +38,7 @@ See [API README](../api/README.md) for versioning notes.
 ## Node ↔ DB wiring
 
 - Auth: Supabase JWT via `auth.getUser` (`server/src/middleware/authentication.ts`).
-- Data: `TripRepository` queries `trips` (+ `budgets`) through the service-role client when configured; otherwise in-memory seed (non-production).
+- Data: repositories under `server/src/modules/` query Postgres through the service-role client when configured; otherwise in-memory seed (non-production). Table RLS is not yet on trip/expense/comment tables — authorization is in the API layer.
 - Edge: `netlify/functions/api.ts` mounts Express with `serverless-http`.
 
 See [Node.js ↔ DB integration](../api/nodejs-db-integration.md).
