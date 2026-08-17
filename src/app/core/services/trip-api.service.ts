@@ -350,6 +350,26 @@ export interface CreateDocumentPayload {
   contentBase64: string;
 }
 
+export interface ApiComment {
+  id: string;
+  tripId: string;
+  subjectType: 'trip' | 'task' | 'expense' | 'booking' | 'document' | 'itinerary';
+  subjectId: string | null;
+  parentId: string | null;
+  body: string;
+  authorId: string;
+  authorName: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateCommentPayload {
+  body: string;
+  subjectType?: ApiComment['subjectType'];
+  subjectId?: string | null;
+  parentId?: string | null;
+}
+
 @Injectable({ providedIn: 'root' })
 export class TripApiService {
   private readonly http = inject(HttpClient);
@@ -396,6 +416,12 @@ export class TripApiService {
     return this.http
       .post<ApiEnvelope<ApiTripMember>>(`${this.base}/${tripId}/members`, payload)
       .pipe(map((res) => res.data));
+  }
+
+  removeMember(tripId: string, memberId: string): Observable<void> {
+    return this.http
+      .delete<ApiEnvelope<null>>(`${this.base}/${tripId}/members/${memberId}`)
+      .pipe(map(() => undefined));
   }
 
   respondToInvite(tripId: string, rsvpStatus: ApiTripMember['rsvpStatus']): Observable<ApiTripMember> {
@@ -449,6 +475,12 @@ export class TripApiService {
       .pipe(map(() => undefined));
   }
 
+  deleteItineraryItem(tripId: string, itemId: string): Observable<void> {
+    return this.http
+      .delete<ApiEnvelope<null>>(`${this.base}/${tripId}/itinerary/${itemId}`)
+      .pipe(map(() => undefined));
+  }
+
   bookings(tripId: string): Observable<ApiBooking[]> {
     return this.http
       .get<ApiEnvelope<ApiBooking[]>>(`${this.base}/${tripId}/bookings`)
@@ -459,6 +491,12 @@ export class TripApiService {
     return this.http
       .post<ApiEnvelope<ApiBooking>>(`${this.base}/${tripId}/bookings`, payload)
       .pipe(map((res) => res.data));
+  }
+
+  deleteBooking(tripId: string, bookingId: string): Observable<void> {
+    return this.http
+      .delete<ApiEnvelope<null>>(`${this.base}/${tripId}/bookings/${bookingId}`)
+      .pipe(map(() => undefined));
   }
 
   budget(tripId: string): Observable<ApiBudgetCategory[]> {
@@ -586,6 +624,24 @@ export class TripApiService {
   deleteDocument(tripId: string, documentId: string): Observable<void> {
     return this.http
       .delete<ApiEnvelope<null>>(`${this.base}/${tripId}/documents/${documentId}`)
+      .pipe(map(() => undefined));
+  }
+
+  comments(tripId: string): Observable<ApiComment[]> {
+    return this.http
+      .get<ApiEnvelope<ApiComment[]>>(`${this.base}/${tripId}/comments`)
+      .pipe(map((res) => res.data));
+  }
+
+  createComment(tripId: string, payload: CreateCommentPayload): Observable<ApiComment> {
+    return this.http
+      .post<ApiEnvelope<ApiComment>>(`${this.base}/${tripId}/comments`, payload)
+      .pipe(map((res) => res.data));
+  }
+
+  deleteComment(tripId: string, commentId: string): Observable<void> {
+    return this.http
+      .delete<ApiEnvelope<null>>(`${this.base}/${tripId}/comments/${commentId}`)
       .pipe(map(() => undefined));
   }
 

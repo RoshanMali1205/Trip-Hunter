@@ -21,6 +21,7 @@ import {
   inviteMember,
   listMembers,
   listMyInvites,
+  removeMember,
   respondToInvite,
 } from './modules/members/member.controller.js';
 import {
@@ -32,8 +33,12 @@ import {
   listAvailability,
   listDestinations,
 } from './modules/planning/planning.controller.js';
-import { createItineraryItem, listItinerary } from './modules/itinerary/itinerary.controller.js';
-import { createBooking, listBookings } from './modules/bookings/booking.controller.js';
+import {
+  createItineraryItem,
+  deleteItineraryItem,
+  listItinerary,
+} from './modules/itinerary/itinerary.controller.js';
+import { createBooking, deleteBooking, listBookings } from './modules/bookings/booking.controller.js';
 import {
   createBudgetCategory,
   listBudgetCategories,
@@ -66,6 +71,11 @@ import {
   listRecentActivity,
   listTripActivity,
 } from './modules/activity/activity.controller.js';
+import {
+  createComment,
+  deleteComment,
+  listComments,
+} from './modules/comments/comment.controller.js';
 import {
   createDocument,
   deleteDocument,
@@ -124,6 +134,7 @@ export function createApp() {
   v1.get('/trips/:tripId/members', authenticate, listMembers);
   v1.post('/trips/:tripId/members', authenticate, inviteMember);
   v1.patch('/trips/:tripId/members/me', authenticate, respondToInvite);
+  v1.delete('/trips/:tripId/members/:memberId', authenticate, removeMember);
   v1.get('/trips/:tripId/availability', authenticate, listAvailability);
   v1.post('/trips/:tripId/availability', authenticate, createAvailabilityOption);
   v1.get('/trips/:tripId/destinations', authenticate, listDestinations);
@@ -133,8 +144,10 @@ export function createApp() {
   v1.post('/trips/:tripId/destinations/:destinationId/vote', authenticate, castDestinationVote);
   v1.get('/trips/:tripId/itinerary', authenticate, listItinerary);
   v1.post('/trips/:tripId/itinerary', authenticate, createItineraryItem);
+  v1.delete('/trips/:tripId/itinerary/:id', authenticate, deleteItineraryItem);
   v1.get('/trips/:tripId/bookings', authenticate, listBookings);
   v1.post('/trips/:tripId/bookings', authenticate, createBooking);
+  v1.delete('/trips/:tripId/bookings/:id', authenticate, deleteBooking);
   v1.get('/trips/:tripId/budget', authenticate, listBudgetCategories);
   v1.post('/trips/:tripId/budget', authenticate, createBudgetCategory);
   v1.patch('/trips/:tripId/budget/:categoryId', authenticate, updateBudgetCategory);
@@ -150,6 +163,9 @@ export function createApp() {
   v1.get('/trips/:tripId/approvals', authenticate, listTripApprovals);
   v1.patch('/approvals/:id', authenticate, reviewApproval);
   v1.get('/trips/:tripId/activity', authenticate, listTripActivity);
+  v1.get('/trips/:tripId/comments', authenticate, listComments);
+  v1.post('/trips/:tripId/comments', authenticate, createComment);
+  v1.delete('/trips/:tripId/comments/:id', authenticate, deleteComment);
   v1.get('/trips/:tripId/documents', authenticate, listDocuments);
   v1.post('/trips/:tripId/documents', authenticate, createDocument);
   v1.delete('/trips/:tripId/documents/:id', authenticate, deleteDocument);

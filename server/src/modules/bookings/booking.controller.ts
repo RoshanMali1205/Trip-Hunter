@@ -64,3 +64,14 @@ export const createBooking: RequestHandler = async (req, res, next) => {
     next(err);
   }
 };
+
+export const deleteBooking: RequestHandler = async (req, res, next) => {
+  try {
+    const tripId = String(req.params['tripId']);
+    const id = String(req.params['id']);
+    await repo.delete(tripId, id);
+    res.json(ok(null, 'Booking deleted successfully'));
+  } catch (err) {
+    next(err);
+  }
+};

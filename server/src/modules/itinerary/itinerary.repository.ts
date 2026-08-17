@@ -154,4 +154,25 @@ export class ItineraryRepository {
       throw new AppError(502, 'DB_ERROR', error.message);
     }
   }
+
+  async delete(tripId: string, id: string): Promise<void> {
+    if (assertDbOrMock('itinerary') === 'memory') {
+      throw new AppError(503, 'SUPABASE_NOT_CONFIGURED', 'Supabase is required to delete itinerary items');
+    }
+
+    const { data, error } = await getSupabaseAdmin()
+      .from('itinerary_items')
+      .delete()
+      .eq('id', id)
+      .eq('trip_id', tripId)
+      .select('id')
+      .maybeSingle();
+
+    if (error) {
+      throw new AppError(502, 'DB_ERROR', error.message);
+    }
+    if (!data) {
+      throw new AppError(404, 'ITINERARY_ITEM_NOT_FOUND', `Itinerary item ${id} was not found`);
+    }
+  }
 }
