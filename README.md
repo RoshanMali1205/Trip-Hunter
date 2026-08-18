@@ -113,7 +113,7 @@ Copy `.env.example` → `.env`. Never commit secrets. Never put `SUPABASE_SERVIC
 
 ## Database
 
-SQL lives in `supabase/migrations/` (`001`–`015`). Apply in order (`supabase db push` or the SQL editor).
+SQL lives in `supabase/migrations/` (`001`–`016`). Apply in order (`supabase db push` or the SQL editor).
 
 On an existing project, confirm these are applied:
 
@@ -123,6 +123,7 @@ On an existing project, confirm these are applied:
 | `013_trip_documents_storage.sql` | `trip-documents` Storage bucket |
 | `014_avatar_remove_size_limit.sql` | Remove avatars bucket size cap |
 | `015_backfill_org_membership.sql` | Profiles + org membership for accounts that cannot create trips |
+| `016_ensure_trip_meta_reload_schema.sql` | Re-add 012 columns if missing and reload the PostgREST schema cache |
 
 Details: [docs/api/nodejs-db-integration.md](docs/api/nodejs-db-integration.md), [docs/api/auth-login-signup.md](docs/api/auth-login-signup.md).
 

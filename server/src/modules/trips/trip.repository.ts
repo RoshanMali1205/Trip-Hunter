@@ -211,8 +211,65 @@ async function attachActualSpend(
   return trips.map((t) => ({ ...t, actualCents: sums.get(t.id) ?? 0 }));
 }
 
+const TRIP_META_COLUMNS = ['origin', 'trip_type', 'approval_status', 'max_members'] as const;
+
 const TRIP_SELECT =
   'id, organization_id, team_id, name, description, destination_summary, origin, trip_type, status, approval_status, start_date, end_date, currency, max_members, created_by, created_at, updated_at, budgets(total_cents)';
+
+const TRIP_SELECT_CORE =
+  'id, organization_id, team_id, name, description, destination_summary, status, start_date, end_date, currency, created_by, created_at, updated_at, budgets(total_cents)';
+
+const TRIP_INSERT_SELECT =
+  'id, organization_id, team_id, name, description, destination_summary, origin, trip_type, status, approval_status, start_date, end_date, currency, max_members, created_by, created_at, updated_at';
+
+const TRIP_INSERT_SELECT_CORE =
+  'id, organization_id, team_id, name, description, destination_summary, status, start_date, end_date, currency, created_by, created_at, updated_at';
+
+function isMissingTripMetaColumn(message: string): boolean {
+  const lower = message.toLowerCase();
+  const mentionsMissing =
+    lower.includes('schema cache') ||
+    lower.includes('could not find') ||
+    lower.includes('does not exist');
+  if (!mentionsMissing) {
+    return false;
+  }
+  return TRIP_META_COLUMNS.some((col) => lower.includes(col));
+}
+
+function tripDbError(message: string): AppError {
+  if (isMissingTripMetaColumn(message)) {
+    return new AppError(
+      502,
+      'DB_SCHEMA',
+      `${message} Apply supabase/migrations/012_trip_meta_fields.sql in the Supabase SQL editor, then run: NOTIFY pgrst, 'reload schema';`,
+    );
+  }
+  return new AppError(502, 'DB_ERROR', message);
+}
+
+async function queryTrips<T>(
+  run: (
+    select: string,
+  ) => PromiseLike<{ data: unknown; error: { message: string } | null }>,
+): Promise<T> {
+  const full = await run(TRIP_SELECT);
+  if (!full.error) {
+    return full.data as T;
+  }
+  if (isMissingTripMetaColumn(full.error.message)) {
+    console.warn(
+      'trips meta columns missing from schema cache; using core columns',
+      full.error.message,
+    );
+    const core = await run(TRIP_SELECT_CORE);
+    if (core.error) {
+      throw tripDbError(core.error.message);
+    }
+    return core.data as T;
+  }
+  throw tripDbError(full.error.message);
+}
 
 function assertDbOrMock(): 'supabase' | 'memory' {
   if (isSupabaseAdminConfigured()) {
@@ -235,16 +292,11 @@ export class TripRepository {
     }
 
     const db = getSupabaseAdmin();
-    const { data, error } = await db
-      .from('trips')
-      .select(TRIP_SELECT)
-      .order('created_at', { ascending: false });
+    const data = await queryTrips<TripRow[]>((select) =>
+      db.from('trips').select(select).order('created_at', { ascending: false }),
+    );
 
-    if (error) {
-      throw new AppError(502, 'DB_ERROR', error.message);
-    }
-
-    return attachActualSpend(db, ((data ?? []) as TripRow[]).map(mapRow));
+    return attachActualSpend(db, (data ?? []).map(mapRow));
   }
 
   async findById(id: string): Promise<Trip | undefined> {
@@ -253,20 +305,14 @@ export class TripRepository {
     }
 
     const db = getSupabaseAdmin();
-    const { data, error } = await db
-      .from('trips')
-      .select(TRIP_SELECT)
-      .eq('id', id)
-      .maybeSingle();
-
-    if (error) {
-      throw new AppError(502, 'DB_ERROR', error.message);
-    }
+    const data = await queryTrips<TripRow | null>((select) =>
+      db.from('trips').select(select).eq('id', id).maybeSingle(),
+    );
     if (!data) {
       return undefined;
     }
 
-    const [trip] = await attachActualSpend(db, [mapRow(data as TripRow)]);
+    const [trip] = await attachActualSpend(db, [mapRow(data)]);
     return trip;
   }
 
@@ -276,17 +322,15 @@ export class TripRepository {
     }
 
     const db = getSupabaseAdmin();
-    const { data, error } = await db
-      .from('trips')
-      .select(TRIP_SELECT)
-      .eq('organization_id', organizationId)
-      .order('created_at', { ascending: false });
+    const data = await queryTrips<TripRow[]>((select) =>
+      db
+        .from('trips')
+        .select(select)
+        .eq('organization_id', organizationId)
+        .order('created_at', { ascending: false }),
+    );
 
-    if (error) {
-      throw new AppError(502, 'DB_ERROR', error.message);
-    }
-
-    return attachActualSpend(db, ((data ?? []) as TripRow[]).map(mapRow));
+    return attachActualSpend(db, (data ?? []).map(mapRow));
   }
 
   /** Org trips plus any trip the user was invited to / joined as a member. */
@@ -302,13 +346,14 @@ export class TripRepository {
     const byId = new Map<string, TripRow>();
 
     if (organizationId) {
-      const { data, error } = await db
-        .from('trips')
-        .select(TRIP_SELECT)
-        .eq('organization_id', organizationId)
-        .order('created_at', { ascending: false });
-      if (error) throw new AppError(502, 'DB_ERROR', error.message);
-      for (const row of (data ?? []) as TripRow[]) byId.set(row.id, row);
+      const data = await queryTrips<TripRow[]>((select) =>
+        db
+          .from('trips')
+          .select(select)
+          .eq('organization_id', organizationId)
+          .order('created_at', { ascending: false }),
+      );
+      for (const row of data ?? []) byId.set(row.id, row);
     }
 
     const { data: memberships, error: membershipError } = await db
@@ -325,12 +370,10 @@ export class TripRepository {
       .filter((id) => id && !byId.has(id));
 
     if (memberTripIds.length > 0) {
-      const { data, error } = await db
-        .from('trips')
-        .select(TRIP_SELECT)
-        .in('id', memberTripIds);
-      if (error) throw new AppError(502, 'DB_ERROR', error.message);
-      for (const row of (data ?? []) as TripRow[]) byId.set(row.id, row);
+      const data = await queryTrips<TripRow[]>((select) =>
+        db.from('trips').select(select).in('id', memberTripIds),
+      );
+      for (const row of data ?? []) byId.set(row.id, row);
     }
 
     const trips = [...byId.values()].sort(
@@ -368,29 +411,43 @@ export class TripRepository {
 
     const db = getSupabaseAdmin();
 
-    const { data, error } = await db
+    const coreRow = {
+      organization_id: input.organizationId,
+      name: input.name,
+      description: input.description || null,
+      destination_summary: input.destination || null,
+      start_date: input.startDate || null,
+      end_date: input.endDate || null,
+      currency: input.currency,
+      created_by: input.createdBy,
+    };
+    const metaRow = {
+      origin: input.origin || null,
+      trip_type: input.tripType ?? 'team_outing',
+      max_members: input.maxMembers ?? null,
+      approval_status: input.approvalStatus ?? 'not_required',
+    };
+
+    let { data, error } = await db
       .from('trips')
-      .insert({
-        organization_id: input.organizationId,
-        name: input.name,
-        description: input.description || null,
-        destination_summary: input.destination || null,
-        origin: input.origin || null,
-        trip_type: input.tripType ?? 'team_outing',
-        start_date: input.startDate || null,
-        end_date: input.endDate || null,
-        currency: input.currency,
-        max_members: input.maxMembers ?? null,
-        approval_status: input.approvalStatus ?? 'not_required',
-        created_by: input.createdBy,
-      })
-      .select(
-        'id, organization_id, team_id, name, description, destination_summary, origin, trip_type, status, approval_status, start_date, end_date, currency, max_members, created_by, created_at, updated_at',
-      )
+      .insert({ ...coreRow, ...metaRow })
+      .select(TRIP_INSERT_SELECT)
       .single();
 
+    if (error && isMissingTripMetaColumn(error.message)) {
+      console.warn(
+        'trips meta columns missing; inserting without origin/trip_type/max_members/approval_status',
+        error.message,
+      );
+      ({ data, error } = await db
+        .from('trips')
+        .insert(coreRow)
+        .select(TRIP_INSERT_SELECT_CORE)
+        .single());
+    }
+
     if (error) {
-      throw new AppError(502, 'DB_ERROR', error.message);
+      throw tripDbError(error.message);
     }
 
     const row = data as TripRow;
@@ -473,9 +530,20 @@ export class TripRepository {
     if (input.maxMembers !== undefined) patch['max_members'] = input.maxMembers;
 
     if (Object.keys(patch).length > 0) {
-      const { error } = await db.from('trips').update(patch).eq('id', id);
+      let { error } = await db.from('trips').update(patch).eq('id', id);
+      if (error && isMissingTripMetaColumn(error.message)) {
+        const corePatch = { ...patch };
+        for (const col of TRIP_META_COLUMNS) {
+          delete corePatch[col];
+        }
+        if (Object.keys(corePatch).length > 0) {
+          ({ error } = await db.from('trips').update(corePatch).eq('id', id));
+        } else {
+          error = null;
+        }
+      }
       if (error) {
-        throw new AppError(502, 'DB_ERROR', error.message);
+        throw tripDbError(error.message);
       }
     }
 
@@ -526,7 +594,7 @@ export class TripRepository {
     const { error } = await getSupabaseAdmin().from('trips').delete().eq('id', id);
 
     if (error) {
-      throw new AppError(502, 'DB_ERROR', error.message);
+      throw tripDbError(error.message);
     }
   }
 }
