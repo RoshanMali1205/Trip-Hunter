@@ -76,13 +76,9 @@ Open [http://localhost:4200/login](http://localhost:4200/login).
 
 ### Point the SPA at the local API
 
-The browser defaults to `/api/v1` (same origin). Local `ng serve` is on port 4200, so set a full API URL:
+The browser defaults to `/api/v1` (same origin). `ng serve` proxies `/api` to `http://localhost:3000` via `proxy.conf.json`, so local create-trip calls work as long as `npm run server:dev` is running.
 
-1. In `.env`: `API_BASE_URL=http://localhost:3000/api/v1`
-2. `node scripts/write-browser-env.js` (writes `public/env.js`)
-3. Restart `npm start`
-
-The Express app enables CORS, so the SPA on `:4200` can call `:3000`.
+To point at another API instead, set `API_BASE_URL` in `.env`, run `node scripts/write-browser-env.js`, and restart `npm start`.
 
 ### Demo vs Supabase
 
@@ -117,7 +113,7 @@ Copy `.env.example` → `.env`. Never commit secrets. Never put `SUPABASE_SERVIC
 
 ## Database
 
-SQL lives in `supabase/migrations/` (`001`–`014`). Apply in order (`supabase db push` or the SQL editor).
+SQL lives in `supabase/migrations/` (`001`–`015`). Apply in order (`supabase db push` or the SQL editor).
 
 On an existing project, confirm these are applied:
 
@@ -126,6 +122,7 @@ On an existing project, confirm these are applied:
 | `012_trip_meta_fields.sql` | Origin, trip type, max members, approval status |
 | `013_trip_documents_storage.sql` | `trip-documents` Storage bucket |
 | `014_avatar_remove_size_limit.sql` | Remove avatars bucket size cap |
+| `015_backfill_org_membership.sql` | Profiles + org membership for accounts that cannot create trips |
 
 Details: [docs/api/nodejs-db-integration.md](docs/api/nodejs-db-integration.md), [docs/api/auth-login-signup.md](docs/api/auth-login-signup.md).
 

@@ -142,10 +142,11 @@ Settlements are derived from expenses; they are not stored or marked paid.
 
 ## Migrations the API expects
 
-Apply `supabase/migrations/` in order (`001`–`014`). On an existing project, these are the later ones that trip features depend on:
+Apply `supabase/migrations/` in order (`001`–`015`). On an existing project, these are the later ones that trip features depend on:
 
 - `012_trip_meta_fields.sql` — origin / trip type / max members / approval status
 - `013_trip_documents_storage.sql` — `trip-documents` Storage bucket
 - `014_avatar_remove_size_limit.sql` — remove avatars bucket size cap
+- `015_backfill_org_membership.sql` — backfill profile + org membership so existing users can create trips
 
 See also [nodejs-db-integration.md](nodejs-db-integration.md) and [auth-login-signup.md](auth-login-signup.md).
