@@ -42,12 +42,18 @@ function optionalString(value: unknown): string | undefined {
 
 function optionalDate(value: unknown): string | null | undefined {
   if (value === null) return null;
-  if (typeof value === 'string') return value;
-  return undefined;
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  return trimmed ? trimmed : null;
 }
 
 function optionalNumber(value: unknown): number | undefined {
-  return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return undefined;
 }
 
 export const listTrips: RequestHandler = async (req, res, next) => {

@@ -6,6 +6,7 @@ import {
   isSupabaseAdminConfigured,
   isSupabaseConfigured,
 } from '../config/supabase.js';
+import { ensureActiveOrganization } from '../modules/tenancy/ensure-membership.js';
 import { AppError } from './error-handler.js';
 
 export interface AuthUser {
@@ -80,15 +81,28 @@ async function resolveUserFromToken(token: string): Promise<AuthUser> {
       .maybeSingle(),
   ]);
 
+  const displayName =
+    profile?.display_name ??
+    (data.user.user_metadata?.['display_name'] as string | undefined) ??
+    email.split('@')[0] ??
+    'User';
+  const resolvedEmail = profile?.email ?? email;
+
+  let organizationId = membership?.organization_id ?? '';
+  if (!organizationId) {
+    organizationId =
+      (await ensureActiveOrganization({
+        userId,
+        email: resolvedEmail,
+        displayName,
+      })) ?? '';
+  }
+
   return {
     id: userId,
-    email: profile?.email ?? email,
-    displayName:
-      profile?.display_name ??
-      (data.user.user_metadata?.['display_name'] as string | undefined) ??
-      email.split('@')[0] ??
-      'User',
-    organizationId: membership?.organization_id ?? '',
+    email: resolvedEmail,
+    displayName,
+    organizationId,
   };
 }
 

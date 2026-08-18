@@ -18,7 +18,7 @@ Trip Hunter supports two auth modes:
 ## Enable Supabase Auth (free)
 
 1. Create a Supabase project.
-2. Apply migrations `001`–`014` (`006` profile trigger + RLS; `008`/`009`/`014` phone + avatars storage).
+2. Apply migrations `001`–`015` (`006` profile trigger + RLS; `008`/`009`/`014` phone + avatars storage; `015` backfill org membership for existing accounts).
 3. Auth → Providers → Email enabled; optionally Azure for Microsoft.
 4. Auth → URL config → add redirect URLs:
    - `http://localhost:4200/auth/callback`

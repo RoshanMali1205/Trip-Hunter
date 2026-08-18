@@ -60,6 +60,18 @@ export class TripService {
       );
     }
 
+    if (
+      input.startDate &&
+      input.endDate &&
+      input.startDate > input.endDate
+    ) {
+      throw new AppError(
+        400,
+        'VALIDATION_ERROR',
+        'endDate must be on or after startDate',
+      );
+    }
+
     const approvalStatus: TripApprovalStatus = input.approvalRequired
       ? 'pending'
       : 'not_required';
@@ -81,13 +93,17 @@ export class TripService {
     });
 
     if (input.approvalRequired) {
-      await this.approvals.createTripApproval({
-        tripId: trip.id,
-        tripName: trip.name,
-        organizationId: trip.organizationId,
-        requestedBy: input.createdBy,
-        requestedByName: input.createdByName,
-      });
+      try {
+        await this.approvals.createTripApproval({
+          tripId: trip.id,
+          tripName: trip.name,
+          organizationId: trip.organizationId,
+          requestedBy: input.createdBy,
+          requestedByName: input.createdByName,
+        });
+      } catch (err) {
+        console.warn('Failed to create trip approval', err);
+      }
     }
 
     await recordActivity({
