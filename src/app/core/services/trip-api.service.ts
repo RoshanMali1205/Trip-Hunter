@@ -60,6 +60,7 @@ export interface CreateTripPayload {
   budgetCents?: number;
   maxMembers?: number | null;
   approvalRequired?: boolean;
+  teamId?: string | null;
 }
 
 export interface UpdateTripPayload {
@@ -75,6 +76,7 @@ export interface UpdateTripPayload {
   currency?: string;
   budgetCents?: number;
   maxMembers?: number | null;
+  teamId?: string | null;
 }
 
 export interface ApiEnvelope<T> {
@@ -397,6 +399,33 @@ export interface CreateCommentPayload {
   parentId?: string | null;
 }
 
+export interface ApiTeamMember {
+  id: string;
+  teamId: string;
+  userId: string;
+  name: string;
+  email: string;
+  role: 'lead' | 'member';
+}
+
+export interface ApiTeam {
+  id: string;
+  organizationId: string;
+  name: string;
+  description: string;
+  createdBy: string | null;
+  memberCount: number;
+  createdAt: string;
+  members?: ApiTeamMember[];
+}
+
+export interface ApiOrgPerson {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class TripApiService {
   private readonly http = inject(HttpClient);
@@ -560,6 +589,12 @@ export class TripApiService {
       .pipe(map((res) => res.data));
   }
 
+  deleteBudgetCategory(tripId: string, categoryId: string): Observable<void> {
+    return this.http
+      .delete<ApiEnvelope<null>>(`${this.base}/${tripId}/budget/${categoryId}`)
+      .pipe(map(() => undefined));
+  }
+
   expenses(tripId: string): Observable<ApiExpense[]> {
     return this.http
       .get<ApiEnvelope<ApiExpense[]>>(`${this.base}/${tripId}/expenses`)
@@ -627,10 +662,17 @@ export class TripApiService {
       .pipe(map((res) => res.data));
   }
 
-  updateTaskStatus(taskId: string, status: ApiTripTask['status']): Observable<ApiTripTask> {
+  updateTask(
+    taskId: string,
+    patch: { status?: ApiTripTask['status']; assignedTo?: string | null },
+  ): Observable<ApiTripTask> {
     return this.http
-      .patch<ApiEnvelope<ApiTripTask>>(`${this.api}/tasks/${taskId}`, { status })
+      .patch<ApiEnvelope<ApiTripTask>>(`${this.api}/tasks/${taskId}`, patch)
       .pipe(map((res) => res.data));
+  }
+
+  updateTaskStatus(taskId: string, status: ApiTripTask['status']): Observable<ApiTripTask> {
+    return this.updateTask(taskId, { status });
   }
 
   tripApprovals(tripId: string): Observable<ApiApproval[]> {
@@ -745,6 +787,51 @@ export class TripApiService {
         startDate,
         endDate,
       })
+      .pipe(map((res) => res.data));
+  }
+
+  listTeams(): Observable<ApiTeam[]> {
+    return this.http
+      .get<ApiEnvelope<ApiTeam[]>>(`${this.api}/teams`)
+      .pipe(map((res) => res.data));
+  }
+
+  getTeam(teamId: string): Observable<ApiTeam> {
+    return this.http
+      .get<ApiEnvelope<ApiTeam>>(`${this.api}/teams/${teamId}`)
+      .pipe(map((res) => res.data));
+  }
+
+  createTeam(payload: { name: string; description?: string }): Observable<ApiTeam> {
+    return this.http
+      .post<ApiEnvelope<ApiTeam>>(`${this.api}/teams`, payload)
+      .pipe(map((res) => res.data));
+  }
+
+  deleteTeam(teamId: string): Observable<void> {
+    return this.http
+      .delete<ApiEnvelope<null>>(`${this.api}/teams/${teamId}`)
+      .pipe(map(() => undefined));
+  }
+
+  addTeamMember(
+    teamId: string,
+    payload: { email: string; role?: ApiTeamMember['role'] },
+  ): Observable<ApiTeamMember> {
+    return this.http
+      .post<ApiEnvelope<ApiTeamMember>>(`${this.api}/teams/${teamId}/members`, payload)
+      .pipe(map((res) => res.data));
+  }
+
+  removeTeamMember(teamId: string, memberId: string): Observable<void> {
+    return this.http
+      .delete<ApiEnvelope<null>>(`${this.api}/teams/${teamId}/members/${memberId}`)
+      .pipe(map(() => undefined));
+  }
+
+  orgPeople(): Observable<ApiOrgPerson[]> {
+    return this.http
+      .get<ApiEnvelope<ApiOrgPerson[]>>(`${this.api}/org/members`)
       .pipe(map((res) => res.data));
   }
 }

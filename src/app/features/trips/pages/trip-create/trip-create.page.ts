@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
@@ -69,6 +69,8 @@ export class TripCreatePage {
     { value: 'PROJECT_VISIT', label: 'Project Visit' },
   ];
 
+  readonly teams = computed(() => this.store.getTeams());
+
   readonly form = this.fb.nonNullable.group({
     title: ['Pune Dev Team – Goa Trip 2026', Validators.required],
     tripType: ['TEAM_OUTING' as TripType, Validators.required],
@@ -83,6 +85,7 @@ export class TripCreatePage {
     currency: ['INR'],
     estimatedBudget: [140000, [Validators.required, Validators.min(0)]],
     approvalRequired: ['yes'],
+    teamId: [''],
   });
 
   constructor() {
@@ -91,6 +94,7 @@ export class TripCreatePage {
       this.form.patchValue(draft as never);
     }
     this.form.valueChanges.subscribe((v) => lsSet(DRAFT_KEY, v));
+    void this.store.loadTeams();
   }
 
   next(): void {
@@ -137,6 +141,7 @@ export class TripCreatePage {
         approvalRequired: v.approvalRequired === 'yes',
         approvalStatus: v.approvalRequired === 'yes' ? 'PENDING' : 'NOT_REQUIRED',
         memberCount: 1,
+        teamId: v.teamId || null,
       });
       lsRemove(DRAFT_KEY);
       lsRemove(DRAFT_KEY + ':step');

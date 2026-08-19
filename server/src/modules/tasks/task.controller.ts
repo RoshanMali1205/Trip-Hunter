@@ -71,13 +71,20 @@ export const createTask: RequestHandler = async (req, res, next) => {
 export const updateTaskStatus: RequestHandler = async (req, res, next) => {
   try {
     const id = String(req.params['id']);
-    const status = (req.body as { status?: unknown }).status;
+    const body = req.body as { status?: unknown; assignedTo?: unknown };
+    const patch: { status?: TaskStatus; assignedTo?: string | null } = {};
 
-    if (typeof status !== 'string' || !VALID_STATUSES.includes(status as TaskStatus)) {
-      throw new AppError(400, 'VALIDATION_ERROR', `status must be one of ${VALID_STATUSES.join(', ')}`);
+    if (typeof body.status === 'string') {
+      if (!VALID_STATUSES.includes(body.status as TaskStatus)) {
+        throw new AppError(400, 'VALIDATION_ERROR', `status must be one of ${VALID_STATUSES.join(', ')}`);
+      }
+      patch.status = body.status as TaskStatus;
+    }
+    if (body.assignedTo === null || typeof body.assignedTo === 'string') {
+      patch.assignedTo = typeof body.assignedTo === 'string' ? body.assignedTo : null;
     }
 
-    const task = await repo.updateStatus(id, status as TaskStatus);
+    const task = await repo.update(id, patch);
     res.json(ok(task, 'Task updated successfully'));
   } catch (err) {
     next(err);

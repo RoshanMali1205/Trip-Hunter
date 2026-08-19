@@ -49,6 +49,7 @@ import {
 } from './modules/bookings/booking.controller.js';
 import {
   createBudgetCategory,
+  deleteBudgetCategory,
   listBudgetCategories,
   updateBudgetCategory,
 } from './modules/budgets/budget.controller.js';
@@ -92,6 +93,15 @@ import {
   listDocuments,
 } from './modules/documents/document.controller.js';
 import { chatWithAdvisor, getAdvisorInfo } from './modules/advisor/advisor.controller.js';
+import {
+  addTeamMember,
+  createTeam,
+  deleteTeam,
+  getTeam,
+  listOrgPeople,
+  listTeams,
+  removeTeamMember,
+} from './modules/teams/team.controller.js';
 import { ok } from './types/api.js';
 
 // Safe to import from Netlify Functions (no import.meta / listen side effects).
@@ -135,6 +145,13 @@ export function createApp() {
   v1.get('/me/expense-summary', authenticate, expenseSummary);
   v1.get('/me/settlements', authenticate, listMySettlements);
   v1.get('/me/activity', authenticate, listRecentActivity);
+  v1.get('/org/members', authenticate, listOrgPeople);
+  v1.get('/teams', authenticate, listTeams);
+  v1.post('/teams', authenticate, createTeam);
+  v1.get('/teams/:id', authenticate, getTeam);
+  v1.delete('/teams/:id', authenticate, deleteTeam);
+  v1.post('/teams/:id/members', authenticate, addTeamMember);
+  v1.delete('/teams/:id/members/:memberId', authenticate, removeTeamMember);
 
   v1.get('/trips', authenticate, listTrips);
   v1.get('/trips/:id', authenticate, getTrip);
@@ -166,6 +183,7 @@ export function createApp() {
   v1.get('/trips/:tripId/budget', authenticate, listBudgetCategories);
   v1.post('/trips/:tripId/budget', authenticate, createBudgetCategory);
   v1.patch('/trips/:tripId/budget/:categoryId', authenticate, updateBudgetCategory);
+  v1.delete('/trips/:tripId/budget/:categoryId', authenticate, deleteBudgetCategory);
   v1.get('/trips/:tripId/expenses', authenticate, listExpenses);
   v1.post('/trips/:tripId/expenses', authenticate, createExpense);
   v1.get('/trips/:tripId/settlements', authenticate, listSettlements);

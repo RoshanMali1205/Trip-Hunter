@@ -206,19 +206,34 @@ export class TaskRepository {
     return task;
   }
 
-  async updateStatus(id: string, status: TaskStatus): Promise<TripTask> {
+  async update(
+    id: string,
+    input: { status?: TaskStatus; assignedTo?: string | null },
+  ): Promise<TripTask> {
     if (assertDbOrMock('tasks') === 'memory') {
       const task = memoryTasks.find((t) => t.id === id);
       if (!task) {
         throw new AppError(404, 'TASK_NOT_FOUND', `Task ${id} was not found`);
       }
-      task.status = status;
+      if (input.status) task.status = input.status;
+      if (input.assignedTo !== undefined) {
+        task.assignedTo = input.assignedTo ?? '';
+        task.assignedToName = input.assignedTo ? 'Teammate' : 'Unassigned';
+      }
       return task;
+    }
+
+    const patch: Record<string, unknown> = {};
+    if (input.status) patch['status'] = STATUS_TO_DB[input.status];
+    if (input.assignedTo !== undefined) patch['assignee_id'] = input.assignedTo || null;
+
+    if (Object.keys(patch).length === 0) {
+      throw new AppError(400, 'VALIDATION_ERROR', 'No task fields to update');
     }
 
     const { data, error } = await getSupabaseAdmin()
       .from('tasks')
-      .update({ status: STATUS_TO_DB[status] })
+      .update(patch)
       .eq('id', id)
       .select(TASK_SELECT)
       .single();

@@ -47,6 +47,10 @@ function optionalDate(value: unknown): string | null | undefined {
   return trimmed ? trimmed : null;
 }
 
+function optionalId(value: unknown): string | null | undefined {
+  return optionalDate(value);
+}
+
 function optionalNumber(value: unknown): number | undefined {
   if (typeof value === 'number' && Number.isFinite(value)) return value;
   if (typeof value === 'string' && value.trim() !== '') {
@@ -107,6 +111,7 @@ export const createTrip: RequestHandler = async (req, res, next) => {
       budgetCents: optionalNumber(body['budgetCents']),
       maxMembers: optionalNumber(body['maxMembers']) ?? null,
       approvalRequired: body['approvalRequired'] === true,
+      teamId: optionalId(body['teamId']),
       createdBy: req.user?.id ?? null,
       createdByName: req.user?.displayName ?? req.user?.email,
     });
@@ -168,6 +173,7 @@ export const updateTrip: RequestHandler = async (req, res, next) => {
           body['maxMembers'] === null
             ? null
             : (optionalNumber(body['maxMembers']) ?? undefined),
+        teamId: body['teamId'] === undefined ? undefined : optionalId(body['teamId']),
       },
       {
         id: req.user?.id ?? '',

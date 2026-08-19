@@ -64,6 +64,7 @@ export interface CreateTripInput {
   budgetCents: number;
   maxMembers?: number | null;
   approvalStatus?: TripApprovalStatus;
+  teamId?: string | null;
   createdBy: string | null;
 }
 
@@ -80,6 +81,7 @@ export interface UpdateTripInput {
   currency?: string;
   budgetCents?: number;
   maxMembers?: number | null;
+  teamId?: string | null;
 }
 
 interface TripRow {
@@ -387,7 +389,7 @@ export class TripRepository {
       const trip: Trip = {
         id: randomUUID(),
         organizationId: input.organizationId,
-        teamId: null,
+        teamId: input.teamId ?? null,
         name: input.name,
         description: input.description,
         destination: input.destination,
@@ -413,6 +415,7 @@ export class TripRepository {
 
     const coreRow = {
       organization_id: input.organizationId,
+      team_id: input.teamId || null,
       name: input.name,
       description: input.description || null,
       destination_summary: input.destination || null,
@@ -509,6 +512,7 @@ export class TripRepository {
         currency: input.currency ?? current.currency,
         budgetCents: input.budgetCents ?? current.budgetCents,
         maxMembers: input.maxMembers !== undefined ? input.maxMembers : current.maxMembers,
+        teamId: input.teamId !== undefined ? input.teamId : current.teamId,
         updatedAt: new Date().toISOString(),
       };
       memoryTrips[index] = updated;
@@ -528,6 +532,7 @@ export class TripRepository {
     if (input.endDate !== undefined) patch['end_date'] = input.endDate;
     if (input.currency !== undefined) patch['currency'] = input.currency;
     if (input.maxMembers !== undefined) patch['max_members'] = input.maxMembers;
+    if (input.teamId !== undefined) patch['team_id'] = input.teamId;
 
     if (Object.keys(patch).length > 0) {
       let { error } = await db.from('trips').update(patch).eq('id', id);
