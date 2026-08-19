@@ -11,6 +11,23 @@
   }
 }
 
+.detail__cover {
+  min-height: clamp(180px, 28vw, 320px);
+  margin: 0 0 1.15rem;
+  border-radius: var(--th-radius-lg);
+  overflow: hidden;
+  background:
+    var(--th-gradient-hero),
+    var(--cover) center/cover no-repeat;
+  box-shadow: var(--th-shadow-sm);
+}
+
+.detail__cover--fallback {
+  background:
+    var(--th-gradient-hero),
+    var(--th-surface-muted);
+}
+
 .detail__header {
   margin-bottom: 1rem;
 }

@@ -1,0 +1,118 @@
+<section class="explore" aria-label="Explore destinations">
+  <header class="hero">
+    <img
+      class="hero__img"
+      [src]="heroImage"
+      fetchpriority="high"
+      alt="Sunlit coastline — Trip Hunter explore"
+    />
+    <div class="hero__veil"></div>
+    <div class="hero__copy">
+      <p class="eyebrow">Trip Hunter · India</p>
+      <h1>The outing,<br />shot like a launch.</h1>
+      <p class="lede">
+        Scroll the film. Destinations load as you go — the same pace as a product page, built for
+        the next team escape.
+      </p>
+    </div>
+    <div class="hero__scroll" aria-hidden="true">
+      <span>Scroll</span>
+      <mat-icon>expand_more</mat-icon>
+    </div>
+  </header>
+
+  <div #pinTrack class="pin">
+    <div class="pin__sticky">
+        @for (stage of pinStages; track stage.kicker; let i = $index) {
+          <img
+            class="pin__img"
+            [class.is-on]="pinStage() === i"
+            [attr.src]="i === 0 ? stage.image : null"
+            [thLazySrc]="stage.image"
+            [alt]="stage.title"
+          />
+        }
+      <div class="pin__veil"></div>
+      <div class="pin__copy">
+        @for (stage of pinStages; track stage.kicker; let i = $index) {
+          <div class="pin__stage" [class.is-on]="pinStage() === i">
+            <p class="eyebrow">{{ stage.kicker }}</p>
+            <h2>{{ stage.title }}</h2>
+            <p>{{ stage.body }}</p>
+          </div>
+        }
+      </div>
+      <div class="pin__dots" aria-hidden="true">
+        @for (stage of pinStages; track stage.kicker; let i = $index) {
+          <i [class.is-on]="pinStage() === i"></i>
+        }
+      </div>
+    </div>
+  </div>
+
+  <section class="intro" thReveal>
+    <p class="eyebrow">A different kind of workspace</p>
+    <h2>Full-bleed frames.<br />Quiet type. No clutter.</h2>
+    <p>
+      The rest of Trip Hunter is the control room — votes, bookings, money. This page is the
+      lookbook: photography first, details on scroll.
+    </p>
+  </section>
+
+  <div class="stories">
+    @for (story of stories(); track story.id; let last = $last) {
+      <article
+        class="story"
+        [class.story--flip]="$index % 2 === 1"
+        thReveal
+        (revealedChange)="onStoryRevealed(last)"
+      >
+        <div class="story__media">
+          <img [thLazySrc]="story.image" [alt]="story.title" />
+        </div>
+        <div class="story__copy">
+          <p class="eyebrow">{{ story.kicker }}</p>
+          <h2>{{ story.title }}</h2>
+          <p>{{ story.body }}</p>
+          @if (story.detail) {
+            <span class="story__tag">{{ story.detail }}</span>
+          }
+        </div>
+      </article>
+    }
+  </div>
+
+  @if (hasMore()) {
+    <p class="loading-hint" thReveal (revealedChange)="loadMore()">Loading the next frame…</p>
+  }
+
+  <section class="strip-wrap" thReveal>
+    <p class="eyebrow">Texture</p>
+    <h2>A strip of the year ahead.</h2>
+    <div class="strip" tabindex="0" aria-label="Destination filmstrip">
+      @for (frame of filmstrip; track frame.label) {
+        <figure>
+          <img [thLazySrc]="frame.image" [alt]="frame.label" />
+          <figcaption>{{ frame.label }}</figcaption>
+        </figure>
+      }
+    </div>
+  </section>
+
+  <footer class="cta">
+    <img
+      class="cta__img"
+      thLazySrc="https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=1800&q=80"
+      alt="Mountain lake at dusk"
+    />
+    <div class="cta__copy">
+      <p class="eyebrow">Ready when you are</p>
+      <h2>Turn a still into a trip.</h2>
+      <p>Pick a place, invite the team, and let the rest of the product handle the boring parts.</p>
+      <div class="cta__actions">
+        <app-button routerLink="/trips/create">Create a trip</app-button>
+        <app-button variant="ghost-inverted" routerLink="/trips">My trips</app-button>
+      </div>
+    </div>
+  </footer>
+</section>

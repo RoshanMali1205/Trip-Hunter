@@ -17,6 +17,7 @@
           <mat-icon>add</mat-icon>
           New trip
         </app-button>
+        <app-button variant="ghost-inverted" routerLink="/explore">Watch the film</app-button>
       </div>
     </div>
 
@@ -191,13 +192,11 @@
       <h2>Recommended for your team</h2>
       <p>Inspiration boards for the next outing vote.</p>
     </div>
+    <app-button variant="secondary" size="sm" routerLink="/explore">Open lookbook</app-button>
   </div>
   <div class="inspire-grid">
     @for (tile of inspirationTiles; track tile.label) {
-      <article class="inspire-tile" [style.--tile-image]="'url(' + tile.imageUrl + ')'">
-        <button type="button" class="heart" aria-label="Save inspiration">
-          <mat-icon>favorite_border</mat-icon>
-        </button>
+      <a class="inspire-tile" routerLink="/explore" [style.--tile-image]="'url(' + tile.imageUrl + ')'">
         <div class="inspire-tile__body">
           <span class="inspire-tile__label">{{ tile.label }}</span>
           <p>{{ tile.caption }}</p>
@@ -206,9 +205,26 @@
             <em><mat-icon>star</mat-icon>{{ tile.rating }}</em>
           </div>
         </div>
-      </article>
+      </a>
     }
   </div>
+
+  <section class="lookbook" thReveal>
+    <div class="lookbook__copy">
+      <p class="lookbook__brand">Lookbook</p>
+      <h2>Destinations, loaded as you scroll.</h2>
+      <p>
+        A full-bleed film of India team outings — sticky frames, new stills on the way down, the
+        same rhythm as a product launch page.
+      </p>
+      <app-button routerLink="/explore">Enter Explore</app-button>
+    </div>
+    <div class="lookbook__stills">
+      @for (still of lookbookStills; track still.alt) {
+        <img [thLazySrc]="still.src" [alt]="still.alt" />
+      }
+    </div>
+  </section>
 
   <div class="section-head">
     <h2>Recent activity</h2>

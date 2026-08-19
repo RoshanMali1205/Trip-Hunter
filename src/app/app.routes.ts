@@ -47,6 +47,11 @@ export const routes: Routes = [
           import('./features/profile/pages/profile/profile.page').then((m) => m.ProfilePage),
       },
       {
+        path: 'explore',
+        loadComponent: () =>
+          import('./features/explore/explore.page').then((m) => m.ExplorePage),
+      },
+      {
         path: 'calendar',
         loadComponent: () =>
           import('./features/misc/pages/calendar/calendar.page').then((m) => m.CalendarPage),

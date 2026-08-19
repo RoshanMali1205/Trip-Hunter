@@ -532,17 +532,20 @@
 
 .inspire-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.9rem;
   margin-bottom: 1.75rem;
 }
 
 .inspire-tile {
   position: relative;
+  display: block;
   min-height: 220px;
   border-radius: var(--th-radius-lg);
   overflow: hidden;
   border: 1px solid var(--th-border);
+  color: white;
+  text-decoration: none;
   background:
     linear-gradient(180deg, transparent 30%, rgba(15, 18, 28, 0.78)),
     var(--tile-image) center/cover no-repeat;
@@ -596,6 +599,80 @@
       width: 15px;
       height: 15px;
       color: #fbbf24;
+    }
+  }
+}
+
+.lookbook {
+  display: grid;
+  gap: 1.25rem;
+  margin: 0 0 2rem;
+  padding: 1.25rem;
+  border-radius: calc(var(--th-radius-lg) + 4px);
+  overflow: hidden;
+  color: white;
+  background: #0b0e14;
+  box-shadow: var(--th-shadow);
+
+  @media (min-width: 900px) {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    align-items: center;
+    min-height: 360px;
+    padding: 0;
+  }
+}
+
+.lookbook__copy {
+  padding: 0.25rem 0.35rem;
+
+  @media (min-width: 900px) {
+    padding: 2rem 2.25rem;
+  }
+}
+
+.lookbook__brand {
+  margin: 0 0 0.55rem;
+  font-family: var(--th-font-display);
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #ffc9a3;
+}
+
+.lookbook h2 {
+  margin: 0;
+  font-size: clamp(1.55rem, 3vw, 2.2rem);
+  letter-spacing: -0.03em;
+  line-height: 1.12;
+}
+
+.lookbook p {
+  margin: 0.7rem 0 1.15rem;
+  max-width: 40ch;
+  color: rgba(255, 255, 255, 0.75);
+  line-height: 1.5;
+}
+
+.lookbook__stills {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.45rem;
+  min-height: 220px;
+
+  img {
+    width: 100%;
+    height: 100%;
+    min-height: 180px;
+    object-fit: cover;
+    background: #161a22;
+  }
+
+  @media (min-width: 900px) {
+    min-height: 360px;
+
+    img {
+      min-height: 360px;
     }
   }
 }

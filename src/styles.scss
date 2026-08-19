@@ -307,3 +307,24 @@ input[type='search'] {
     transform: translateX(0);
   }
 }
+
+.th-reveal {
+  opacity: 0;
+  transform: translateY(36px);
+  transition:
+    opacity 0.9s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+
+  &.is-revealed {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .th-reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
