@@ -81,91 +81,95 @@ begin
 end;
 $$;
 
-select public.th_policy_all(
-  'teams', 'teams_org_member',
-  'public.is_org_member(organization_id)'
-);
-select public.th_policy_all(
-  'team_members', 'team_members_org_member',
-  'exists (select 1 from public.teams t where t.id = team_id and public.is_org_member(t.organization_id))'
-);
-select public.th_policy_all(
-  'trips', 'trips_org_member',
-  'public.is_org_member(organization_id)'
-);
-select public.th_policy_all(
-  'trip_members', 'trip_members_trip_access',
-  'public.can_access_trip(trip_id)'
-);
-select public.th_policy_all(
-  'availability', 'availability_trip_access',
-  'public.can_access_trip(trip_id)'
-);
-select public.th_policy_all(
-  'availability_options', 'availability_options_trip_access',
-  'public.can_access_trip(trip_id)'
-);
-select public.th_policy_all(
-  'destinations', 'destinations_trip_access',
-  'public.can_access_trip(trip_id)'
-);
-select public.th_policy_all(
-  'itinerary_items', 'itinerary_items_trip_access',
-  'public.can_access_trip(trip_id)'
-);
-select public.th_policy_all(
-  'bookings', 'bookings_trip_access',
-  'public.can_access_trip(trip_id)'
-);
-select public.th_policy_all(
-  'budgets', 'budgets_trip_access',
-  'public.can_access_trip(trip_id)'
-);
-select public.th_policy_all(
-  'budget_categories', 'budget_categories_trip_access',
-  'exists (select 1 from public.budgets b where b.id = budget_id and public.can_access_trip(b.trip_id))'
-);
-select public.th_policy_all(
-  'expenses', 'expenses_trip_access',
-  'public.can_access_trip(trip_id)'
-);
-select public.th_policy_all(
-  'expense_splits', 'expense_splits_trip_access',
-  'exists (select 1 from public.expenses e where e.id = expense_id and public.can_access_trip(e.trip_id))'
-);
-select public.th_policy_all(
-  'tasks', 'tasks_trip_access',
-  'public.can_access_trip(trip_id)'
-);
-select public.th_policy_all(
-  'documents', 'documents_trip_access',
-  'public.can_access_trip(trip_id)'
-);
-select public.th_policy_all(
-  'approvals', 'approvals_trip_access',
-  'public.can_access_trip(trip_id)'
-);
-select public.th_policy_all(
-  'comments', 'comments_trip_access',
-  'public.can_access_trip(trip_id)'
-);
-select public.th_policy_all(
-  'settlement_payments', 'settlement_payments_trip_access',
-  'public.can_access_trip(trip_id)'
-);
-select public.th_policy_all(
-  'trip_email_invites', 'trip_email_invites_trip_access',
-  'public.can_access_trip(trip_id)'
-);
-select public.th_policy_all(
-  'activity_logs', 'activity_logs_org_or_trip',
-  'public.is_org_member(organization_id) or public.can_access_trip(trip_id)'
-);
-select public.th_policy_all(
-  'destination_votes', 'destination_votes_trip_access',
-  'public.can_access_trip(trip_id)',
-  'public.can_access_trip(trip_id) and user_id = auth.uid()'
-);
+-- PERFORM (not SELECT) so the SQL Editor does not show a void column named th_policy_all.
+do $$
+begin
+  perform public.th_policy_all(
+    'teams', 'teams_org_member',
+    'public.is_org_member(organization_id)'
+  );
+  perform public.th_policy_all(
+    'team_members', 'team_members_org_member',
+    'exists (select 1 from public.teams t where t.id = team_id and public.is_org_member(t.organization_id))'
+  );
+  perform public.th_policy_all(
+    'trips', 'trips_org_member',
+    'public.is_org_member(organization_id)'
+  );
+  perform public.th_policy_all(
+    'trip_members', 'trip_members_trip_access',
+    'public.can_access_trip(trip_id)'
+  );
+  perform public.th_policy_all(
+    'availability', 'availability_trip_access',
+    'public.can_access_trip(trip_id)'
+  );
+  perform public.th_policy_all(
+    'availability_options', 'availability_options_trip_access',
+    'public.can_access_trip(trip_id)'
+  );
+  perform public.th_policy_all(
+    'destinations', 'destinations_trip_access',
+    'public.can_access_trip(trip_id)'
+  );
+  perform public.th_policy_all(
+    'itinerary_items', 'itinerary_items_trip_access',
+    'public.can_access_trip(trip_id)'
+  );
+  perform public.th_policy_all(
+    'bookings', 'bookings_trip_access',
+    'public.can_access_trip(trip_id)'
+  );
+  perform public.th_policy_all(
+    'budgets', 'budgets_trip_access',
+    'public.can_access_trip(trip_id)'
+  );
+  perform public.th_policy_all(
+    'budget_categories', 'budget_categories_trip_access',
+    'exists (select 1 from public.budgets b where b.id = budget_id and public.can_access_trip(b.trip_id))'
+  );
+  perform public.th_policy_all(
+    'expenses', 'expenses_trip_access',
+    'public.can_access_trip(trip_id)'
+  );
+  perform public.th_policy_all(
+    'expense_splits', 'expense_splits_trip_access',
+    'exists (select 1 from public.expenses e where e.id = expense_id and public.can_access_trip(e.trip_id))'
+  );
+  perform public.th_policy_all(
+    'tasks', 'tasks_trip_access',
+    'public.can_access_trip(trip_id)'
+  );
+  perform public.th_policy_all(
+    'documents', 'documents_trip_access',
+    'public.can_access_trip(trip_id)'
+  );
+  perform public.th_policy_all(
+    'approvals', 'approvals_trip_access',
+    'public.can_access_trip(trip_id)'
+  );
+  perform public.th_policy_all(
+    'comments', 'comments_trip_access',
+    'public.can_access_trip(trip_id)'
+  );
+  perform public.th_policy_all(
+    'settlement_payments', 'settlement_payments_trip_access',
+    'public.can_access_trip(trip_id)'
+  );
+  perform public.th_policy_all(
+    'trip_email_invites', 'trip_email_invites_trip_access',
+    'public.can_access_trip(trip_id)'
+  );
+  perform public.th_policy_all(
+    'activity_logs', 'activity_logs_org_or_trip',
+    'public.is_org_member(organization_id) or public.can_access_trip(trip_id)'
+  );
+  perform public.th_policy_all(
+    'destination_votes', 'destination_votes_trip_access',
+    'public.can_access_trip(trip_id)',
+    'public.can_access_trip(trip_id) and user_id = auth.uid()'
+  );
+end $$;
 
 -- Inbox is per user, not per trip.
 do $$
@@ -187,3 +191,9 @@ end $$;
 drop function if exists public.th_policy_all(text, text, text, text);
 
 notify pgrst, 'reload schema';
+
+-- What the SQL Editor should show: policy names, not a void `th_policy_all` column.
+select tablename, policyname
+from pg_policies
+where schemaname = 'public'
+order by 1, 2;
