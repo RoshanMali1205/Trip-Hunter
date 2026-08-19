@@ -1,13 +1,21 @@
 -- 019_rls_org_trip_policies.sql
 -- Policies for tables that 018 put behind RLS.
 --
--- RLS without a policy = deny for `anon` / `authenticated`.
--- The Express API still uses the service-role key (bypasses RLS).
--- These policies are defense in depth for PostgREST + the user's JWT:
---   org members see their org's teams/trips; trip/org members see trip rows;
---   notifications are own-row only.
+-- RLS without a policy = deny for `anon` / `authenticated`. Enabling RLS
+-- (018) without this file locks PostgREST; always apply 018 and 019 together.
 --
--- Idempotent. Safe if some tables are missing. Apply after 017 (and 018).
+-- Policy model (defense in depth; Express + service-role still does real authz):
+--   org member  → teams, team_members, trips in that organization
+--   org member of the trip's org → trip-scoped rows (availability, bookings, …)
+--   own user_id → notifications; destination_votes writes
+-- Profiles / organizations / org_members stay on the 006 policies.
+-- destination_votes already had SELECT-own in 007; this adds trip-wide read
+-- and own-row write.
+--
+-- Helpers are SECURITY DEFINER so policy checks do not recurse through RLS.
+-- Do not FORCE ROW LEVEL SECURITY (would affect table owners / SQL Editor).
+--
+-- Idempotent. Safe if some tables are missing. Apply after 017 and 018.
 
 create or replace function public.is_org_member(p_org_id uuid)
 returns boolean
