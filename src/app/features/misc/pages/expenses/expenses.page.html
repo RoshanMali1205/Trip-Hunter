@@ -12,15 +12,15 @@
       <div class="th-hero-backdrop__stats">
         <article class="th-stat-glass">
           <span class="label">You paid</span>
-          <strong>{{ summary.youPaid | inr }}</strong>
+          <strong>{{ summary().youPaid | inr }}</strong>
         </article>
         <article class="th-stat-glass">
           <span class="label">Your share</span>
-          <strong>{{ summary.yourShare | inr }}</strong>
+          <strong>{{ summary().yourShare | inr }}</strong>
         </article>
         <article class="th-stat-glass">
           <span class="label">You receive</span>
-          <strong>{{ summary.youReceive | inr }}</strong>
+          <strong>{{ summary().youReceive | inr }}</strong>
         </article>
       </div>
     </div>
@@ -28,13 +28,47 @@
 
   <div class="th-page-body">
     <div class="th-panel settle">
-      <h2>Settlement</h2>
-      <p class="settle-sub">Who owes whom across your active trips.</p>
+      <h2>Open settlements</h2>
+      <p class="settle-sub">Who owes whom across your trips. Mark a line paid when money has changed hands.</p>
       <ul>
-        <li><span>Rahul owes Roshan</span><strong>₹2,450</strong></li>
-        <li><span>Amit owes Roshan</span><strong>₹1,800</strong></li>
-        <li><span>Roshan owes Mayuri</span><strong>₹750</strong></li>
+        @for (line of openSettlements(); track line.tripId + line.fromUserId + line.toUserId) {
+          <li>
+            <div>
+              <span>{{ line.message }}</span>
+              @if (line.tripName) {
+                <small>
+                  <a [routerLink]="['/trips', line.tripId, 'expenses']">{{ line.tripName }}</a>
+                </small>
+              }
+            </div>
+            <div class="line-actions">
+              <strong>{{ line.amount | inr: line.currency }}</strong>
+              <app-button variant="link" size="sm" (click)="markPaid(line)">Mark paid</app-button>
+            </div>
+          </li>
+        } @empty {
+          <li class="empty">No open balances — you're all settled.</li>
+        }
       </ul>
     </div>
+
+    @if (paidSettlements().length) {
+      <div class="th-panel settle paid">
+        <h2>Paid</h2>
+        <ul>
+          @for (line of paidSettlements(); track line.tripId + line.fromUserId + line.toUserId + 'paid') {
+            <li>
+              <div>
+                <span>{{ line.message }}</span>
+                @if (line.tripName) {
+                  <small>{{ line.tripName }}</small>
+                }
+              </div>
+              <em class="th-pill th-pill--muted">Paid</em>
+            </li>
+          }
+        </ul>
+      </div>
+    }
   </div>
 </section>

@@ -22,12 +22,12 @@ Trip tabs and the dashboard talk to the live `/api/v1` API (not a stub). With Su
 |------|----------------|
 | Auth | Email sign-in / sign-up, optional profile photo + phone, Azure OAuth hook |
 | Trips | List, create, edit, delete; origin, dates, budget, approval status |
-| Members | Invite by existing account email, accept/decline, owner can remove |
-| Polls | Destination + availability options, votes, destination photo cards |
-| Itinerary | Add and delete day items |
-| Bookings | Add and delete (hotel, flight, bus, etc.) |
+| Members | Invite by email (existing account or pending signup), accept/decline/maybe, owner can remove |
+| Polls | Destination + availability options, votes, destination photo cards, owner can lock winner |
+| Itinerary | Add, edit, and delete day items |
+| Bookings | Add, edit, and delete (hotel, flight, bus, etc.) |
 | Budget | Categories create / update |
-| Expenses | Create, status, splits, trip-level who-owes-whom |
+| Expenses | Create, status, splits, trip-level who-owes-whom, mark settlement paid |
 | Tasks | Create, list, cycle status (trip tab + `/tasks`) |
 | Approvals | Pending list, approve / reject |
 | Documents | Upload / list / delete (Storage bucket `trip-documents`) |
@@ -39,9 +39,7 @@ Trip tabs and the dashboard talk to the live `/api/v1` API (not a stub). With Su
 
 ### Known gaps
 
-- Global `/expenses` settlement list is still hardcoded (trip Expenses tab is live)
-- Bookings and itinerary have create + delete, not edit (`PATCH`)
-- Settlements are computed, not recorded as paid
+- Settlements can be marked paid, but there is no bank/UPI transfer integration
 - Teams table exists; no team UI
 - Calendar highlights trip start dates in the current month only
 - Notifications are in-app only (schema allows email / push)
@@ -113,7 +111,7 @@ Copy `.env.example` → `.env`. Never commit secrets. Never put `SUPABASE_SERVIC
 
 ## Database
 
-SQL lives in `supabase/migrations/` (`001`–`016`). Apply in order (`supabase db push` or the SQL editor).
+SQL lives in `supabase/migrations/` (`001`–`017`). Apply in order (`supabase db push` or the SQL editor).
 
 On an existing project, confirm these are applied:
 
@@ -124,6 +122,7 @@ On an existing project, confirm these are applied:
 | `014_avatar_remove_size_limit.sql` | Remove avatars bucket size cap |
 | `015_backfill_org_membership.sql` | Profiles + org membership for accounts that cannot create trips |
 | `016_ensure_trip_meta_reload_schema.sql` | Re-add 012 columns if missing and reload the PostgREST schema cache |
+| `017_pending_workflows.sql` | Settlement payments, email invites before signup, lock poll dates |
 
 Details: [docs/api/nodejs-db-integration.md](docs/api/nodejs-db-integration.md), [docs/api/auth-login-signup.md](docs/api/auth-login-signup.md).
 
@@ -150,7 +149,7 @@ Details: [docs/api/nodejs-db-integration.md](docs/api/nodejs-db-integration.md),
 | `/profile` | Name, phone, avatar |
 | `/calendar` | Month grid of trip start dates |
 | `/tasks` | Tasks across trips |
-| `/expenses` | Org expense summary (settlement list still sample data) |
+| `/expenses` | Org expense summary and live settlements (mark paid) |
 
 ## API
 
@@ -193,7 +192,7 @@ Netlify serves the Angular build and runs the **same Express app** as Functions 
 
 1. Connect this repo to [Netlify](https://app.netlify.com) (build uses `netlify.toml` / `scripts/netlify-build.sh`).
 2. Set `SUPABASE_URL`, `SUPABASE_PUBLIC_KEY`, `SUPABASE_SERVICE_ROLE_KEY`. Optional: `GEMINI_API_KEY`.
-3. Apply migrations `001`–`014` on the Supabase project.
+3. Apply migrations `001`–`017` on the Supabase project.
 4. Add Auth redirect URL `https://YOUR_SITE.netlify.app/auth/callback`.
 
 Step-by-step: [docs/api/free-live-hosting.md](docs/api/free-live-hosting.md). PWA notes: [docs/api/pwa.md](docs/api/pwa.md).

@@ -52,6 +52,7 @@ Mounted in `server/src/index.ts`.
 | `GET` | `/api/v1/me/invites` | Yes | Pending trip invites |
 | `GET` | `/api/v1/me/approvals` | Yes | Pending org approvals |
 | `GET` | `/api/v1/me/expense-summary` | Yes | Paid / share / receive totals |
+| `GET` | `/api/v1/me/settlements` | Yes | Org-wide who-owes-whom, including paid |
 | `GET` | `/api/v1/me/activity` | Yes | Recent org activity |
 
 ### Trips
@@ -80,9 +81,11 @@ Mounted in `server/src/index.ts`.
 | `GET` | `/api/v1/trips/:tripId/availability` | Yes | Date options |
 | `POST` | `/api/v1/trips/:tripId/availability` | Yes | Add date option |
 | `POST` | `/api/v1/trips/:tripId/availability/vote` | Yes | Cast availability vote |
+| `POST` | `/api/v1/trips/:tripId/availability/select` | Yes | Owner locks trip dates from a poll option |
 | `GET` | `/api/v1/trips/:tripId/destinations` | Yes | Destination options |
 | `POST` | `/api/v1/trips/:tripId/destinations` | Yes | Add destination |
 | `POST` | `/api/v1/trips/:tripId/destinations/:destinationId/vote` | Yes | Vote for a destination |
+| `POST` | `/api/v1/trips/:tripId/destinations/:destinationId/select` | Yes | Owner locks the destination |
 | `GET` | `/api/v1/trips/:tripId/votes/me` | Yes | Current user’s votes |
 
 ### Itinerary and bookings
@@ -91,12 +94,12 @@ Mounted in `server/src/index.ts`.
 | --- | --- | --- | --- |
 | `GET` | `/api/v1/trips/:tripId/itinerary` | Yes | List items |
 | `POST` | `/api/v1/trips/:tripId/itinerary` | Yes | Create item |
+| `PATCH` | `/api/v1/trips/:tripId/itinerary/:id` | Yes | Update item |
 | `DELETE` | `/api/v1/trips/:tripId/itinerary/:id` | Yes | Delete item |
 | `GET` | `/api/v1/trips/:tripId/bookings` | Yes | List bookings |
 | `POST` | `/api/v1/trips/:tripId/bookings` | Yes | Create booking |
+| `PATCH` | `/api/v1/trips/:tripId/bookings/:id` | Yes | Update booking |
 | `DELETE` | `/api/v1/trips/:tripId/bookings/:id` | Yes | Delete booking |
-
-There is no `PATCH` for itinerary or bookings yet.
 
 ### Budget, expenses, settlements
 
@@ -108,9 +111,10 @@ There is no `PATCH` for itinerary or bookings yet.
 | `GET` | `/api/v1/trips/:tripId/expenses` | Yes | List expenses |
 | `POST` | `/api/v1/trips/:tripId/expenses` | Yes | Create (with splits) |
 | `PATCH` | `/api/v1/expenses/:id` | Yes | Update expense status |
-| `GET` | `/api/v1/trips/:tripId/settlements` | Yes | Computed who-owes-whom |
+| `GET` | `/api/v1/trips/:tripId/settlements` | Yes | Computed who-owes-whom (minus recorded payments) |
+| `POST` | `/api/v1/trips/:tripId/settlements/pay` | Yes | Mark a pair as paid |
 
-Settlements are derived from expenses; they are not stored or marked paid.
+Settlements are derived from approved expenses. Payments are stored in `settlement_payments` (migration 017).
 
 ### Tasks, approvals, activity, comments, documents
 
@@ -142,12 +146,13 @@ Settlements are derived from expenses; they are not stored or marked paid.
 
 ## Migrations the API expects
 
-Apply `supabase/migrations/` in order (`001`–`016`). On an existing project, these are the later ones that trip features depend on:
+Apply `supabase/migrations/` in order (`001`–`017`). On an existing project, these are the later ones that trip features depend on:
 
 - `012_trip_meta_fields.sql` — origin / trip type / max members / approval status
 - `013_trip_documents_storage.sql` — `trip-documents` Storage bucket
 - `014_avatar_remove_size_limit.sql` — remove avatars bucket size cap
 - `015_backfill_org_membership.sql` — backfill profile + org membership so existing users can create trips
 - `016_ensure_trip_meta_reload_schema.sql` — ensure 012 columns exist and reload PostgREST schema cache
+- `017_pending_workflows.sql` — settlement payments, email invites before signup, lock poll dates
 
 See also [nodejs-db-integration.md](nodejs-db-integration.md) and [auth-login-signup.md](auth-login-signup.md).

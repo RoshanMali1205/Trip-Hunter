@@ -46,7 +46,9 @@ import {
   CreateTaskPayload,
   CreateTripPayload,
   TripApiService,
+  UpdateBookingPayload,
   UpdateBudgetCategoryPayload,
+  UpdateItineraryItemPayload,
   UpdateTripPayload,
 } from './trip-api.service';
 import { NotificationApiService } from './notification-api.service';
@@ -119,6 +121,7 @@ function mapMember(api: ApiTripMember): TripMember {
     role: MEMBER_ROLE_MAP[api.role],
     inviteStatus: MEMBER_INVITE_MAP[api.rsvpStatus],
     attendanceStatus: MEMBER_ATTENDANCE_MAP[api.rsvpStatus],
+    pendingSignup: api.pendingSignup,
   };
 }
 
@@ -170,6 +173,7 @@ export class TripStore {
   private readonly budgetByTrip = signal<Record<string, BudgetCategory[]>>({});
   private readonly expensesByTrip = signal<Record<string, Expense[]>>({});
   private readonly settlementsByTrip = signal<Record<string, ApiSettlement[]>>({});
+  private readonly orgSettlementsSignal = signal<ApiSettlement[]>([]);
   private readonly activityByTrip = signal<Record<string, ApiActivity[]>>({});
   private readonly documentsByTrip = signal<Record<string, ApiDocument[]>>({});
   private readonly commentsByTrip = signal<Record<string, ApiComment[]>>({});
@@ -198,6 +202,7 @@ export class TripStore {
     void this.loadPendingApprovals();
     void this.loadRecentActivity();
     void this.loadExpenseSummary();
+    void this.loadOrgSettlements();
   }
 
   private mapApiTrip(api: ApiTrip): Trip {
@@ -367,6 +372,16 @@ export class TripStore {
     await this.loadAvailability(tripId);
   }
 
+  async selectAvailabilityOption(tripId: string, startDate: string, endDate: string): Promise<void> {
+    await firstValueFrom(this.tripApi.selectAvailabilityOption(tripId, startDate, endDate));
+    await Promise.all([this.loadAvailability(tripId), this.loadTrips()]);
+  }
+
+  async selectDestination(tripId: string, destinationId: string): Promise<void> {
+    await firstValueFrom(this.tripApi.selectDestination(tripId, destinationId));
+    await Promise.all([this.loadDestinations(tripId), this.loadTrips()]);
+  }
+
   getMyVotes(tripId: string): ApiMyVotes {
     return this.myVotesByTrip()[tripId] ?? { availability: {}, destinationId: null };
   }
@@ -402,6 +417,15 @@ export class TripStore {
     await this.loadItinerary(tripId);
   }
 
+  async updateItineraryItem(
+    tripId: string,
+    itemId: string,
+    payload: UpdateItineraryItemPayload,
+  ): Promise<void> {
+    await firstValueFrom(this.tripApi.updateItineraryItem(tripId, itemId, payload));
+    await this.loadItinerary(tripId);
+  }
+
   async deleteItineraryItem(tripId: string, itemId: string): Promise<void> {
     await firstValueFrom(this.tripApi.deleteItineraryItem(tripId, itemId));
     await this.loadItinerary(tripId);
@@ -418,6 +442,11 @@ export class TripStore {
 
   async addBooking(tripId: string, payload: CreateBookingPayload): Promise<void> {
     await firstValueFrom(this.tripApi.createBooking(tripId, payload));
+    await this.loadBookings(tripId);
+  }
+
+  async updateBooking(tripId: string, bookingId: string, payload: UpdateBookingPayload): Promise<void> {
+    await firstValueFrom(this.tripApi.updateBooking(tripId, bookingId, payload));
     await this.loadBookings(tripId);
   }
 
@@ -463,6 +492,7 @@ export class TripStore {
     await Promise.all([
       this.loadExpenses(tripId),
       this.loadSettlements(tripId),
+      this.loadOrgSettlements(),
       this.loadTrips(),
       this.loadExpenseSummary(),
       this.loadRecentActivity(),
@@ -474,6 +504,7 @@ export class TripStore {
     await Promise.all([
       this.loadExpenses(tripId),
       this.loadSettlements(tripId),
+      this.loadOrgSettlements(),
       this.loadTrips(),
       this.loadExpenseSummary(),
     ]);
@@ -490,6 +521,27 @@ export class TripStore {
     } catch {
       this.settlementsByTrip.update((s) => ({ ...s, [tripId]: [] }));
     }
+  }
+
+  getOrgSettlements(): ApiSettlement[] {
+    return this.orgSettlementsSignal();
+  }
+
+  async loadOrgSettlements(): Promise<void> {
+    try {
+      const settlements = await firstValueFrom(this.tripApi.mySettlements());
+      this.orgSettlementsSignal.set(settlements);
+    } catch {
+      this.orgSettlementsSignal.set([]);
+    }
+  }
+
+  async markSettlementPaid(tripId: string, fromUserId: string, toUserId: string): Promise<void> {
+    const settlements = await firstValueFrom(
+      this.tripApi.markSettlementPaid(tripId, fromUserId, toUserId),
+    );
+    this.settlementsByTrip.update((s) => ({ ...s, [tripId]: settlements }));
+    await this.loadOrgSettlements();
   }
 
   getTasks(tripId?: string): TripTask[] {

@@ -65,6 +65,67 @@ export const createBooking: RequestHandler = async (req, res, next) => {
   }
 };
 
+export const updateBooking: RequestHandler = async (req, res, next) => {
+  try {
+    const tripId = String(req.params['tripId']);
+    const id = String(req.params['id']);
+    const body = req.body as {
+      bookingType?: unknown;
+      provider?: unknown;
+      bookingReference?: unknown;
+      amount?: unknown;
+      currency?: unknown;
+      startDatetime?: unknown;
+      endDatetime?: unknown;
+      status?: unknown;
+    };
+
+    const patch: Parameters<BookingRepository['update']>[2] = {};
+    if (typeof body.bookingType === 'string') {
+      if (!VALID_TYPES.includes(body.bookingType as CreateBookingInput['bookingType'])) {
+        throw new AppError(400, 'VALIDATION_ERROR', `bookingType must be one of ${VALID_TYPES.join(', ')}`);
+      }
+      patch.bookingType = body.bookingType as CreateBookingInput['bookingType'];
+    }
+    if (typeof body.provider === 'string') {
+      if (!body.provider.trim()) {
+        throw new AppError(400, 'VALIDATION_ERROR', 'provider cannot be empty');
+      }
+      patch.provider = body.provider.trim();
+    }
+    if (typeof body.bookingReference === 'string') {
+      patch.bookingReference = body.bookingReference.trim();
+    }
+    if (typeof body.amount === 'number') {
+      if (body.amount < 0) {
+        throw new AppError(400, 'VALIDATION_ERROR', 'amount must be a non-negative number');
+      }
+      patch.amountCents = Math.round(body.amount * 100);
+    }
+    if (typeof body.currency === 'string' && body.currency) {
+      patch.currency = body.currency;
+    }
+    if (body.startDatetime === null || typeof body.startDatetime === 'string') {
+      patch.startDatetime = typeof body.startDatetime === 'string' && body.startDatetime ? body.startDatetime : null;
+    }
+    if (body.endDatetime === null || typeof body.endDatetime === 'string') {
+      patch.endDatetime = typeof body.endDatetime === 'string' && body.endDatetime ? body.endDatetime : null;
+    }
+    if (typeof body.status === 'string') {
+      const status = body.status.toUpperCase();
+      if (status !== 'CONFIRMED' && status !== 'PENDING' && status !== 'CANCELLED') {
+        throw new AppError(400, 'VALIDATION_ERROR', 'status must be CONFIRMED, PENDING, or CANCELLED');
+      }
+      patch.status = status as 'CONFIRMED' | 'PENDING' | 'CANCELLED';
+    }
+
+    const booking = await repo.update(tripId, id, patch);
+    res.json(ok(booking, 'Booking updated successfully'));
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const deleteBooking: RequestHandler = async (req, res, next) => {
   try {
     const tripId = String(req.params['tripId']);

@@ -61,6 +61,7 @@ export interface TripMember {
   role: 'ORGANIZER' | 'MEMBER' | 'VIEWER';
   inviteStatus: 'INVITED' | 'ACCEPTED' | 'DECLINED' | 'MAYBE';
   attendanceStatus: 'PENDING' | 'CONFIRMED' | 'DECLINED';
+  pendingSignup?: boolean;
 }
 
 export interface AvailabilityOption {
@@ -72,6 +73,7 @@ export interface AvailabilityOption {
   maybeCount: number;
   notAvailableCount: number;
   totalVotes: number;
+  isSelected?: boolean;
 }
 
 export interface DestinationOption {
@@ -84,6 +86,7 @@ export interface DestinationOption {
   estimatedCost: number;
   voteCount: number;
   imageUrl?: string;
+  isSelected?: boolean;
 }
 
 export interface ItineraryItem {

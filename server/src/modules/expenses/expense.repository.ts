@@ -27,6 +27,31 @@ export interface SettlementLine {
   amount: number;
   currency: string;
   message: string;
+  tripId?: string;
+  tripName?: string;
+  paid: boolean;
+}
+
+export interface RecordPaymentInput {
+  tripId: string;
+  organizationId?: string | null;
+  fromUserId: string;
+  toUserId: string;
+  recordedBy: string | null;
+}
+
+interface SettlementPaymentRow {
+  trip_id: string;
+  from_user_id: string;
+  to_user_id: string;
+  amount_cents: number;
+}
+
+interface MemoryPayment {
+  tripId: string;
+  fromUserId: string;
+  toUserId: string;
+  amountCents: number;
 }
 
 export interface ExpenseSummary {
@@ -67,6 +92,7 @@ const STATUS_MAP: Record<ExpenseRow['status'], ExpenseStatus> = {
 
 const memoryExpenses: Expense[] = [];
 const memorySplits = new Map<string, { userId: string; name: string; shareCents: number }[]>();
+const memoryPayments: MemoryPayment[] = [];
 
 function mapRow(row: ExpenseRow): Expense {
   return {
@@ -150,6 +176,7 @@ function settleBalances(
       amount,
       currency,
       message: `${d.name} owes ${c.name} ₹${amount.toLocaleString('en-IN')}`,
+      paid: false,
     });
     d.cents -= amountCents;
     c.cents -= amountCents;
@@ -157,6 +184,47 @@ function settleBalances(
     if (c.cents <= 1) j += 1;
   }
   return lines;
+}
+
+function paymentKey(tripId: string, fromUserId: string, toUserId: string): string {
+  return `${tripId}:${fromUserId}:${toUserId}`;
+}
+
+function applyPayments(
+  lines: SettlementLine[],
+  payments: MemoryPayment[],
+  tripId: string,
+  tripName?: string,
+): SettlementLine[] {
+  const paidCents = new Map<string, number>();
+  for (const payment of payments) {
+    const key = paymentKey(payment.tripId, payment.fromUserId, payment.toUserId);
+    paidCents.set(key, (paidCents.get(key) ?? 0) + payment.amountCents);
+  }
+
+  return lines.map((line) => {
+    const remainingCents = Math.max(
+      0,
+      Math.round(line.amount * 100) -
+        (paidCents.get(paymentKey(tripId, line.fromUserId, line.toUserId)) ?? 0),
+    );
+    const paid = remainingCents <= 1;
+    const amount = paid ? line.amount : remainingCents / 100;
+    return {
+      ...line,
+      tripId,
+      tripName,
+      amount,
+      paid,
+      message: paid
+        ? `${line.fromName} settled with ${line.toName}`
+        : `${line.fromName} owes ${line.toName} ₹${amount.toLocaleString('en-IN')}`,
+    };
+  });
+}
+
+function isMissingSettlementTable(message: string): boolean {
+  return /settlement_payments/i.test(message) && /does not exist|schema cache/i.test(message);
 }
 
 export class ExpenseRepository {
@@ -294,7 +362,76 @@ export class ExpenseRepository {
     return mapRow(data as unknown as ExpenseRow);
   }
 
-  async settlementsForTrip(tripId: string): Promise<SettlementLine[]> {
+  async settlementsForTrip(tripId: string, tripName?: string): Promise<SettlementLine[]> {
+    const raw = await this.rawSettlementsForTrip(tripId);
+    if (raw.length === 0) {
+      return [];
+    }
+    const payments = await this.listPayments([tripId]);
+    return applyPayments(raw, payments, tripId, tripName);
+  }
+
+  async settlementsForTrips(trips: { id: string; name: string }[]): Promise<SettlementLine[]> {
+    const lines: SettlementLine[] = [];
+    for (const trip of trips) {
+      const tripLines = await this.settlementsForTrip(trip.id, trip.name);
+      lines.push(...tripLines);
+    }
+    return lines;
+  }
+
+  async recordPayment(input: RecordPaymentInput): Promise<SettlementLine[]> {
+    const lines = await this.settlementsForTrip(input.tripId);
+    const match = lines.find(
+      (line) =>
+        line.fromUserId === input.fromUserId &&
+        line.toUserId === input.toUserId &&
+        !line.paid,
+    );
+    if (!match) {
+      throw new AppError(400, 'SETTLEMENT_NOT_FOUND', 'No open balance between those people on this trip');
+    }
+
+    const amountCents = Math.round(match.amount * 100);
+    if (amountCents <= 0) {
+      throw new AppError(400, 'SETTLEMENT_ALREADY_PAID', 'That settlement is already paid');
+    }
+
+    if (assertDbOrMock('expenses') === 'memory') {
+      memoryPayments.push({
+        tripId: input.tripId,
+        fromUserId: input.fromUserId,
+        toUserId: input.toUserId,
+        amountCents,
+      });
+      return this.settlementsForTrip(input.tripId);
+    }
+
+    const { error } = await getSupabaseAdmin().from('settlement_payments').insert({
+      organization_id: input.organizationId ?? null,
+      trip_id: input.tripId,
+      from_user_id: input.fromUserId,
+      to_user_id: input.toUserId,
+      amount_cents: amountCents,
+      currency: match.currency,
+      recorded_by: input.recordedBy,
+    });
+
+    if (error) {
+      if (isMissingSettlementTable(error.message)) {
+        throw new AppError(
+          503,
+          'MIGRATION_REQUIRED',
+          'Apply migration 017_pending_workflows.sql to record settlement payments',
+        );
+      }
+      throw new AppError(502, 'DB_ERROR', error.message);
+    }
+
+    return this.settlementsForTrip(input.tripId);
+  }
+
+  private async rawSettlementsForTrip(tripId: string): Promise<SettlementLine[]> {
     const expenses = (await this.findByTrip(tripId)).filter((e) => e.status === 'APPROVED');
     if (expenses.length === 0) {
       return [];
@@ -364,6 +501,34 @@ export class ExpenseRepository {
     }
 
     return settleBalances(balances, currency);
+  }
+
+  private async listPayments(tripIds: string[]): Promise<MemoryPayment[]> {
+    if (tripIds.length === 0) {
+      return [];
+    }
+    if (assertDbOrMock('expenses') === 'memory') {
+      return memoryPayments.filter((p) => tripIds.includes(p.tripId));
+    }
+
+    const { data, error } = await getSupabaseAdmin()
+      .from('settlement_payments')
+      .select('trip_id, from_user_id, to_user_id, amount_cents')
+      .in('trip_id', tripIds);
+
+    if (error) {
+      if (isMissingSettlementTable(error.message)) {
+        return [];
+      }
+      throw new AppError(502, 'DB_ERROR', error.message);
+    }
+
+    return ((data ?? []) as SettlementPaymentRow[]).map((row) => ({
+      tripId: row.trip_id,
+      fromUserId: row.from_user_id,
+      toUserId: row.to_user_id,
+      amountCents: row.amount_cents,
+    }));
   }
 
   async summaryForUser(tripIds: string[], userId: string): Promise<ExpenseSummary> {

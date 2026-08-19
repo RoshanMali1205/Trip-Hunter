@@ -77,6 +77,16 @@ export interface CreateItineraryItemInput {
   createdBy: string | null;
 }
 
+export interface UpdateItineraryItemInput {
+  title?: string;
+  description?: string;
+  type?: ItineraryItemType;
+  date?: string;
+  startTime?: string;
+  endTime?: string;
+  locationName?: string;
+}
+
 export class ItineraryRepository {
   async findByTrip(tripId: string): Promise<ItineraryDay[]> {
     if (assertDbOrMock('itinerary') === 'memory') {
@@ -149,6 +159,57 @@ export class ItineraryRepository {
         location_name: input.locationName || null,
         created_by: input.createdBy,
       });
+
+    if (error) {
+      throw new AppError(502, 'DB_ERROR', error.message);
+    }
+  }
+
+  async update(tripId: string, id: string, input: UpdateItineraryItemInput): Promise<void> {
+    if (assertDbOrMock('itinerary') === 'memory') {
+      throw new AppError(503, 'SUPABASE_NOT_CONFIGURED', 'Supabase is required to update itinerary items');
+    }
+
+    const db = getSupabaseAdmin();
+    const { data: existing, error: lookupError } = await db
+      .from('itinerary_items')
+      .select('id, title, description, category, start_at, end_at, location_name')
+      .eq('id', id)
+      .eq('trip_id', tripId)
+      .maybeSingle();
+
+    if (lookupError) {
+      throw new AppError(502, 'DB_ERROR', lookupError.message);
+    }
+    if (!existing) {
+      throw new AppError(404, 'ITINERARY_ITEM_NOT_FOUND', `Itinerary item ${id} was not found`);
+    }
+
+    const current = existing as {
+      title: string;
+      description: string | null;
+      category: ItineraryItemRow['category'];
+      start_at: string | null;
+      end_at: string | null;
+      location_name: string | null;
+    };
+    const date = input.date ?? (current.start_at ? current.start_at.slice(0, 10) : new Date().toISOString().slice(0, 10));
+    const startTime = input.startTime !== undefined ? input.startTime : timeOf(current.start_at);
+    const endTime = input.endTime !== undefined ? input.endTime : timeOf(current.end_at);
+    const type = input.type ?? CATEGORY_TO_TYPE[current.category];
+
+    const { error } = await db
+      .from('itinerary_items')
+      .update({
+        title: input.title ?? current.title,
+        description: input.description !== undefined ? input.description || null : current.description,
+        category: TYPE_TO_CATEGORY[type],
+        start_at: startTime ? `${date}T${startTime}:00` : `${date}T00:00:00`,
+        end_at: endTime ? `${date}T${endTime}:00` : null,
+        location_name: input.locationName !== undefined ? input.locationName || null : current.location_name,
+      })
+      .eq('id', id)
+      .eq('trip_id', tripId);
 
     if (error) {
       throw new AppError(502, 'DB_ERROR', error.message);

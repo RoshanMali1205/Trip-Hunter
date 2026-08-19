@@ -7,11 +7,12 @@ import { MatIconModule } from '@angular/material/icon';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { TripStore } from '../../../../core/services/trip.store';
 import { InrCurrencyPipe } from '../../../../shared/pipes/format.pipe';
-import { AvailabilityOption, DestinationOption, TripMember } from '../../../../core/models/trip.model';
-import { ApiItineraryItem, CreateBookingType, ExpenseCategory } from '../../../../core/services/trip-api.service';
+import { AvailabilityOption, Booking, DestinationOption, ItineraryDay, ItineraryItem, TripMember, TripTask } from '../../../../core/models/trip.model';
+import { ApiItineraryItem, ApiSettlement, CreateBookingType, ExpenseCategory, UpdateBookingPayload } from '../../../../core/services/trip-api.service';
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
 import { bookingImageUrl } from '../../../../core/constants/booking-images';
 import { destinationImageUrl } from '../../../../core/constants/destination-images';
+import { readApiErrorMessage } from '../../../../core/http/api-error-message';
 
 function tripIdFromParent(route: ActivatedRoute) {
   return toSignal(route.parent!.paramMap.pipe(map((p) => p.get('tripId') || '')), {
@@ -66,6 +67,14 @@ function rangeLabel(start: string, end: string): string {
   return sameMonth
     ? `${day(s)}–${day(e)} ${mon(s)}`
     : `${day(s)} ${mon(s)} – ${day(e)} ${mon(e)}`;
+}
+
+function toDatetimeLocal(iso: string): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso.slice(0, 16);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 type AvailVote = 'available' | 'maybe' | 'not';
@@ -574,12 +583,12 @@ export class TripOverviewPage {
     @if (showInviteForm()) {
       <form class="th-panel invite-form" (ngSubmit)="sendInvite()">
         <label>
-          Email of a registered teammate
+          Email of a teammate
           <input type="email" required [(ngModel)]="inviteEmail" name="inviteEmail" placeholder="name@company.com" />
         </label>
         <p class="invite-hint">
-          They must already have a Trip Hunter account with this email. After you send, they get an
-          in-app notification and can Accept/Decline from Notifications, Dashboard, or this Members tab.
+          If they already have a Trip Hunter account, they get an in-app invite now. If not, the invite waits
+          until they sign up with this email.
         </p>
         <app-button type="submit" [loading]="inviting()">Send invite</app-button>
         @if (inviteError()) {
@@ -593,6 +602,7 @@ export class TripOverviewPage {
         <span>You've been invited to this trip as {{ mine.role.toLowerCase() }}.</span>
         <div class="invite-actions">
           <app-button size="sm" (click)="respond('accepted')">Accept</app-button>
+          <app-button variant="secondary" size="sm" (click)="respond('maybe')">Maybe</app-button>
           <app-button variant="secondary" size="sm" (click)="respond('declined')">Decline</app-button>
         </div>
       </div>
@@ -630,7 +640,7 @@ export class TripOverviewPage {
                   [class.th-pill--solid]="m.inviteStatus === 'ACCEPTED'"
                   [class.th-pill--outline]="m.inviteStatus === 'INVITED' || m.inviteStatus === 'MAYBE'"
                   [class.th-pill--muted]="m.inviteStatus === 'DECLINED'"
-                  >{{ statusLabel(m.inviteStatus) }}</em
+                  >{{ statusLabel(m.inviteStatus, m.pendingSignup) }}</em
                 >
               </td>
               <td>{{ attendanceLabel(m) }}</td>
@@ -667,7 +677,7 @@ export class TripOverviewPage {
               [class.th-pill--solid]="m.inviteStatus === 'ACCEPTED'"
               [class.th-pill--outline]="m.inviteStatus === 'INVITED' || m.inviteStatus === 'MAYBE'"
               [class.th-pill--muted]="m.inviteStatus === 'DECLINED'"
-              >{{ statusLabel(m.inviteStatus) }}</em
+              >{{ statusLabel(m.inviteStatus, m.pendingSignup) }}</em
             >
             @if (isOwner() && canRemove(m)) {
               <app-button variant="link-danger" size="sm" (click)="remove(m.id)">Remove</app-button>
@@ -875,14 +885,14 @@ export class TripMembersPage {
       await this.store.inviteMember(id, email);
       this.inviteEmail.set('');
       this.showInviteForm.set(false);
-    } catch {
-      this.inviteError.set('Could not invite that email. Make sure they already have an account.');
+    } catch (err) {
+      this.inviteError.set(readApiErrorMessage(err, 'Could not send that invite. Please try again.'));
     } finally {
       this.inviting.set(false);
     }
   }
 
-  respond(rsvpStatus: 'accepted' | 'declined'): void {
+  respond(rsvpStatus: 'accepted' | 'declined' | 'maybe'): void {
     const id = this.tripId();
     if (id) void this.store.respondToInvite(id, rsvpStatus);
   }
@@ -908,7 +918,8 @@ export class TripMembersPage {
     };
   });
   initials = initials;
-  statusLabel(s: string) {
+  statusLabel(s: string, pendingSignup?: boolean) {
+    if (pendingSignup) return 'Waiting for signup';
     return s.charAt(0) + s.slice(1).toLowerCase();
   }
   attendanceLabel(m: TripMember) {
@@ -968,6 +979,9 @@ export class TripMembersPage {
               @if (isLeadingAvail(opt)) {
                 <em class="th-pill th-pill--solid">Leading</em>
               }
+              @if (opt.isSelected) {
+                <em class="th-pill th-pill--outline">Locked</em>
+              }
             </div>
             <p class="meta">
               {{ opt.availableCount }}/{{ opt.totalVotes || '—' }} available
@@ -1004,6 +1018,9 @@ export class TripMembersPage {
               >
                 Not available
               </button>
+              @if (isOwner() && !opt.isSelected) {
+                <app-button variant="link" size="sm" (click)="lockDates(opt)">Use these dates</app-button>
+              }
             </div>
           </article>
         } @empty {
@@ -1072,12 +1089,14 @@ export class TripMembersPage {
 
       <div class="dest-grid">
         @for (d of destinations(); track d.id) {
-          <article class="dest-card" [class.leading]="isLeadingDest(d)">
+          <article class="dest-card" [class.leading]="isLeadingDest(d)" [class.selected]="d.isSelected">
             <div
               class="dest-photo"
               [style.--dest-image]="'url(' + imageFor(d) + ')'"
             >
-              @if (isLeadingDest(d)) {
+              @if (d.isSelected) {
+                <em class="th-pill th-pill--solid leading-pill">Locked</em>
+              } @else if (isLeadingDest(d)) {
                 <em class="th-pill th-pill--solid leading-pill">Leading</em>
               }
               <div class="dest-overlay">
@@ -1096,6 +1115,15 @@ export class TripMembersPage {
                 >
                   {{ destVote() === d.id ? '✓ Your vote' : 'Vote' }}
                 </button>
+                @if (isOwner() && !d.isSelected) {
+                  <button
+                    type="button"
+                    class="vote-btn"
+                    (click)="lockDest(d.id); $event.stopPropagation()"
+                  >
+                    Lock as destination
+                  </button>
+                }
               </div>
             </div>
           </article>
@@ -1332,10 +1360,16 @@ export class TripMembersPage {
 export class TripVotingPage {
   private readonly route = inject(ActivatedRoute);
   private readonly store = inject(TripStore);
+  private readonly auth = inject(AuthService);
   private readonly tripId = tripIdFromParent(this.route);
   readonly tab = signal<'availability' | 'destination'>('availability');
   readonly availability = computed(() => this.store.getAvailability(this.tripId()));
   readonly destinations = computed(() => this.store.getDestinations(this.tripId()));
+  readonly isOwner = computed(() => {
+    const trip = this.store.getById(this.tripId());
+    const userId = this.auth.user()?.id;
+    return !!trip && !!userId && trip.organizerId === userId;
+  });
   readonly availVote = computed(() => this.store.getMyVotes(this.tripId()).availability as Record<string, AvailVote>);
   readonly destVote = computed(() => this.store.getMyVotes(this.tripId()).destinationId);
   rangeLabel = rangeLabel;
@@ -1381,6 +1415,16 @@ export class TripVotingPage {
   setDest(destId: string) {
     const id = this.tripId();
     if (id) void this.store.castDestinationVote(id, destId);
+  }
+
+  lockDates(opt: AvailabilityOption): void {
+    const id = this.tripId();
+    if (id) void this.store.selectAvailabilityOption(id, opt.startDate, opt.endDate);
+  }
+
+  lockDest(destinationId: string): void {
+    const id = this.tripId();
+    if (id) void this.store.selectDestination(id, destinationId);
   }
 
   async submitAvail(): Promise<void> {
@@ -1462,7 +1506,9 @@ export class TripVotingPage {
   template: `
     <div class="head">
       <h2>Itinerary</h2>
-      <app-button variant="secondary" (click)="showForm.set(!showForm())">Add item +</app-button>
+      <app-button variant="secondary" (click)="toggleForm()">
+        {{ editingId() ? 'Cancel edit' : showForm() ? 'Cancel' : 'Add item +' }}
+      </app-button>
     </div>
 
     @if (showForm()) {
@@ -1498,7 +1544,9 @@ export class TripVotingPage {
           Location
           <input type="text" [(ngModel)]="locationName" name="locationName" placeholder="Curlies, Anjuna" />
         </label>
-        <app-button type="submit" [loading]="adding()">Add to itinerary</app-button>
+          <app-button type="submit" [loading]="adding()">
+            {{ editingId() ? 'Save changes' : 'Add to itinerary' }}
+          </app-button>
         @if (addError()) {
           <p class="add-error">{{ addError() }}</p>
         }
@@ -1522,7 +1570,10 @@ export class TripVotingPage {
                 <em class="th-pill" [class.th-pill--solid]="i % 2 === 0" [class.th-pill--outline]="i % 2 === 1">{{
                   item.type
                 }}</em>
-                <app-button variant="link-danger" size="sm" (click)="removeItem(item.id)">Delete</app-button>
+                <div class="item-actions">
+                  <app-button variant="link" size="sm" (click)="startEdit(day, item)">Edit</app-button>
+                  <app-button variant="link-danger" size="sm" (click)="removeItem(item.id)">Delete</app-button>
+                </div>
               </div>
               <strong>{{ item.title }}</strong>
               <span>{{ item.locationName }}</span>
@@ -1649,6 +1700,10 @@ export class TripVotingPage {
         gap: 0.5rem;
         margin-bottom: 0.35rem;
       }
+      .item-actions {
+        display: flex;
+        gap: 0.5rem;
+      }
       @media (max-width: 520px) {
         li {
           grid-template-columns: 1fr;
@@ -1676,6 +1731,7 @@ export class TripItineraryPage {
   readonly locationName = signal('');
   readonly adding = signal(false);
   readonly addError = signal('');
+  readonly editingId = signal('');
 
   constructor() {
     effect(() => {
@@ -1693,21 +1749,35 @@ export class TripItineraryPage {
     this.adding.set(true);
     this.addError.set('');
     try {
-      await this.store.addItineraryItem(id, {
-        title,
-        type: this.type(),
-        date,
-        startTime: this.startTime() || undefined,
-        endTime: this.endTime() || undefined,
-        locationName: this.locationName() || undefined,
-      });
+      if (this.editingId()) {
+        await this.store.updateItineraryItem(id, this.editingId(), {
+          title,
+          type: this.type(),
+          date,
+          startTime: this.startTime() || undefined,
+          endTime: this.endTime() || undefined,
+          locationName: this.locationName() || undefined,
+        });
+      } else {
+        await this.store.addItineraryItem(id, {
+          title,
+          type: this.type(),
+          date,
+          startTime: this.startTime() || undefined,
+          endTime: this.endTime() || undefined,
+          locationName: this.locationName() || undefined,
+        });
+      }
       this.title.set('');
       this.startTime.set('');
       this.endTime.set('');
       this.locationName.set('');
+      this.editingId.set('');
       this.showForm.set(false);
     } catch {
-      this.addError.set('Could not add that item. Please try again.');
+      this.addError.set(
+        this.editingId() ? 'Could not save that item. Please try again.' : 'Could not add that item. Please try again.',
+      );
     } finally {
       this.adding.set(false);
     }
@@ -1728,6 +1798,26 @@ export class TripItineraryPage {
       void this.store.deleteItineraryItem(id, itemId);
     }
   }
+
+  toggleForm(): void {
+    if (this.editingId()) {
+      this.editingId.set('');
+      this.showForm.set(false);
+      return;
+    }
+    this.showForm.update((v) => !v);
+  }
+
+  startEdit(day: ItineraryDay, item: ItineraryItem): void {
+    this.editingId.set(item.id);
+    this.title.set(item.title);
+    this.type.set(item.type as ApiItineraryItem['type']);
+    this.date.set(day.date === 'unscheduled' ? '' : day.date);
+    this.startTime.set(item.startTime);
+    this.endTime.set(item.endTime);
+    this.locationName.set(item.locationName);
+    this.showForm.set(true);
+  }
 }
 
 @Component({
@@ -1737,7 +1827,9 @@ export class TripItineraryPage {
   template: `
     <div class="head">
       <h2>Bookings</h2>
-      <app-button variant="secondary" (click)="showForm.set(!showForm())">Add booking +</app-button>
+      <app-button variant="secondary" (click)="toggleForm()">
+        {{ editingId() ? 'Cancel edit' : showForm() ? 'Cancel' : 'Add booking +' }}
+      </app-button>
     </div>
 
     @if (showForm()) {
@@ -1780,7 +1872,19 @@ export class TripItineraryPage {
           Ends
           <input type="datetime-local" [(ngModel)]="endDatetime" name="endDatetime" />
         </label>
-        <app-button type="submit" [loading]="adding()">Add booking</app-button>
+        @if (editingId()) {
+          <label>
+            Status
+            <select [(ngModel)]="status" name="status">
+              <option value="PENDING">Pending</option>
+              <option value="CONFIRMED">Confirmed</option>
+              <option value="CANCELLED">Cancelled</option>
+            </select>
+          </label>
+        }
+        <app-button type="submit" [loading]="adding()">
+          {{ editingId() ? 'Save changes' : 'Add booking' }}
+        </app-button>
         @if (addError()) {
           <p class="add-error">{{ addError() }}</p>
         }
@@ -1804,7 +1908,10 @@ export class TripItineraryPage {
           <h3>{{ b.provider }}</h3>
           <p>Booking #: {{ b.bookingReference }}</p>
           <p class="when">{{ formatWhen(b.startDatetime) }}</p>
-          <app-button variant="link-danger" size="sm" (click)="remove(b.id)">Delete</app-button>
+          <div class="card-actions">
+            <app-button variant="link" size="sm" (click)="startEdit(b)">Edit</app-button>
+            <app-button variant="link-danger" size="sm" (click)="remove(b.id)">Delete</app-button>
+          </div>
         </article>
       } @empty {
         <div class="th-panel">No bookings yet.</div>
@@ -1920,6 +2027,11 @@ export class TripItineraryPage {
         text-decoration: none;
         font-weight: 700;
       }
+      .card-actions {
+        display: flex;
+        gap: 0.65rem;
+        padding: 0.5rem 1.1rem 1.1rem;
+      }
     `,
   ],
 })
@@ -1938,8 +2050,10 @@ export class TripBookingsPage {
   readonly amount = signal<number | null>(null);
   readonly startDatetime = signal('');
   readonly endDatetime = signal('');
+  readonly status = signal<Booking['status']>('PENDING');
   readonly adding = signal(false);
   readonly addError = signal('');
+  readonly editingId = signal('');
 
   readonly providerPlaceholder = computed(() => {
     switch (this.bookingType()) {
@@ -1976,22 +2090,40 @@ export class TripBookingsPage {
     this.adding.set(true);
     this.addError.set('');
     try {
-      await this.store.addBooking(id, {
-        bookingType: this.bookingType(),
-        provider,
-        bookingReference: this.bookingReference().trim() || undefined,
-        amount,
-        startDatetime: this.startDatetime() || undefined,
-        endDatetime: this.endDatetime() || undefined,
-      });
+      if (this.editingId()) {
+        const patch: UpdateBookingPayload = {
+          bookingType: this.bookingType(),
+          provider,
+          bookingReference: this.bookingReference().trim() || undefined,
+          amount,
+          startDatetime: this.startDatetime() || null,
+          endDatetime: this.endDatetime() || null,
+          status: this.status(),
+        };
+        await this.store.updateBooking(id, this.editingId(), patch);
+      } else {
+        await this.store.addBooking(id, {
+          bookingType: this.bookingType(),
+          provider,
+          bookingReference: this.bookingReference().trim() || undefined,
+          amount,
+          startDatetime: this.startDatetime() || undefined,
+          endDatetime: this.endDatetime() || undefined,
+        });
+      }
       this.provider.set('');
       this.bookingReference.set('');
       this.amount.set(null);
       this.startDatetime.set('');
       this.endDatetime.set('');
+      this.editingId.set('');
       this.showForm.set(false);
     } catch {
-      this.addError.set('Could not add that booking. Please try again.');
+      this.addError.set(
+        this.editingId()
+          ? 'Could not save that booking. Please try again.'
+          : 'Could not add that booking. Please try again.',
+      );
     } finally {
       this.adding.set(false);
     }
@@ -2002,6 +2134,29 @@ export class TripBookingsPage {
     if (id && confirm('Delete this booking?')) {
       void this.store.deleteBooking(id, bookingId);
     }
+  }
+
+  toggleForm(): void {
+    if (this.editingId()) {
+      this.editingId.set('');
+      this.showForm.set(false);
+      return;
+    }
+    this.showForm.update((v) => !v);
+  }
+
+  startEdit(booking: Booking): void {
+    this.editingId.set(booking.id);
+    this.bookingType.set(
+      booking.bookingType === 'RESTAURANT' ? 'OTHER' : booking.bookingType,
+    );
+    this.provider.set(booking.provider);
+    this.bookingReference.set(booking.bookingReference);
+    this.amount.set(booking.amount);
+    this.startDatetime.set(toDatetimeLocal(booking.startDatetime));
+    this.endDatetime.set(toDatetimeLocal(booking.endDatetime));
+    this.status.set(booking.status);
+    this.showForm.set(true);
   }
 }
 
@@ -2358,9 +2513,14 @@ export class TripBudgetPage {
     @if (settlements().length) {
       <h3 class="settle-title">Settlements</h3>
       <div class="settle-grid">
-        @for (s of settlements(); track s.message) {
-          <article class="th-panel settle">
+        @for (s of settlements(); track s.message + (s.fromUserId || '') + (s.toUserId || '')) {
+          <article class="th-panel settle" [class.paid]="s.paid">
             <p>{{ s.message }}</p>
+            @if (!s.paid) {
+              <app-button variant="link" size="sm" (click)="markPaid(s)">Mark paid</app-button>
+            } @else {
+              <em class="th-pill th-pill--muted">Paid</em>
+            }
           </article>
         }
       </div>
@@ -2478,6 +2638,14 @@ export class TripBudgetPage {
       }
       .settle {
         border-left: 3px solid var(--th-primary);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.75rem;
+      }
+      .settle.paid {
+        border-left-color: var(--th-border-strong);
+        opacity: 0.85;
       }
     `,
   ],
@@ -2537,6 +2705,11 @@ export class TripExpensesPage {
     const id = this.tripId();
     if (id) void this.store.updateExpenseStatus(id, expenseId, status);
   }
+
+  markPaid(line: ApiSettlement): void {
+    const id = this.tripId();
+    if (id) void this.store.markSettlementPaid(id, line.fromUserId, line.toUserId);
+  }
 }
 
 @Component({
@@ -2589,13 +2762,16 @@ export class TripExpensesPage {
               <strong>{{ t.title }}</strong>
               <span>{{ t.assignedToName }} · {{ t.priority }} · due {{ t.dueDate || '—' }}</span>
             </div>
-            <em
-              class="th-pill"
-              [class.th-pill--solid]="t.status === 'IN_PROGRESS'"
-              [class.th-pill--outline]="t.status === 'TODO'"
-              [class.th-pill--muted]="t.status === 'COMPLETED'"
-              >{{ t.status.replaceAll('_', ' ') }}</em
-            >
+            <div class="task-actions">
+              <em
+                class="th-pill"
+                [class.th-pill--solid]="t.status === 'IN_PROGRESS'"
+                [class.th-pill--outline]="t.status === 'TODO'"
+                [class.th-pill--muted]="t.status === 'COMPLETED'"
+                >{{ t.status.replaceAll('_', ' ') }}</em
+              >
+              <app-button variant="link" size="sm" (click)="cycle(t)">Advance</app-button>
+            </div>
           </li>
         } @empty {
           <li>No tasks yet.</li>
@@ -2668,6 +2844,12 @@ export class TripExpensesPage {
         font-style: normal;
         text-transform: capitalize;
       }
+      .task-actions {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 0.25rem;
+      }
     `,
   ],
 })
@@ -2707,6 +2889,12 @@ export class TripTasksTabPage {
     } finally {
       this.adding.set(false);
     }
+  }
+
+  cycle(task: TripTask): void {
+    const order: TripTask['status'][] = ['TODO', 'IN_PROGRESS', 'BLOCKED', 'COMPLETED'];
+    const next = order[(order.indexOf(task.status) + 1) % order.length];
+    void this.store.updateTaskStatus(task.id, next);
   }
 }
 

@@ -1,6 +1,8 @@
+import { randomUUID } from 'node:crypto';
 import { getSupabaseAdmin } from '../../config/supabase.js';
 import { assertDbOrMock } from '../../config/data-mode.js';
 import { AppError } from '../../middleware/error-handler.js';
+import { NotificationRepository } from '../notifications/notification.repository.js';
 
 export type MemberRole = 'organizer' | 'traveler' | 'viewer';
 export type RsvpStatus = 'pending' | 'accepted' | 'declined' | 'maybe';
@@ -14,6 +16,7 @@ export interface TripMember {
   avatarUrl: string | null;
   role: MemberRole;
   rsvpStatus: RsvpStatus;
+  pendingSignup?: boolean;
 }
 
 interface MemberRow {
@@ -40,10 +43,51 @@ function mapRow(row: MemberRow): TripMember {
 
 const MEMBER_SELECT = 'id, trip_id, user_id, role, rsvp_status, profiles(display_name, email, avatar_url)';
 
+interface EmailInviteRow {
+  id: string;
+  trip_id: string;
+  email: string;
+  role: MemberRole;
+  created_at: string;
+}
+
+interface MemoryEmailInvite {
+  id: string;
+  tripId: string;
+  email: string;
+  role: MemberRole;
+  invitedBy: string | null;
+  createdAt: string;
+  claimedAt: string | null;
+  claimedUserId: string | null;
+}
+
+const memoryEmailInvites: MemoryEmailInvite[] = [];
+const notifications = new NotificationRepository();
+
+function mapEmailInvite(row: EmailInviteRow): TripMember {
+  const local = row.email.split('@')[0] || row.email;
+  return {
+    id: row.id,
+    tripId: row.trip_id,
+    userId: '',
+    name: local,
+    email: row.email,
+    avatarUrl: null,
+    role: row.role,
+    rsvpStatus: 'pending',
+    pendingSignup: true,
+  };
+}
+
+function isMissingEmailInviteTable(message: string): boolean {
+  return /trip_email_invites/i.test(message) && /does not exist|schema cache/i.test(message);
+}
+
 export class MemberRepository {
   async findByTrip(tripId: string): Promise<TripMember[]> {
     if (assertDbOrMock('trip members') === 'memory') {
-      return [];
+      return this.findOpenEmailInvites(tripId);
     }
 
     const { data, error } = await getSupabaseAdmin()
@@ -56,12 +100,47 @@ export class MemberRepository {
       throw new AppError(502, 'DB_ERROR', error.message);
     }
 
-    return ((data ?? []) as unknown as MemberRow[]).map(mapRow);
+    return [...((data ?? []) as unknown as MemberRow[]).map(mapRow), ...(await this.findOpenEmailInvites(tripId))];
   }
 
-  async inviteByEmail(tripId: string, email: string, role: MemberRole): Promise<TripMember> {
+  async inviteByEmail(
+    tripId: string,
+    email: string,
+    role: MemberRole,
+    invitedBy?: string | null,
+  ): Promise<TripMember> {
     if (assertDbOrMock('trip members') === 'memory') {
-      throw new AppError(503, 'SUPABASE_NOT_CONFIGURED', 'Supabase is required to invite members');
+      const existing = memoryEmailInvites.find(
+        (i) => i.tripId === tripId && i.email === email && !i.claimedAt,
+      );
+      if (existing) {
+        existing.role = role;
+        return mapEmailInvite({
+          id: existing.id,
+          trip_id: existing.tripId,
+          email: existing.email,
+          role: existing.role,
+          created_at: existing.createdAt,
+        });
+      }
+      const invite: MemoryEmailInvite = {
+        id: randomUUID(),
+        tripId,
+        email,
+        role,
+        invitedBy: invitedBy ?? null,
+        createdAt: new Date().toISOString(),
+        claimedAt: null,
+        claimedUserId: null,
+      };
+      memoryEmailInvites.push(invite);
+      return mapEmailInvite({
+        id: invite.id,
+        trip_id: invite.tripId,
+        email: invite.email,
+        role: invite.role,
+        created_at: invite.createdAt,
+      });
     }
 
     const db = getSupabaseAdmin();
@@ -75,28 +154,51 @@ export class MemberRepository {
     if (profileError) {
       throw new AppError(502, 'DB_ERROR', profileError.message);
     }
-    if (!profile) {
-      throw new AppError(
-        404,
-        'USER_NOT_FOUND',
-        `No account found for ${email}. They need to sign up first.`,
-      );
+    if (profile) {
+      const { data, error } = await db
+        .from('trip_members')
+        .upsert(
+          { trip_id: tripId, user_id: (profile as { id: string }).id, role, rsvp_status: 'pending' },
+          { onConflict: 'trip_id,user_id' },
+        )
+        .select(MEMBER_SELECT)
+        .single();
+
+      if (error) {
+        throw new AppError(502, 'DB_ERROR', error.message);
+      }
+
+      return mapRow(data as unknown as MemberRow);
     }
 
-    const { data, error } = await db
-      .from('trip_members')
+    const { data: invite, error: inviteError } = await db
+      .from('trip_email_invites')
       .upsert(
-        { trip_id: tripId, user_id: (profile as { id: string }).id, role, rsvp_status: 'pending' },
-        { onConflict: 'trip_id,user_id' },
+        {
+          trip_id: tripId,
+          email,
+          role,
+          invited_by: invitedBy ?? null,
+          claimed_at: null,
+          claimed_user_id: null,
+        },
+        { onConflict: 'trip_id,email' },
       )
-      .select(MEMBER_SELECT)
+      .select('id, trip_id, email, role, created_at')
       .single();
 
-    if (error) {
-      throw new AppError(502, 'DB_ERROR', error.message);
+    if (inviteError) {
+      if (isMissingEmailInviteTable(inviteError.message)) {
+        throw new AppError(
+          404,
+          'USER_NOT_FOUND',
+          `No account found for ${email}. They need to sign up first. Apply migration 017 to invite before signup.`,
+        );
+      }
+      throw new AppError(502, 'DB_ERROR', inviteError.message);
     }
 
-    return mapRow(data as unknown as MemberRow);
+    return mapEmailInvite(invite as EmailInviteRow);
   }
 
   async respondToInvite(tripId: string, userId: string, rsvpStatus: RsvpStatus): Promise<TripMember> {
@@ -122,7 +224,10 @@ export class MemberRepository {
     return mapRow(data as unknown as MemberRow);
   }
 
-  async findPendingInvitesForUser(userId: string): Promise<
+  async findPendingInvitesForUser(
+    userId: string,
+    email?: string,
+  ): Promise<
     Array<{
       tripId: string;
       tripName: string;
@@ -132,6 +237,10 @@ export class MemberRepository {
       invitedAt: string;
     }>
   > {
+    if (email) {
+      await this.claimEmailInvites(userId, email);
+    }
+
     if (assertDbOrMock('trip members') === 'memory') {
       return [];
     }
@@ -173,12 +282,86 @@ export class MemberRepository {
     });
   }
 
-  async remove(tripId: string, memberId: string): Promise<void> {
+  async claimEmailInvites(userId: string, email: string): Promise<void> {
+    const normalized = email.trim().toLowerCase();
+    if (!normalized) return;
+
     if (assertDbOrMock('trip members') === 'memory') {
-      throw new AppError(503, 'SUPABASE_NOT_CONFIGURED', 'Supabase is required to remove members');
+      const now = new Date().toISOString();
+      for (const invite of memoryEmailInvites) {
+        if (invite.email === normalized && !invite.claimedAt) {
+          invite.claimedAt = now;
+          invite.claimedUserId = userId;
+        }
+      }
+      return;
     }
 
-    const { data, error } = await getSupabaseAdmin()
+    const db = getSupabaseAdmin();
+    const { data, error } = await db
+      .from('trip_email_invites')
+      .select('id, trip_id, email, role')
+      .eq('email', normalized)
+      .is('claimed_at', null);
+
+    if (error) {
+      if (isMissingEmailInviteTable(error.message)) {
+        return;
+      }
+      throw new AppError(502, 'DB_ERROR', error.message);
+    }
+
+    for (const invite of (data ?? []) as { id: string; trip_id: string; role: MemberRole }[]) {
+      const { error: memberError } = await db.from('trip_members').upsert(
+        {
+          trip_id: invite.trip_id,
+          user_id: userId,
+          role: invite.role,
+          rsvp_status: 'pending',
+        },
+        { onConflict: 'trip_id,user_id' },
+      );
+      if (memberError) {
+        console.warn('Failed to claim email invite as trip member', memberError.message);
+        continue;
+      }
+      const { data: trip } = await db
+        .from('trips')
+        .select('id, name, organization_id')
+        .eq('id', invite.trip_id)
+        .maybeSingle();
+      await notifications.createTripInvite({
+        userId,
+        organizationId: (trip as { organization_id?: string } | null)?.organization_id ?? null,
+        tripId: invite.trip_id,
+        tripName: (trip as { name?: string } | null)?.name ?? 'a trip',
+        invitedByName: 'A teammate',
+      });
+      const { error: claimError } = await db
+        .from('trip_email_invites')
+        .update({
+          claimed_at: new Date().toISOString(),
+          claimed_user_id: userId,
+        })
+        .eq('id', invite.id);
+      if (claimError) {
+        console.warn('Failed to mark email invite claimed', claimError.message);
+      }
+    }
+  }
+
+  async remove(tripId: string, memberId: string): Promise<void> {
+    if (assertDbOrMock('trip members') === 'memory') {
+      const index = memoryEmailInvites.findIndex((i) => i.id === memberId && i.tripId === tripId);
+      if (index === -1) {
+        throw new AppError(404, 'MEMBERSHIP_NOT_FOUND', `Member ${memberId} was not found`);
+      }
+      memoryEmailInvites.splice(index, 1);
+      return;
+    }
+
+    const db = getSupabaseAdmin();
+    const { data, error } = await db
       .from('trip_members')
       .delete()
       .eq('id', memberId)
@@ -189,8 +372,59 @@ export class MemberRepository {
     if (error) {
       throw new AppError(502, 'DB_ERROR', error.message);
     }
-    if (!data) {
+    if (data) {
+      return;
+    }
+
+    const { data: invite, error: inviteError } = await db
+      .from('trip_email_invites')
+      .delete()
+      .eq('id', memberId)
+      .eq('trip_id', tripId)
+      .is('claimed_at', null)
+      .select('id')
+      .maybeSingle();
+
+    if (inviteError) {
+      if (isMissingEmailInviteTable(inviteError.message)) {
+        throw new AppError(404, 'MEMBERSHIP_NOT_FOUND', `Member ${memberId} was not found`);
+      }
+      throw new AppError(502, 'DB_ERROR', inviteError.message);
+    }
+    if (!invite) {
       throw new AppError(404, 'MEMBERSHIP_NOT_FOUND', `Member ${memberId} was not found`);
     }
+  }
+
+  private async findOpenEmailInvites(tripId: string): Promise<TripMember[]> {
+    if (assertDbOrMock('trip members') === 'memory') {
+      return memoryEmailInvites
+        .filter((i) => i.tripId === tripId && !i.claimedAt)
+        .map((i) =>
+          mapEmailInvite({
+            id: i.id,
+            trip_id: i.tripId,
+            email: i.email,
+            role: i.role,
+            created_at: i.createdAt,
+          }),
+        );
+    }
+
+    const { data, error } = await getSupabaseAdmin()
+      .from('trip_email_invites')
+      .select('id, trip_id, email, role, created_at')
+      .eq('trip_id', tripId)
+      .is('claimed_at', null)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      if (isMissingEmailInviteTable(error.message)) {
+        return [];
+      }
+      throw new AppError(502, 'DB_ERROR', error.message);
+    }
+
+    return ((data ?? []) as EmailInviteRow[]).map(mapEmailInvite);
   }
 }

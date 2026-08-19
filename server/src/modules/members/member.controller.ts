@@ -26,7 +26,7 @@ export const listMyInvites: RequestHandler = async (req, res, next) => {
     if (!req.user) {
       throw new AppError(401, 'UNAUTHORIZED', 'Missing or invalid Bearer token');
     }
-    const invites = await repo.findPendingInvitesForUser(req.user.id);
+    const invites = await repo.findPendingInvitesForUser(req.user.id, req.user.email);
     res.json(ok(invites, 'Pending trip invites retrieved successfully'));
   } catch (err) {
     next(err);
@@ -57,17 +57,26 @@ export const inviteMember: RequestHandler = async (req, res, next) => {
         ? (body.role as MemberRole)
         : 'traveler';
 
-    const member = await repo.inviteByEmail(tripId, body.email.trim().toLowerCase(), role);
+    const member = await repo.inviteByEmail(tripId, body.email.trim().toLowerCase(), role, req.user.id);
 
-    await notificationRepo.createTripInvite({
-      userId: member.userId,
-      organizationId: trip.organizationId,
-      tripId: trip.id,
-      tripName: trip.name,
-      invitedByName: req.user.displayName || req.user.email || 'A teammate',
-    });
+    if (!member.pendingSignup) {
+      await notificationRepo.createTripInvite({
+        userId: member.userId,
+        organizationId: trip.organizationId,
+        tripId: trip.id,
+        tripName: trip.name,
+        invitedByName: req.user.displayName || req.user.email || 'A teammate',
+      });
+    }
 
-    res.status(201).json(ok(member, 'Member invited successfully'));
+    res.status(201).json(
+      ok(
+        member,
+        member.pendingSignup
+          ? 'Invite saved. They can accept it after they create an account with this email.'
+          : 'Member invited successfully',
+      ),
+    );
   } catch (err) {
     next(err);
   }
@@ -113,7 +122,7 @@ export const removeMember: RequestHandler = async (req, res, next) => {
     if (!target) {
       throw new AppError(404, 'MEMBERSHIP_NOT_FOUND', `Member ${memberId} was not found`);
     }
-    if (target.userId === trip.createdBy) {
+    if (target.userId && target.userId === trip.createdBy) {
       throw new AppError(400, 'VALIDATION_ERROR', 'Cannot remove the trip owner');
     }
 
