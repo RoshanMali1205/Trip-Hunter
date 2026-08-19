@@ -1,7 +1,9 @@
 -- 018_enable_rls_on_app_tables.sql
--- Enable RLS on remaining application tables so PostgREST (anon / authenticated)
--- cannot read or write them directly. The Express API uses the service-role key,
--- which bypasses RLS. No policies are added on purpose.
+-- Enable RLS on remaining application tables.
+-- Do not stop here: 018 with no policies denies all `authenticated` / `anon`
+-- access via PostgREST. Apply 019_rls_org_trip_policies.sql next so org
+-- members can read their own trips. The Express API uses the service-role
+-- key and still bypasses RLS either way.
 
 do $$
 declare
