@@ -45,6 +45,9 @@ import {
   CreateItineraryItemPayload,
   CreateTaskPayload,
   CreateTripPayload,
+  ApiOrgPerson,
+  ApiTeam,
+  ApiTeamMember,
   TripApiService,
   UpdateBookingPayload,
   UpdateBudgetCategoryPayload,
@@ -187,6 +190,9 @@ export class TripStore {
     currency: 'INR',
   });
   private readonly myVotesByTrip = signal<Record<string, ApiMyVotes>>({});
+  private readonly teamsSignal = signal<ApiTeam[]>([]);
+  private readonly teamDetailById = signal<Record<string, ApiTeam>>({});
+  private readonly orgPeopleSignal = signal<ApiOrgPerson[]>([]);
 
   readonly trips = this.tripsSignal.asReadonly();
   readonly loading = this.loadingSignal.asReadonly();
@@ -253,7 +259,9 @@ export class TripStore {
     return this.tripsSignal().find((t) => t.id === id);
   }
 
-  async createTrip(partial: Partial<Trip> & { approvalRequired?: boolean }): Promise<Trip> {
+  async createTrip(
+    partial: Partial<Trip> & { approvalRequired?: boolean; teamId?: string | null },
+  ): Promise<Trip> {
     const payload: CreateTripPayload = {
       name: partial.title || 'Untitled trip',
       description: partial.description || '',
@@ -267,6 +275,7 @@ export class TripStore {
       maxMembers: partial.maxMembers ?? null,
       approvalRequired:
         partial.approvalRequired === true || partial.approvalStatus === 'PENDING',
+      teamId: partial.teamId || null,
     };
     const apiTrip = await firstValueFrom(this.tripApi.create(payload));
     const trip = this.mapApiTrip(apiTrip);
@@ -479,6 +488,11 @@ export class TripStore {
     await this.loadBudget(tripId);
   }
 
+  async deleteBudgetCategory(tripId: string, categoryId: string): Promise<void> {
+    await firstValueFrom(this.tripApi.deleteBudgetCategory(tripId, categoryId));
+    await this.loadBudget(tripId);
+  }
+
   getExpenses(tripId: string): Expense[] {
     return this.expensesByTrip()[tripId] ?? [];
   }
@@ -562,10 +576,17 @@ export class TripStore {
   }
 
   async updateTaskStatus(taskId: string, status: TripTask['status']): Promise<void> {
+    await this.updateTask(taskId, { status });
+  }
+
+  async updateTask(
+    taskId: string,
+    patch: { status?: TripTask['status']; assignedTo?: string | null },
+  ): Promise<void> {
+    const updated = await firstValueFrom(this.tripApi.updateTask(taskId, patch));
     this.tasksSignal.update((list) =>
-      list.map((t) => (t.id === taskId ? { ...t, status } : t)),
+      list.map((t) => (t.id === taskId ? mapTask(updated) : t)),
     );
-    await firstValueFrom(this.tripApi.updateTaskStatus(taskId, status));
   }
 
   getApprovals(tripId: string): ApiApproval[] {
@@ -665,6 +686,74 @@ export class TripStore {
   async deleteComment(tripId: string, commentId: string): Promise<void> {
     await firstValueFrom(this.tripApi.deleteComment(tripId, commentId));
     await this.loadComments(tripId);
+  }
+
+  getTeams(): ApiTeam[] {
+    return this.teamsSignal();
+  }
+
+  getTeamDetail(teamId: string): ApiTeam | undefined {
+    return this.teamDetailById()[teamId];
+  }
+
+  getOrgPeople(): ApiOrgPerson[] {
+    return this.orgPeopleSignal();
+  }
+
+  async loadTeams(): Promise<void> {
+    try {
+      const teams = await firstValueFrom(this.tripApi.listTeams());
+      this.teamsSignal.set(teams);
+    } catch {
+      this.teamsSignal.set([]);
+    }
+  }
+
+  async loadTeam(teamId: string): Promise<void> {
+    const team = await firstValueFrom(this.tripApi.getTeam(teamId));
+    this.teamDetailById.update((m) => ({ ...m, [teamId]: team }));
+    this.teamsSignal.update((list) =>
+      list.map((t) => (t.id === teamId ? { ...t, memberCount: team.memberCount } : t)),
+    );
+  }
+
+  async createTeam(name: string, description?: string): Promise<ApiTeam> {
+    const team = await firstValueFrom(this.tripApi.createTeam({ name, description }));
+    await this.loadTeams();
+    return team;
+  }
+
+  async deleteTeam(teamId: string): Promise<void> {
+    await firstValueFrom(this.tripApi.deleteTeam(teamId));
+    this.teamDetailById.update((m) => {
+      const next = { ...m };
+      delete next[teamId];
+      return next;
+    });
+    await this.loadTeams();
+  }
+
+  async addTeamMember(
+    teamId: string,
+    email: string,
+    role?: ApiTeamMember['role'],
+  ): Promise<void> {
+    await firstValueFrom(this.tripApi.addTeamMember(teamId, { email, role }));
+    await Promise.all([this.loadTeam(teamId), this.loadTeams()]);
+  }
+
+  async removeTeamMember(teamId: string, memberId: string): Promise<void> {
+    await firstValueFrom(this.tripApi.removeTeamMember(teamId, memberId));
+    await Promise.all([this.loadTeam(teamId), this.loadTeams()]);
+  }
+
+  async loadOrgPeople(): Promise<void> {
+    try {
+      const people = await firstValueFrom(this.tripApi.orgPeople());
+      this.orgPeopleSignal.set(people);
+    } catch {
+      this.orgPeopleSignal.set([]);
+    }
   }
 
   async loadRecentActivity(): Promise<void> {

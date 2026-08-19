@@ -85,7 +85,19 @@
             Max members
             <input type="number" formControlName="maxMembers" />
           </label>
-          <p class="hint">Invite individuals or whole teams after creation.</p>
+          <label class="form-narrow">
+            Team (optional)
+            <select formControlName="teamId">
+              <option value="">No team — invite people after create</option>
+              @for (team of teams(); track team.id) {
+                <option [value]="team.id">{{ team.name }}</option>
+              }
+            </select>
+          </label>
+          <p class="hint">
+            Attach an existing team, or invite individuals after creation. Manage teams from
+            <a routerLink="/teams">Teams</a>.
+          </p>
         }
         @case (4) {
           <div class="form-grid">

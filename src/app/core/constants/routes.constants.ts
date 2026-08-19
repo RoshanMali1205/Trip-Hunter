@@ -11,5 +11,6 @@ export const APP_ROUTES = {
   tasks: '/tasks',
   expenses: '/expenses',
   explore: '/explore',
-  admin: '/admin',
+  teams: '/teams',
+  admin: '/teams',
 } as const;
