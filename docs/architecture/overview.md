@@ -38,7 +38,7 @@ See [API README](../api/README.md) for versioning notes.
 ## Node ↔ DB wiring
 
 - Auth: Supabase JWT via `auth.getUser` (`server/src/middleware/authentication.ts`).
-- Data: repositories under `server/src/modules/` query Postgres through the service-role client when configured; otherwise in-memory seed (non-production). RLS is enabled on trip/team/expense tables with no client policies (migration `018`); the service-role client bypasses RLS. Authz for the SPA is in the API layer.
+- Data: repositories under `server/src/modules/` query Postgres through the service-role client when configured; otherwise in-memory seed (non-production). RLS plus org/trip policies live in migrations `018`–`019`. The service-role client bypasses RLS; the SPA is still authorized in the API. Direct PostgREST with a user JWT is limited to that user's org/trips.
 - Edge: `netlify/functions/api.ts` mounts Express with `serverless-http`.
 
 See [Node.js ↔ DB integration](../api/nodejs-db-integration.md).

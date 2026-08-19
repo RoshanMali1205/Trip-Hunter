@@ -20,7 +20,7 @@ Angular SPA  --Bearer JWT-->  Express (/api/v1)
 | --- | --- |
 | Auth | Supabase Auth JWT in `Authorization: Bearer …` |
 | JWT check | `@supabase/supabase-js` → `auth.getUser(token)` (never trust unverified payload alone) |
-| Data access | Service-role Supabase client after middleware auth (RLS on app tables; service role bypasses; see migration `018`) |
+| Data access | Service-role Supabase client after middleware auth (RLS + org/trip policies in `018`–`019`; service role bypasses) |
 | Schema | SQL under `supabase/migrations/` |
 | Local without DB | In-memory Goa seed trips + mock user (non-production only) |
 | Netlify | `netlify/functions/api.ts` wraps Express with `serverless-http` |

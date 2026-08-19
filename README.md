@@ -111,7 +111,7 @@ Copy `.env.example` → `.env`. Never commit secrets. Never put `SUPABASE_SERVIC
 
 ## Database
 
-SQL lives in `supabase/migrations/` (`001`–`018`). Apply in order (`supabase db push` or the SQL editor).
+SQL lives in `supabase/migrations/` (`001`–`019`). Apply in order (`supabase db push` or the SQL editor).
 
 On an existing project, confirm these are applied:
 
@@ -123,7 +123,8 @@ On an existing project, confirm these are applied:
 | `015_backfill_org_membership.sql` | Profiles + org membership for accounts that cannot create trips |
 | `016_ensure_trip_meta_reload_schema.sql` | Re-add 012 columns if missing and reload the PostgREST schema cache |
 | `017_pending_workflows.sql` | Settlement payments, email invites before signup, lock poll dates. Also creates `availability_options` if 011 was skipped |
-| `018_enable_rls_on_app_tables.sql` | RLS on trip/team/expense tables (no policies; API uses service role) |
+| `018_enable_rls_on_app_tables.sql` | Turn on RLS for trip/team/expense tables |
+| `019_rls_org_trip_policies.sql` | Org/trip member policies (required if you enable 018; otherwise JWT users are denied) |
 
 Details: [docs/api/nodejs-db-integration.md](docs/api/nodejs-db-integration.md), [docs/api/auth-login-signup.md](docs/api/auth-login-signup.md).
 
@@ -195,7 +196,7 @@ Netlify serves the Angular build and runs the **same Express app** as Functions 
 
 1. Connect this repo to [Netlify](https://app.netlify.com) (build uses `netlify.toml` / `scripts/netlify-build.sh`).
 2. Set `SUPABASE_URL`, `SUPABASE_PUBLIC_KEY`, `SUPABASE_SERVICE_ROLE_KEY`. Optional: `GEMINI_API_KEY`.
-3. Apply migrations `001`–`018` on the Supabase project.
+3. Apply migrations `001`–`019` on the Supabase project.
 4. Add Auth redirect URL `https://YOUR_SITE.netlify.app/auth/callback`.
 
 Step-by-step: [docs/api/free-live-hosting.md](docs/api/free-live-hosting.md). PWA notes: [docs/api/pwa.md](docs/api/pwa.md).
