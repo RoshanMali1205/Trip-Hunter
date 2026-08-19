@@ -122,7 +122,7 @@ On an existing project, confirm these are applied:
 | `014_avatar_remove_size_limit.sql` | Remove avatars bucket size cap |
 | `015_backfill_org_membership.sql` | Profiles + org membership for accounts that cannot create trips |
 | `016_ensure_trip_meta_reload_schema.sql` | Re-add 012 columns if missing and reload the PostgREST schema cache |
-| `017_pending_workflows.sql` | Settlement payments, email invites before signup, lock poll dates |
+| `017_pending_workflows.sql` | Settlement payments, email invites before signup, lock poll dates. Also creates `availability_options` if 011 was skipped |
 | `018_enable_rls_on_app_tables.sql` | RLS on trip/team/expense tables (no policies; API uses service role) |
 
 Details: [docs/api/nodejs-db-integration.md](docs/api/nodejs-db-integration.md), [docs/api/auth-login-signup.md](docs/api/auth-login-signup.md).
