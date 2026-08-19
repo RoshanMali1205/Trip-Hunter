@@ -9,13 +9,24 @@ import { TripStore } from '../../../../core/services/trip.store';
 import { ToastService } from '../../../../core/ui/toast.service';
 import { InrCurrencyPipe, StatusLabelPipe } from '../../../../shared/pipes/format.pipe';
 import { ButtonComponent } from '../../../../shared/components/button/button.component';
+import { LazySrcDirective, ScrollRevealDirective } from '../../../../shared/directives/scroll-reveal.directive';
 
 type TripCategory = 'all' | 'beaches' | 'hills' | 'cities' | 'adventure';
 
 @Component({
   selector: 'app-dashboard-page',
   standalone: true,
-  imports: [RouterLink, MatIconModule, FormsModule, InrCurrencyPipe, StatusLabelPipe, DatePipe, ButtonComponent],
+  imports: [
+    RouterLink,
+    MatIconModule,
+    FormsModule,
+    InrCurrencyPipe,
+    StatusLabelPipe,
+    DatePipe,
+    ButtonComponent,
+    ScrollRevealDirective,
+    LazySrcDirective,
+  ],
   templateUrl: './dashboard.page.html',
   styleUrl: './dashboard.page.scss',
 })
@@ -68,36 +79,67 @@ export class DashboardPage {
 
   readonly inspirationTiles = [
     {
-      label: 'Bali-style coasts',
-      caption: 'Resort decks for offsites',
+      label: 'Goa dusk',
+      caption: 'Anjuna offsites by the water',
       rating: '4.9',
       from: '₹12k',
       imageUrl:
-        'https://images.unsplash.com/photo-1573843981267-be1999ff37cd?auto=format&fit=crop&w=900&q=80',
+        'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&w=900&q=80',
     },
     {
-      label: 'Santorini vibes',
-      caption: 'Cliffside team dinners',
+      label: 'Kerala stills',
+      caption: 'Backwaters after the stand-up',
       rating: '4.8',
-      from: '₹18k',
+      from: '₹11k',
       imageUrl:
-        'https://images.unsplash.com/photo-1613395877344-13d4a8e0d49e?auto=format&fit=crop&w=900&q=80',
+        'https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?auto=format&fit=crop&w=900&q=80',
     },
     {
-      label: 'Alpine weekends',
-      caption: 'Cool-weather planning',
+      label: 'Himachal air',
+      caption: 'Pine roads and cool planning',
       rating: '4.7',
       from: '₹9k',
       imageUrl:
-        'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=900&q=80',
+        'https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?auto=format&fit=crop&w=900&q=80',
     },
     {
-      label: 'City lights',
-      caption: 'Workshop + nightlife',
-      rating: '4.6',
-      from: '₹11k',
+      label: 'Jaipur gold',
+      caption: 'Forts for the colour brief',
+      rating: '4.8',
+      from: '₹10k',
       imageUrl:
-        'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&w=900&q=80',
+        'https://images.unsplash.com/photo-1477587458883-47145ed94245?auto=format&fit=crop&w=900&q=80',
+    },
+    {
+      label: 'Udaipur lakes',
+      caption: 'Closing dinner on the water',
+      rating: '4.9',
+      from: '₹14k',
+      imageUrl:
+        'https://images.unsplash.com/photo-1593693397690-362cb3028db0?auto=format&fit=crop&w=900&q=80',
+    },
+    {
+      label: 'Ladakh high',
+      caption: 'Passes above the noise',
+      rating: '4.9',
+      from: '₹16k',
+      imageUrl:
+        'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=900&q=80',
+    },
+  ] as const;
+
+  readonly lookbookStills = [
+    {
+      alt: 'Coastline at dusk',
+      src: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=700&q=80',
+    },
+    {
+      alt: 'Mountain lake',
+      src: 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=700&q=80',
+    },
+    {
+      alt: 'Hill town street',
+      src: 'https://images.unsplash.com/photo-1596176530529-78163a4f7af2?auto=format&fit=crop&w=700&q=80',
     },
   ] as const;
 

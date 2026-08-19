@@ -10,6 +10,13 @@
       <span>{{ t.destination || 'Trip' }} {{ t.startDate ? t.startDate.slice(0, 4) : '' }}</span>
     </nav>
 
+    <div
+      class="detail__cover"
+      [style.--cover]="'url(' + (t.coverImageUrl || '') + ')'"
+      [class.detail__cover--fallback]="!t.coverImageUrl"
+      [attr.aria-label]="t.destination || t.title"
+    ></div>
+
     <header class="detail__header">
       <div class="detail__title-row">
         <div class="detail__heading">

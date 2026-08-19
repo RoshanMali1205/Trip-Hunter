@@ -62,6 +62,7 @@ export class AppShellComponent implements OnInit, OnDestroy {
   readonly navItems: NavItem[] = [
     { label: 'Dashboard', path: '/dashboard', icon: 'home' },
     { label: 'My Trips', path: '/trips', icon: 'map' },
+    { label: 'Explore', path: '/explore', icon: 'travel_explore' },
     { label: 'Calendar', path: '/calendar', icon: 'calendar_today' },
     { label: 'Tasks', path: '/tasks', icon: 'check_box' },
     { label: 'Expenses', path: '/expenses', icon: 'credit_card' },

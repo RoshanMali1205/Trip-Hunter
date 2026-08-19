@@ -239,6 +239,7 @@ export class TripStore {
       memberCount: 1,
       organizerId: api.createdBy ?? '',
       organizerName,
+      coverImageUrl: destinationImageUrl({ destinationName: api.destination }),
       createdAt: api.createdAt,
       updatedAt: api.updatedAt,
     };

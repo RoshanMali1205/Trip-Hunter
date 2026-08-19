@@ -36,6 +36,7 @@ Trip tabs and the dashboard talk to the live `/api/v1` API (not a stub). With Su
 | Notifications | In-app list, mark read, trip invites |
 | Teams | Create teams, add/remove members, attach a team when creating a trip |
 | Buddy | Gemini India trip advisor chat (needs `GEMINI_API_KEY`) |
+| Explore | Cinematic destination lookbook with sticky chapters and scroll-loaded photos |
 | PWA | Installable production build, update + install banners |
 
 ### Known gaps
@@ -133,6 +134,7 @@ Details: [docs/api/nodejs-db-integration.md](docs/api/nodejs-db-integration.md),
 | `/login` | Sign in / create account |
 | `/auth/callback` | OAuth / email-confirm redirect |
 | `/dashboard` | Upcoming trips, invites, tasks, activity |
+| `/explore` | Cinematic destination lookbook (scroll-loaded stills) |
 | `/trips` | Trip list |
 | `/trips/create` | Create wizard |
 | `/trips/:tripId/overview` | Summary, edit trip, comments, approvals |
