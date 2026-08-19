@@ -173,18 +173,53 @@ type AvailVote = 'available' | 'maybe' | 'not';
           <article class="th-panel comments">
             <span class="label">Comments</span>
             <ul class="comment-list">
-              @for (c of comments(); track c.id) {
+              @for (c of threadedComments(); track c.id) {
                 <li>
-                  <div>
+                  <div class="comment-body">
                     <strong>{{ c.authorName }}</strong>
                     <small>{{ formatWhen(c.createdAt) }}</small>
                     <p>{{ c.body }}</p>
+                    <div class="comment-actions">
+                      <app-button variant="link" size="sm" (click)="startReply(c.id)">
+                        {{ replyToId() === c.id ? 'Cancel' : 'Reply' }}
+                      </app-button>
+                      @if (canDeleteComment(c.authorId)) {
+                        <app-button variant="link-danger" size="sm" (click)="removeComment(c.id)"
+                          >Delete</app-button
+                        >
+                      }
+                    </div>
+                    @if (replyToId() === c.id) {
+                      <form class="comment-form reply-form" (ngSubmit)="postReply(c.id)">
+                        <input
+                          type="text"
+                          required
+                          [(ngModel)]="replyBody"
+                          name="reply-{{ c.id }}"
+                          placeholder="Write a reply…"
+                        />
+                        <app-button type="submit" size="sm" [loading]="postingReply()">Reply</app-button>
+                      </form>
+                    }
+                    @if (c.replies.length) {
+                      <ul class="replies">
+                        @for (r of c.replies; track r.id) {
+                          <li>
+                            <div>
+                              <strong>{{ r.authorName }}</strong>
+                              <small>{{ formatWhen(r.createdAt) }}</small>
+                              <p>{{ r.body }}</p>
+                            </div>
+                            @if (canDeleteComment(r.authorId)) {
+                              <app-button variant="link-danger" size="sm" (click)="removeComment(r.id)"
+                                >Delete</app-button
+                              >
+                            }
+                          </li>
+                        }
+                      </ul>
+                    }
                   </div>
-                  @if (canDeleteComment(c.authorId)) {
-                    <app-button variant="link-danger" size="sm" (click)="removeComment(c.id)"
-                      >Delete</app-button
-                    >
-                  }
                 </li>
               } @empty {
                 <li class="empty">No comments yet — start the discussion.</li>
@@ -380,6 +415,29 @@ type AvailVote = 'available' | 'maybe' | 'not';
         background: var(--th-surface);
         color: var(--th-text);
       }
+      .comment-actions {
+        display: flex;
+        gap: 0.75rem;
+        margin-top: 0.35rem;
+      }
+      .reply-form {
+        margin-top: 0.55rem;
+      }
+      .replies {
+        list-style: none;
+        margin: 0.65rem 0 0;
+        padding: 0 0 0 0.85rem;
+        border-left: 2px solid var(--th-border);
+        display: grid;
+        gap: 0.65rem;
+      }
+      .replies li {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.75rem;
+        border-bottom: 0;
+        padding-bottom: 0;
+      }
       .countdown {
         text-align: center;
         padding: 1.75rem 1.25rem;
@@ -441,6 +499,15 @@ export class TripOverviewPage {
     this.store.getApprovals(this.tripId()).filter((a) => a.status === 'PENDING'),
   );
   readonly comments = computed(() => this.store.getComments(this.tripId()));
+  readonly threadedComments = computed(() => {
+    const all = this.comments();
+    return all
+      .filter((c) => !c.parentId)
+      .map((c) => ({
+        ...c,
+        replies: all.filter((r) => r.parentId === c.id),
+      }));
+  });
 
   readonly showEdit = signal(false);
   readonly saving = signal(false);
@@ -448,6 +515,9 @@ export class TripOverviewPage {
   readonly commentBody = signal('');
   readonly postingComment = signal(false);
   readonly commentError = signal('');
+  readonly replyToId = signal('');
+  readonly replyBody = signal('');
+  readonly postingReply = signal(false);
   editTitle = '';
   editDestination = '';
   editOrigin = '';
@@ -524,6 +594,28 @@ export class TripOverviewPage {
       this.commentError.set('Could not post that comment.');
     } finally {
       this.postingComment.set(false);
+    }
+  }
+
+  startReply(commentId: string): void {
+    this.replyToId.update((current) => (current === commentId ? '' : commentId));
+    this.replyBody.set('');
+  }
+
+  async postReply(parentId: string): Promise<void> {
+    const id = this.tripId();
+    const body = this.replyBody().trim();
+    if (!id || !body) return;
+    this.postingReply.set(true);
+    this.commentError.set('');
+    try {
+      await this.store.addComment(id, { body, parentId });
+      this.replyBody.set('');
+      this.replyToId.set('');
+    } catch {
+      this.commentError.set('Could not post that reply.');
+    } finally {
+      this.postingReply.set(false);
     }
   }
 
@@ -2228,6 +2320,7 @@ export class TripBookingsPage {
               <span>
                 {{ b.actualAmount | inr: b.currency }} / {{ b.plannedAmount | inr: b.currency }}
                 <app-button variant="link" size="sm" (click)="startEdit(b.id, b.plannedAmount)">Edit</app-button>
+                <app-button variant="link-danger" size="sm" (click)="removeCategory(b.id)">Delete</app-button>
               </span>
             }
           </div>
@@ -2435,6 +2528,13 @@ export class TripBudgetPage {
     if (!id || amount === null) return;
     await this.store.updateBudgetCategory(id, categoryId, { plannedAmount: amount });
     this.editingId.set('');
+  }
+
+  async removeCategory(categoryId: string): Promise<void> {
+    const id = this.tripId();
+    if (!id) return;
+    if (!confirm('Delete this budget category?')) return;
+    await this.store.deleteBudgetCategory(id, categoryId);
   }
 }
 
@@ -2747,6 +2847,15 @@ export class TripExpensesPage {
           Due date
           <input type="date" [(ngModel)]="dueDate" name="dueDate" />
         </label>
+        <label>
+          Assignee
+          <select [(ngModel)]="assignedTo" name="assignedTo">
+            <option value="">Unassigned</option>
+            @for (m of members(); track m.userId) {
+              <option [value]="m.userId">{{ m.name }}</option>
+            }
+          </select>
+        </label>
         <app-button type="submit" [loading]="adding()">Add task</app-button>
         @if (addError()) {
           <p class="add-error">{{ addError() }}</p>
@@ -2760,7 +2869,18 @@ export class TripExpensesPage {
           <li>
             <div>
               <strong>{{ t.title }}</strong>
-              <span>{{ t.assignedToName }} · {{ t.priority }} · due {{ t.dueDate || '—' }}</span>
+              <span>{{ t.assignedToName || 'Unassigned' }} · {{ t.priority }} · due {{ t.dueDate || '—' }}</span>
+              <select
+                class="assignee"
+                [ngModel]="t.assignedTo"
+                (ngModelChange)="assign(t, $event)"
+                name="assignee-{{ t.id }}"
+              >
+                <option value="">Unassigned</option>
+                @for (m of members(); track m.userId) {
+                  <option [value]="m.userId">{{ m.name }}</option>
+                }
+              </select>
             </div>
             <div class="task-actions">
               <em
@@ -2850,6 +2970,14 @@ export class TripExpensesPage {
         align-items: flex-end;
         gap: 0.25rem;
       }
+      .assignee {
+        margin-top: 0.4rem;
+        padding: 0.35rem 0.5rem;
+        border-radius: var(--th-radius);
+        border: 1px solid var(--th-border);
+        background: var(--th-surface);
+        color: var(--th-text);
+      }
     `,
   ],
 })
@@ -2858,14 +2986,23 @@ export class TripTasksTabPage {
   private readonly store = inject(TripStore);
   private readonly tripId = tripIdFromParent(this.route);
   readonly tasks = computed(() => this.store.getTasks(this.tripId()));
+  readonly members = computed(() => this.store.getMembers(this.tripId()));
 
   readonly showForm = signal(false);
   readonly title = signal('');
   readonly description = signal('');
   readonly priority = signal<'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'>('MEDIUM');
   readonly dueDate = signal('');
+  readonly assignedTo = signal('');
   readonly adding = signal(false);
   readonly addError = signal('');
+
+  constructor() {
+    effect(() => {
+      const id = this.tripId();
+      if (id) void this.store.loadMembers(id);
+    });
+  }
 
   async submit(): Promise<void> {
     const id = this.tripId();
@@ -2879,10 +3016,12 @@ export class TripTasksTabPage {
         description: this.description().trim() || undefined,
         priority: this.priority(),
         dueDate: this.dueDate() || null,
+        assignedTo: this.assignedTo() || null,
       });
       this.title.set('');
       this.description.set('');
       this.dueDate.set('');
+      this.assignedTo.set('');
       this.showForm.set(false);
     } catch {
       this.addError.set('Could not create that task. Please try again.');
@@ -2895,6 +3034,10 @@ export class TripTasksTabPage {
     const order: TripTask['status'][] = ['TODO', 'IN_PROGRESS', 'BLOCKED', 'COMPLETED'];
     const next = order[(order.indexOf(task.status) + 1) % order.length];
     void this.store.updateTaskStatus(task.id, next);
+  }
+
+  assign(task: TripTask, userId: string): void {
+    void this.store.updateTask(task.id, { assignedTo: userId || null });
   }
 }
 

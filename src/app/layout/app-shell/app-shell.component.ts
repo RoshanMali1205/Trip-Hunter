@@ -66,6 +66,7 @@ export class AppShellComponent implements OnInit, OnDestroy {
     { label: 'Tasks', path: '/tasks', icon: 'check_box' },
     { label: 'Expenses', path: '/expenses', icon: 'credit_card' },
     { label: 'Notifications', path: '/notifications', icon: 'notifications' },
+    { label: 'Teams', path: '/teams', icon: 'groups' },
   ];
 
   readonly mobileNav: NavItem[] = [

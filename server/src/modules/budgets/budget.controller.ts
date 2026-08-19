@@ -59,3 +59,14 @@ export const updateBudgetCategory: RequestHandler = async (req, res, next) => {
     next(err);
   }
 };
+
+export const deleteBudgetCategory: RequestHandler = async (req, res, next) => {
+  try {
+    const tripId = String(req.params['tripId']);
+    const categoryId = String(req.params['categoryId']);
+    await repo.deleteCategory(tripId, categoryId);
+    res.json(ok(null, 'Budget category deleted successfully'));
+  } catch (err) {
+    next(err);
+  }
+};
