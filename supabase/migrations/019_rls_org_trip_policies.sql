@@ -16,6 +16,8 @@
 -- Do not FORCE ROW LEVEL SECURITY (would affect table owners / SQL Editor).
 --
 -- Idempotent. Safe if some tables are missing. Apply after 017 and 018.
+-- SQL Editor: a column named `th_policy_all` was the old SELECT-of-void
+-- helper (success, not an error). This file now ends by listing policies.
 
 create or replace function public.is_org_member(p_org_id uuid)
 returns boolean
@@ -28,7 +30,7 @@ as $$
     select 1
     from public.org_members
     where organization_id = p_org_id
-      and user_id = auth.uid()
+      and user_id = (select auth.uid())
       and status = 'active'
   );
 $$;
@@ -167,8 +169,12 @@ begin
   perform public.th_policy_all(
     'destination_votes', 'destination_votes_trip_access',
     'public.can_access_trip(trip_id)',
-    'public.can_access_trip(trip_id) and user_id = auth.uid()'
+    'public.can_access_trip(trip_id) and user_id = (select auth.uid())'
   );
+  -- 007 select-own is a subset of trip-access SELECT (permissive policies OR).
+  if to_regclass('public.destination_votes') is not null then
+    execute 'drop policy if exists destination_votes_select_own on public.destination_votes';
+  end if;
 end $$;
 
 -- Inbox is per user, not per trip.
@@ -183,8 +189,8 @@ begin
     on public.notifications
     for all
     to authenticated
-    using (user_id = auth.uid())
-    with check (user_id = auth.uid());
+    using (user_id = (select auth.uid()))
+    with check (user_id = (select auth.uid()));
 end $$;
 
 -- Helper is only for this migration.

@@ -73,20 +73,20 @@ drop policy if exists profiles_select_own on public.profiles;
 create policy profiles_select_own
   on public.profiles for select
   to authenticated
-  using (id = auth.uid());
+  using (id = (select auth.uid()));
 
 drop policy if exists profiles_update_own on public.profiles;
 create policy profiles_update_own
   on public.profiles for update
   to authenticated
-  using (id = auth.uid())
-  with check (id = auth.uid());
+  using (id = (select auth.uid()))
+  with check (id = (select auth.uid()));
 
 drop policy if exists org_members_select_own on public.org_members;
 create policy org_members_select_own
   on public.org_members for select
   to authenticated
-  using (user_id = auth.uid());
+  using (user_id = (select auth.uid()));
 
 drop policy if exists organizations_select_member on public.organizations;
 create policy organizations_select_member
@@ -97,7 +97,7 @@ create policy organizations_select_member
       select 1
       from public.org_members m
       where m.organization_id = organizations.id
-        and m.user_id = auth.uid()
+        and m.user_id = (select auth.uid())
         and m.status = 'active'
     )
   );

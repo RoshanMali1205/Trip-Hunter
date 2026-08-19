@@ -26,4 +26,4 @@ drop policy if exists destination_votes_select_own on public.destination_votes;
 create policy destination_votes_select_own
   on public.destination_votes for select
   to authenticated
-  using (user_id = auth.uid());
+  using (user_id = (select auth.uid()));
