@@ -21,7 +21,11 @@ const PLACE_IMAGES: { match: RegExp; url: string }[] = [
     url: 'https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?auto=format&fit=crop&w=1200&q=80',
   },
   {
-    match: /jaipur|rajasthan|udaipur/i,
+    match: /udaipur/i,
+    url: 'https://images.unsplash.com/photo-1695956353120-54ce5e91632b?auto=format&fit=crop&w=1200&q=80',
+  },
+  {
+    match: /jaipur|rajasthan/i,
     url: 'https://images.unsplash.com/photo-1477587458883-47145ed94245?auto=format&fit=crop&w=1200&q=80',
   },
   {
@@ -34,11 +38,11 @@ const PLACE_IMAGES: { match: RegExp; url: string }[] = [
   },
   {
     match: /mumbai|bombay/i,
-    url: 'https://images.unsplash.com/photo-1529253355930-c0efa176b9ad?auto=format&fit=crop&w=1200&q=80',
+    url: 'https://images.unsplash.com/photo-1524492412937-b28074a5d7da?auto=format&fit=crop&w=1200&q=80',
   },
   {
     match: /delhi|agra|taj/i,
-    url: 'https://images.unsplash.com/photo-1564507592333-c606f8741bab?auto=format&fit=crop&w=1200&q=80',
+    url: 'https://images.unsplash.com/photo-1587474260584-136574528ed5?auto=format&fit=crop&w=1200&q=80',
   },
   {
     match: /beach|island|coast/i,

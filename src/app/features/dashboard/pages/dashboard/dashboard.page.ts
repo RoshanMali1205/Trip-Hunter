@@ -116,7 +116,7 @@ export class DashboardPage {
       rating: '4.9',
       from: '₹14k',
       imageUrl:
-        'https://images.unsplash.com/photo-1593693397690-362cb3028db0?auto=format&fit=crop&w=900&q=80',
+        'https://images.unsplash.com/photo-1695956353120-54ce5e91632b?auto=format&fit=crop&w=900&q=80',
     },
     {
       label: 'Ladakh high',

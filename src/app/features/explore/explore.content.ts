@@ -94,7 +94,7 @@ export const EXPLORE_STORIES: ExploreStory[] = [
     body: 'Marble courtyards and lake boats — the kind of frame you pin on a launch page.',
     detail: 'City Palace · Fateh Sagar',
     image:
-      'https://images.unsplash.com/photo-1593693397690-362cb3028db0?auto=format&fit=crop&w=1800&q=80',
+      'https://images.unsplash.com/photo-1695956353120-54ce5e91632b?auto=format&fit=crop&w=1800&q=80',
   },
   {
     id: 'pondy',
@@ -135,7 +135,7 @@ export const EXPLORE_FILMSTRIP: { label: string; image: string }[] = [
   {
     label: 'Cities',
     image:
-      'https://images.unsplash.com/photo-1529253355930-c0efa176b9ad?auto=format&fit=crop&w=900&q=80',
+      'https://images.unsplash.com/photo-1587474260584-136574528ed5?auto=format&fit=crop&w=900&q=80',
   },
   {
     label: 'Trains',
