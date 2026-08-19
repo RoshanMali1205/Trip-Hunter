@@ -92,6 +92,7 @@ export interface ApiTripMember {
   avatarUrl: string | null;
   role: 'organizer' | 'traveler' | 'viewer';
   rsvpStatus: 'pending' | 'accepted' | 'declined' | 'maybe';
+  pendingSignup?: boolean;
 }
 
 export interface ApiAvailabilityOption {
@@ -103,6 +104,7 @@ export interface ApiAvailabilityOption {
   maybeCount: number;
   notAvailableCount: number;
   totalVotes: number;
+  isSelected?: boolean;
 }
 
 export interface ApiDestinationOption {
@@ -115,6 +117,7 @@ export interface ApiDestinationOption {
   estimatedCost: number;
   voteCount: number;
   imageUrl?: string;
+  isSelected?: boolean;
 }
 
 export interface ApiItineraryItem {
@@ -218,6 +221,27 @@ export interface CreateItineraryItemPayload {
   locationName?: string;
 }
 
+export interface UpdateItineraryItemPayload {
+  title?: string;
+  description?: string;
+  type?: ApiItineraryItem['type'];
+  date?: string;
+  startTime?: string;
+  endTime?: string;
+  locationName?: string;
+}
+
+export interface UpdateBookingPayload {
+  bookingType?: ApiBooking['bookingType'];
+  provider?: string;
+  bookingReference?: string;
+  amount?: number;
+  currency?: string;
+  startDatetime?: string | null;
+  endDatetime?: string | null;
+  status?: ApiBooking['status'];
+}
+
 export interface CreateDestinationPayload {
   destinationName: string;
   city?: string;
@@ -304,6 +328,9 @@ export interface ApiSettlement {
   amount: number;
   currency: string;
   message: string;
+  tripId?: string;
+  tripName?: string;
+  paid: boolean;
 }
 
 export interface ApiExpenseSummary {
@@ -475,6 +502,12 @@ export class TripApiService {
       .pipe(map(() => undefined));
   }
 
+  updateItineraryItem(tripId: string, itemId: string, payload: UpdateItineraryItemPayload): Observable<void> {
+    return this.http
+      .patch<ApiEnvelope<null>>(`${this.base}/${tripId}/itinerary/${itemId}`, payload)
+      .pipe(map(() => undefined));
+  }
+
   deleteItineraryItem(tripId: string, itemId: string): Observable<void> {
     return this.http
       .delete<ApiEnvelope<null>>(`${this.base}/${tripId}/itinerary/${itemId}`)
@@ -490,6 +523,12 @@ export class TripApiService {
   createBooking(tripId: string, payload: CreateBookingPayload): Observable<ApiBooking> {
     return this.http
       .post<ApiEnvelope<ApiBooking>>(`${this.base}/${tripId}/bookings`, payload)
+      .pipe(map((res) => res.data));
+  }
+
+  updateBooking(tripId: string, bookingId: string, payload: UpdateBookingPayload): Observable<ApiBooking> {
+    return this.http
+      .patch<ApiEnvelope<ApiBooking>>(`${this.base}/${tripId}/bookings/${bookingId}`, payload)
       .pipe(map((res) => res.data));
   }
 
@@ -542,6 +581,25 @@ export class TripApiService {
   settlements(tripId: string): Observable<ApiSettlement[]> {
     return this.http
       .get<ApiEnvelope<ApiSettlement[]>>(`${this.base}/${tripId}/settlements`)
+      .pipe(map((res) => res.data));
+  }
+
+  mySettlements(): Observable<ApiSettlement[]> {
+    return this.http
+      .get<ApiEnvelope<ApiSettlement[]>>(`${this.api}/me/settlements`)
+      .pipe(map((res) => res.data));
+  }
+
+  markSettlementPaid(
+    tripId: string,
+    fromUserId: string,
+    toUserId: string,
+  ): Observable<ApiSettlement[]> {
+    return this.http
+      .post<ApiEnvelope<ApiSettlement[]>>(`${this.base}/${tripId}/settlements/pay`, {
+        fromUserId,
+        toUserId,
+      })
       .pipe(map((res) => res.data));
   }
 
@@ -666,5 +724,27 @@ export class TripApiService {
     return this.http
       .post<ApiEnvelope<null>>(`${this.base}/${tripId}/destinations/${destinationId}/vote`, {})
       .pipe(map(() => undefined));
+  }
+
+  selectDestination(tripId: string, destinationId: string): Observable<ApiDestinationOption> {
+    return this.http
+      .post<ApiEnvelope<ApiDestinationOption>>(
+        `${this.base}/${tripId}/destinations/${destinationId}/select`,
+        {},
+      )
+      .pipe(map((res) => res.data));
+  }
+
+  selectAvailabilityOption(
+    tripId: string,
+    startDate: string,
+    endDate: string,
+  ): Observable<ApiAvailabilityOption> {
+    return this.http
+      .post<ApiEnvelope<ApiAvailabilityOption>>(`${this.base}/${tripId}/availability/select`, {
+        startDate,
+        endDate,
+      })
+      .pipe(map((res) => res.data));
   }
 }

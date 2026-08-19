@@ -2,8 +2,10 @@ import type { RequestHandler } from 'express';
 import { AppError } from '../../middleware/error-handler.js';
 import { ok } from '../../types/api.js';
 import { PlanningRepository, type AvailVote } from './planning.repository.js';
+import { TripRepository } from '../trips/trip.repository.js';
 
 const repo = new PlanningRepository();
+const trips = new TripRepository();
 const VALID_VOTES: AvailVote[] = ['available', 'maybe', 'not'];
 
 function isIsoDate(value: string): boolean {
@@ -143,6 +145,67 @@ export const castDestinationVote: RequestHandler = async (req, res, next) => {
     const destinationId = String(req.params['destinationId']);
     await repo.castDestinationVote(tripId, req.user.id, destinationId);
     res.json(ok(null, 'Vote recorded'));
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const selectDestination: RequestHandler = async (req, res, next) => {
+  try {
+    if (!req.user) {
+      throw new AppError(401, 'UNAUTHORIZED', 'Missing or invalid Bearer token');
+    }
+    const tripId = String(req.params['tripId']);
+    const destinationId = String(req.params['destinationId']);
+    const trip = await trips.findById(tripId);
+    if (!trip) {
+      throw new AppError(404, 'TRIP_NOT_FOUND', `Trip ${tripId} was not found`);
+    }
+    if (trip.createdBy !== req.user.id) {
+      throw new AppError(403, 'FORBIDDEN', 'Only the trip owner can lock the destination');
+    }
+
+    const destination = await repo.selectDestination(tripId, destinationId);
+    const summary = [destination.destinationName, destination.city].filter(Boolean).join(', ');
+    await trips.update(tripId, {
+      destination: summary || destination.destinationName,
+      status: trip.status === 'draft' ? 'planning' : trip.status,
+    });
+    res.json(ok(destination, 'Destination locked'));
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const selectAvailabilityOption: RequestHandler = async (req, res, next) => {
+  try {
+    if (!req.user) {
+      throw new AppError(401, 'UNAUTHORIZED', 'Missing or invalid Bearer token');
+    }
+    const tripId = String(req.params['tripId']);
+    const body = req.body as { startDate?: unknown; endDate?: unknown };
+    if (typeof body.startDate !== 'string' || !isIsoDate(body.startDate)) {
+      throw new AppError(400, 'VALIDATION_ERROR', 'startDate must be YYYY-MM-DD');
+    }
+    if (typeof body.endDate !== 'string' || !isIsoDate(body.endDate)) {
+      throw new AppError(400, 'VALIDATION_ERROR', 'endDate must be YYYY-MM-DD');
+    }
+
+    const trip = await trips.findById(tripId);
+    if (!trip) {
+      throw new AppError(404, 'TRIP_NOT_FOUND', `Trip ${tripId} was not found`);
+    }
+    if (trip.createdBy !== req.user.id) {
+      throw new AppError(403, 'FORBIDDEN', 'Only the trip owner can lock trip dates');
+    }
+
+    const option = await repo.selectAvailabilityOption(tripId, body.startDate, body.endDate, req.user.id);
+    await trips.update(tripId, {
+      startDate: option.startDate,
+      endDate: option.endDate,
+      status: trip.status === 'draft' ? 'planning' : trip.status,
+    });
+    res.json(ok(option, 'Trip dates locked'));
   } catch (err) {
     next(err);
   }

@@ -24,8 +24,63 @@ export const listExpenses: RequestHandler = async (req, res, next) => {
 export const listSettlements: RequestHandler = async (req, res, next) => {
   try {
     const tripId = String(req.params['tripId']);
-    const settlements = await repo.settlementsForTrip(tripId);
+    const trip = await trips.findById(tripId);
+    const settlements = await repo.settlementsForTrip(tripId, trip?.name);
     res.json(ok(settlements, 'Settlements retrieved successfully'));
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const listMySettlements: RequestHandler = async (req, res, next) => {
+  try {
+    if (!req.user) {
+      throw new AppError(401, 'UNAUTHORIZED', 'Missing or invalid Bearer token');
+    }
+    const orgTrips = req.user.organizationId
+      ? await trips.findByOrganization(req.user.organizationId)
+      : [];
+    const settlements = await repo.settlementsForTrips(
+      orgTrips.map((t) => ({ id: t.id, name: t.name })),
+    );
+    res.json(ok(settlements, 'Settlements retrieved successfully'));
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const recordSettlementPayment: RequestHandler = async (req, res, next) => {
+  try {
+    if (!req.user) {
+      throw new AppError(401, 'UNAUTHORIZED', 'Missing or invalid Bearer token');
+    }
+    const tripId = String(req.params['tripId']);
+    const body = req.body as { fromUserId?: unknown; toUserId?: unknown };
+    if (typeof body.fromUserId !== 'string' || !body.fromUserId) {
+      throw new AppError(400, 'VALIDATION_ERROR', 'fromUserId is required');
+    }
+    if (typeof body.toUserId !== 'string' || !body.toUserId) {
+      throw new AppError(400, 'VALIDATION_ERROR', 'toUserId is required');
+    }
+
+    const trip = await trips.findById(tripId);
+    if (!trip) {
+      throw new AppError(404, 'TRIP_NOT_FOUND', `Trip ${tripId} was not found`);
+    }
+
+    const actor = req.user.id;
+    if (actor !== body.fromUserId && actor !== body.toUserId && actor !== trip.createdBy) {
+      throw new AppError(403, 'FORBIDDEN', 'Only the payer, payee, or trip owner can mark this paid');
+    }
+
+    const settlements = await repo.recordPayment({
+      tripId,
+      organizationId: trip.organizationId,
+      fromUserId: body.fromUserId,
+      toUserId: body.toUserId,
+      recordedBy: actor,
+    });
+    res.json(ok(settlements, 'Settlement marked as paid'));
   } catch (err) {
     next(err);
   }

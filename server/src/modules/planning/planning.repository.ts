@@ -20,6 +20,7 @@ export interface AvailabilityOption {
   maybeCount: number;
   notAvailableCount: number;
   totalVotes: number;
+  isSelected: boolean;
 }
 
 export interface DestinationOption {
@@ -32,6 +33,7 @@ export interface DestinationOption {
   estimatedCost: number;
   voteCount: number;
   imageUrl?: string;
+  isSelected: boolean;
 }
 
 export interface MyVotes {
@@ -66,6 +68,7 @@ interface AvailabilityRow {
 interface AvailabilityOptionRow {
   start_date: string;
   end_date: string;
+  is_selected?: boolean | null;
 }
 
 interface DestinationRow {
@@ -80,6 +83,7 @@ interface DestinationRow {
   currency: string;
   image_url: string | null;
   metadata: Record<string, unknown> | null;
+  is_selected?: boolean | null;
 }
 
 function emptyAvailabilityOption(
@@ -96,6 +100,7 @@ function emptyAvailabilityOption(
     maybeCount: 0,
     notAvailableCount: 0,
     totalVotes: 0,
+    isSelected: false,
   };
 }
 
@@ -110,6 +115,9 @@ function aggregateAvailability(
     const key = `${row.start_date}_${row.end_date}`;
     if (!byRange.has(key)) {
       byRange.set(key, emptyAvailabilityOption(tripId, row.start_date, row.end_date));
+    }
+    if (row.is_selected) {
+      byRange.get(key)!.isSelected = true;
     }
   }
 
@@ -142,11 +150,12 @@ function mapDestination(row: DestinationRow, voteCount: number): DestinationOpti
     estimatedCost: (row.estimated_cost_cents ?? 0) / 100,
     voteCount,
     imageUrl: row.image_url || metaImage || undefined,
+    isSelected: Boolean(row.is_selected),
   };
 }
 
 const DESTINATION_SELECT =
-  'id, trip_id, name, city, region, country, description, estimated_cost_cents, currency, image_url, metadata';
+  'id, trip_id, name, city, region, country, description, estimated_cost_cents, currency, image_url, metadata, is_selected';
 
 export class PlanningRepository {
   async findAvailabilityByTrip(tripId: string): Promise<AvailabilityOption[]> {
@@ -157,7 +166,7 @@ export class PlanningRepository {
     const db = getSupabaseAdmin();
     const [{ data: votes, error: voteError }, { data: options, error: optError }] = await Promise.all([
       db.from('availability').select('start_date, end_date, status').eq('trip_id', tripId),
-      db.from('availability_options').select('start_date, end_date').eq('trip_id', tripId),
+      db.from('availability_options').select('start_date, end_date, is_selected').eq('trip_id', tripId),
     ]);
 
     if (voteError) throw new AppError(502, 'DB_ERROR', voteError.message);
@@ -373,5 +382,84 @@ export class PlanningRepository {
     if (error) {
       throw new AppError(502, 'DB_ERROR', error.message);
     }
+  }
+
+  async selectDestination(tripId: string, destinationId: string): Promise<DestinationOption> {
+    if (assertDbOrMock('destinations') === 'memory') {
+      throw new AppError(503, 'SUPABASE_NOT_CONFIGURED', 'Supabase is required to lock a destination');
+    }
+
+    const db = getSupabaseAdmin();
+    const { error: clearError } = await db
+      .from('destinations')
+      .update({ is_selected: false })
+      .eq('trip_id', tripId);
+    if (clearError) {
+      throw new AppError(502, 'DB_ERROR', clearError.message);
+    }
+
+    const { data, error } = await db
+      .from('destinations')
+      .update({ is_selected: true })
+      .eq('trip_id', tripId)
+      .eq('id', destinationId)
+      .select(DESTINATION_SELECT)
+      .maybeSingle();
+
+    if (error) {
+      throw new AppError(502, 'DB_ERROR', error.message);
+    }
+    if (!data) {
+      throw new AppError(404, 'DESTINATION_NOT_FOUND', `Destination ${destinationId} was not found`);
+    }
+
+    const destinations = await this.findDestinationsByTrip(tripId);
+    const selected = destinations.find((d) => d.id === destinationId);
+    return selected ?? mapDestination(data as DestinationRow, 0);
+  }
+
+  async selectAvailabilityOption(
+    tripId: string,
+    startDate: string,
+    endDate: string,
+    createdBy: string | null,
+  ): Promise<AvailabilityOption> {
+    if (assertDbOrMock('availability') === 'memory') {
+      throw new AppError(503, 'SUPABASE_NOT_CONFIGURED', 'Supabase is required to lock trip dates');
+    }
+
+    const db = getSupabaseAdmin();
+    const { error: clearError } = await db
+      .from('availability_options')
+      .update({ is_selected: false })
+      .eq('trip_id', tripId);
+    if (clearError) {
+      throw new AppError(
+        502,
+        'DB_ERROR',
+        /is_selected|does not exist|schema cache/i.test(clearError.message)
+          ? 'Apply migration 017_pending_workflows.sql to lock poll dates'
+          : clearError.message,
+      );
+    }
+
+    const { error } = await db.from('availability_options').upsert(
+      {
+        trip_id: tripId,
+        start_date: startDate,
+        end_date: endDate,
+        is_selected: true,
+        created_by: createdBy,
+      },
+      { onConflict: 'trip_id,start_date,end_date' },
+    );
+
+    if (error) {
+      throw new AppError(502, 'DB_ERROR', error.message);
+    }
+
+    const all = await this.findAvailabilityByTrip(tripId);
+    const selected = all.find((o) => o.startDate === startDate && o.endDate === endDate);
+    return selected ?? { ...emptyAvailabilityOption(tripId, startDate, endDate), isSelected: true };
   }
 }

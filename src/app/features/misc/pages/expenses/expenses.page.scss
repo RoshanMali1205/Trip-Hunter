@@ -33,9 +33,39 @@ li {
     border-bottom: 0;
   }
 
+  span {
+    display: block;
+    color: var(--th-text);
+  }
+
+  small {
+    display: block;
+    margin-top: 0.2rem;
+    font-size: 0.8rem;
+  }
+
+  a {
+    color: var(--th-primary-light);
+  }
+
   strong {
     font-family: var(--th-font-display);
     font-size: 1.05rem;
     color: var(--th-text);
   }
+}
+
+.line-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+}
+
+.empty {
+  color: var(--th-text-muted);
+}
+
+.paid {
+  margin-top: 1rem;
 }

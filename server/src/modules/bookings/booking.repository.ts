@@ -94,6 +94,17 @@ export interface CreateBookingInput {
   createdBy: string | null;
 }
 
+export interface UpdateBookingInput {
+  bookingType?: CreateBookingInput['bookingType'];
+  provider?: string;
+  bookingReference?: string;
+  amountCents?: number;
+  currency?: string;
+  startDatetime?: string | null;
+  endDatetime?: string | null;
+  status?: BookingStatus;
+}
+
 export class BookingRepository {
   async findByTrip(tripId: string): Promise<Booking[]> {
     if (assertDbOrMock('bookings') === 'memory') {
@@ -139,6 +150,45 @@ export class BookingRepository {
       throw new AppError(502, 'DB_ERROR', error.message);
     }
 
+    return mapRow(data as BookingRow);
+  }
+
+  async update(tripId: string, id: string, input: UpdateBookingInput): Promise<Booking> {
+    if (assertDbOrMock('bookings') === 'memory') {
+      throw new AppError(503, 'SUPABASE_NOT_CONFIGURED', 'Supabase is required to update bookings');
+    }
+
+    const patch: Record<string, unknown> = {};
+    if (input.bookingType !== undefined) patch['booking_type'] = TYPE_TO_DB[input.bookingType];
+    if (input.provider !== undefined) patch['vendor_name'] = input.provider;
+    if (input.bookingReference !== undefined) patch['confirmation_code'] = input.bookingReference || null;
+    if (input.amountCents !== undefined) patch['amount_cents'] = input.amountCents;
+    if (input.currency !== undefined) patch['currency'] = input.currency;
+    if (input.startDatetime !== undefined) patch['starts_at'] = input.startDatetime;
+    if (input.endDatetime !== undefined) patch['ends_at'] = input.endDatetime;
+    if (input.status !== undefined) {
+      patch['status'] =
+        input.status === 'CONFIRMED' ? 'confirmed' : input.status === 'CANCELLED' ? 'cancelled' : 'pending';
+    }
+
+    if (Object.keys(patch).length === 0) {
+      throw new AppError(400, 'VALIDATION_ERROR', 'No booking fields to update');
+    }
+
+    const { data, error } = await getSupabaseAdmin()
+      .from('bookings')
+      .update(patch)
+      .eq('id', id)
+      .eq('trip_id', tripId)
+      .select(BOOKING_SELECT)
+      .maybeSingle();
+
+    if (error) {
+      throw new AppError(502, 'DB_ERROR', error.message);
+    }
+    if (!data) {
+      throw new AppError(404, 'BOOKING_NOT_FOUND', `Booking ${id} was not found`);
+    }
     return mapRow(data as BookingRow);
   }
 

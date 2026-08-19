@@ -61,6 +61,68 @@ export const createItineraryItem: RequestHandler = async (req, res, next) => {
   }
 };
 
+export const updateItineraryItem: RequestHandler = async (req, res, next) => {
+  try {
+    const tripId = String(req.params['tripId']);
+    const id = String(req.params['id']);
+    const body = req.body as {
+      title?: unknown;
+      description?: unknown;
+      type?: unknown;
+      date?: unknown;
+      startTime?: unknown;
+      endTime?: unknown;
+      locationName?: unknown;
+    };
+
+    const patch: {
+      title?: string;
+      description?: string;
+      type?: ItineraryItemType;
+      date?: string;
+      startTime?: string;
+      endTime?: string;
+      locationName?: string;
+    } = {};
+
+    if (typeof body.title === 'string') {
+      if (!body.title.trim()) {
+        throw new AppError(400, 'VALIDATION_ERROR', 'title cannot be empty');
+      }
+      patch.title = body.title.trim();
+    }
+    if (typeof body.description === 'string') {
+      patch.description = body.description;
+    }
+    if (typeof body.type === 'string') {
+      if (!VALID_TYPES.includes(body.type as ItineraryItemType)) {
+        throw new AppError(400, 'VALIDATION_ERROR', `type must be one of ${VALID_TYPES.join(', ')}`);
+      }
+      patch.type = body.type as ItineraryItemType;
+    }
+    if (typeof body.date === 'string') {
+      if (!DATE_RE.test(body.date)) {
+        throw new AppError(400, 'VALIDATION_ERROR', 'date must be YYYY-MM-DD');
+      }
+      patch.date = body.date;
+    }
+    if (typeof body.startTime === 'string') {
+      patch.startTime = TIME_RE.test(body.startTime) ? body.startTime : '';
+    }
+    if (typeof body.endTime === 'string') {
+      patch.endTime = TIME_RE.test(body.endTime) ? body.endTime : '';
+    }
+    if (typeof body.locationName === 'string') {
+      patch.locationName = body.locationName;
+    }
+
+    await repo.update(tripId, id, patch);
+    res.json(ok(null, 'Itinerary item updated successfully'));
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const deleteItineraryItem: RequestHandler = async (req, res, next) => {
   try {
     const tripId = String(req.params['tripId']);
