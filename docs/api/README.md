@@ -168,7 +168,7 @@ Apply `supabase/migrations/` in order (`001`–`018`). On an existing project, t
 - `014_avatar_remove_size_limit.sql` — remove avatars bucket size cap
 - `015_backfill_org_membership.sql` — backfill profile + org membership so existing users can create trips
 - `016_ensure_trip_meta_reload_schema.sql` — ensure 012 columns exist and reload PostgREST schema cache
-- `017_pending_workflows.sql` — settlement payments, email invites before signup, lock poll dates
+- `017_pending_workflows.sql` — settlement payments, email invites before signup, lock poll dates (creates `availability_options` if 011 was skipped)
 - `018_enable_rls_on_app_tables.sql` — RLS on trip/team/expense tables (no client policies; service role bypasses)
 
 See also [nodejs-db-integration.md](nodejs-db-integration.md) and [auth-login-signup.md](auth-login-signup.md).
