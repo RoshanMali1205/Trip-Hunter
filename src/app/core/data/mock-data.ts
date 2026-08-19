@@ -118,7 +118,7 @@ export const MOCK_TRIPS: Trip[] = [
     organizerId: 'user-mayuri',
     organizerName: 'Mayuri Patil',
     coverImageUrl:
-      'https://images.unsplash.com/photo-1582510003544-4d00b07f73c7?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1582510003544-4d00b7f74220?auto=format&fit=crop&w=1200&q=80',
     createdAt: '2026-03-01T10:00:00Z',
     updatedAt: '2026-05-20T10:00:00Z',
   },
@@ -321,7 +321,7 @@ export const MOCK_DESTINATIONS: DestinationOption[] = [
     estimatedCost: 12000,
     voteCount: 8,
     imageUrl:
-      'https://images.unsplash.com/photo-1512343879784-a96011150555?auto=format&fit=crop&w=900&q=80',
+      'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&w=900&q=80',
   },
   {
     id: 'dest-2',
@@ -512,7 +512,7 @@ export const MOCK_BOOKINGS: Booking[] = [
     currency: 'INR',
     status: 'CONFIRMED',
     imageUrl:
-      'https://images.unsplash.com/photo-1544620341-1adc1baa1b6c?auto=format&fit=crop&w=1000&q=80',
+      'https://images.unsplash.com/photo-1557223562-6c77ef16210f?auto=format&fit=crop&w=1000&q=80',
   },
   {
     id: 'book-3',
@@ -542,7 +542,7 @@ export const MOCK_BOOKINGS: Booking[] = [
     currency: 'INR',
     status: 'PENDING',
     imageUrl:
-      'https://images.unsplash.com/photo-1502680390469-be75c6c3395d?auto=format&fit=crop&w=1000&q=80',
+      'https://images.unsplash.com/photo-1551632811-561732d1e306?auto=format&fit=crop&w=1000&q=80',
   },
 ];
 
