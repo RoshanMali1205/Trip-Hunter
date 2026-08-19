@@ -1,9 +1,10 @@
 :host {
   display: block;
+  margin-bottom: -2rem;
+  background: #07090e;
 }
 
 .explore {
-  margin: -0.25rem 0 -2rem;
   color: #f4f1ea;
   background: #07090e;
   font-family: var(--th-font-body);
@@ -54,22 +55,22 @@
 .hero__copy {
   position: relative;
   z-index: 1;
-  max-width: 18ch;
-  padding: clamp(4.5rem, 14vh, 8rem) clamp(1.25rem, 5vw, 4.5rem) 6rem;
+  width: min(40rem, 100%);
+  padding: clamp(4.5rem, 14vh, 8rem) clamp(1.5rem, 5vw, 4.5rem) 6rem;
 }
 
 .hero h1 {
   margin: 0;
-  font-size: clamp(3rem, 8vw, 6.4rem);
+  font-size: clamp(2.75rem, 7vw, 5.6rem);
   font-weight: 700;
   letter-spacing: -0.055em;
-  line-height: 0.92;
-  text-wrap: balance;
+  line-height: 0.94;
+  text-wrap: pretty;
 }
 
 .lede {
   margin: 1.25rem 0 0;
-  max-width: 34ch;
+  max-width: 42ch;
   font-size: clamp(1.05rem, 2vw, 1.25rem);
   line-height: 1.5;
   color: rgba(255, 255, 255, 0.78);
@@ -208,7 +209,7 @@
 }
 
 .intro {
-  max-width: 22ch;
+  max-width: 40rem;
   margin: 0 auto;
   padding: clamp(4.5rem, 12vh, 7.5rem) 1.5rem;
   text-align: center;
@@ -422,9 +423,16 @@
 }
 
 @media (max-width: 959px) {
-  .explore {
+  :host {
     margin-bottom: -5rem;
+  }
+
+  .explore {
     padding-bottom: 5.5rem;
+  }
+
+  .hero__copy {
+    width: 100%;
   }
 }
 
