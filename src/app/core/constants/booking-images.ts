@@ -6,11 +6,11 @@ export const BOOKING_TYPE_IMAGES: Record<Booking['bookingType'], string> = {
     'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1000&q=80',
   BUS:
     // Volvo / coach bus
-    'https://images.unsplash.com/photo-1544620341-1adc1baa1b6c?auto=format&fit=crop&w=1000&q=80',
+    'https://images.unsplash.com/photo-1557223562-6c77ef16210f?auto=format&fit=crop&w=1000&q=80',
   CAB:
     'https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?auto=format&fit=crop&w=1000&q=80',
   ACTIVITY:
-    'https://images.unsplash.com/photo-1502680390469-be75c6c3395d?auto=format&fit=crop&w=1000&q=80',
+    'https://images.unsplash.com/photo-1551632811-561732d1e306?auto=format&fit=crop&w=1000&q=80',
   FLIGHT:
     'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=1000&q=80',
   TRAIN:
