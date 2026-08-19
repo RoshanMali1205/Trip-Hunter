@@ -23,6 +23,7 @@ export interface CreateTripRequest {
   budgetCents?: number;
   maxMembers?: number | null;
   approvalRequired?: boolean;
+  teamId?: string | null;
   createdBy: string | null;
   createdByName?: string;
 }
@@ -89,6 +90,7 @@ export class TripService {
       budgetCents: input.budgetCents ?? 0,
       maxMembers: input.maxMembers ?? null,
       approvalStatus,
+      teamId: input.teamId ?? null,
       createdBy: input.createdBy,
     });
 

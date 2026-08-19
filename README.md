@@ -26,24 +26,23 @@ Trip tabs and the dashboard talk to the live `/api/v1` API (not a stub). With Su
 | Polls | Destination + availability options, votes, destination photo cards, owner can lock winner |
 | Itinerary | Add, edit, and delete day items |
 | Bookings | Add, edit, and delete (hotel, flight, bus, etc.) |
-| Budget | Categories create / update |
+| Budget | Categories create / update / delete |
 | Expenses | Create, status, splits, trip-level who-owes-whom, mark settlement paid |
-| Tasks | Create, list, cycle status (trip tab + `/tasks`) |
+| Tasks | Create, list, cycle status, assign to trip members |
 | Approvals | Pending list, approve / reject |
 | Documents | Upload / list / delete (Storage bucket `trip-documents`) |
-| Comments | Trip discussion on Overview (add / delete own) |
+| Comments | Trip discussion on Overview (add / reply / delete own) |
 | Activity | Trip feed + dashboard recent activity |
 | Notifications | In-app list, mark read, trip invites |
+| Teams | Create teams, add/remove members, attach a team when creating a trip |
 | Buddy | Gemini India trip advisor chat (needs `GEMINI_API_KEY`) |
 | PWA | Installable production build, update + install banners |
 
 ### Known gaps
 
 - Settlements can be marked paid, but there is no bank/UPI transfer integration
-- Teams table exists; no team UI
-- Calendar highlights trip start dates in the current month only
 - Notifications are in-app only (schema allows email / push)
-- Table RLS is on profiles / orgs only; trip data is authorized in the API via the service-role client
+- Custom expense splits and receipt uploads are not started
 
 ## Requirements
 
@@ -111,7 +110,7 @@ Copy `.env.example` → `.env`. Never commit secrets. Never put `SUPABASE_SERVIC
 
 ## Database
 
-SQL lives in `supabase/migrations/` (`001`–`017`). Apply in order (`supabase db push` or the SQL editor).
+SQL lives in `supabase/migrations/` (`001`–`018`). Apply in order (`supabase db push` or the SQL editor).
 
 On an existing project, confirm these are applied:
 
@@ -123,6 +122,7 @@ On an existing project, confirm these are applied:
 | `015_backfill_org_membership.sql` | Profiles + org membership for accounts that cannot create trips |
 | `016_ensure_trip_meta_reload_schema.sql` | Re-add 012 columns if missing and reload the PostgREST schema cache |
 | `017_pending_workflows.sql` | Settlement payments, email invites before signup, lock poll dates |
+| `018_enable_rls_on_app_tables.sql` | RLS on trip/team/expense tables (no policies; API uses service role) |
 
 Details: [docs/api/nodejs-db-integration.md](docs/api/nodejs-db-integration.md), [docs/api/auth-login-signup.md](docs/api/auth-login-signup.md).
 
@@ -140,16 +140,17 @@ Details: [docs/api/nodejs-db-integration.md](docs/api/nodejs-db-integration.md),
 | `/trips/:tripId/voting` | Destinations + availability polls |
 | `/trips/:tripId/itinerary` | Day plan |
 | `/trips/:tripId/bookings` | Stay / travel bookings |
-| `/trips/:tripId/budget` | Budget categories |
+| `/trips/:tripId/budget` | Budget categories (create / edit / delete) |
 | `/trips/:tripId/expenses` | Expenses + settlements |
-| `/trips/:tripId/tasks` | Trip tasks |
+| `/trips/:tripId/tasks` | Trip tasks (assign + status) |
 | `/trips/:tripId/documents` | File uploads |
 | `/trips/:tripId/activity` | Audit feed |
 | `/notifications` | In-app inbox + invites |
 | `/profile` | Name, phone, avatar |
-| `/calendar` | Month grid of trip start dates |
+| `/calendar` | Month grid; full trip date ranges, previous/next month |
 | `/tasks` | Tasks across trips |
 | `/expenses` | Org expense summary and live settlements (mark paid) |
+| `/teams` | Org teams and members (`/admin` redirects here) |
 
 ## API
 
@@ -192,7 +193,7 @@ Netlify serves the Angular build and runs the **same Express app** as Functions 
 
 1. Connect this repo to [Netlify](https://app.netlify.com) (build uses `netlify.toml` / `scripts/netlify-build.sh`).
 2. Set `SUPABASE_URL`, `SUPABASE_PUBLIC_KEY`, `SUPABASE_SERVICE_ROLE_KEY`. Optional: `GEMINI_API_KEY`.
-3. Apply migrations `001`–`017` on the Supabase project.
+3. Apply migrations `001`–`018` on the Supabase project.
 4. Add Auth redirect URL `https://YOUR_SITE.netlify.app/auth/callback`.
 
 Step-by-step: [docs/api/free-live-hosting.md](docs/api/free-live-hosting.md). PWA notes: [docs/api/pwa.md](docs/api/pwa.md).

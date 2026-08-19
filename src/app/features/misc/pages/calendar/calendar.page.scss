@@ -12,19 +12,26 @@
     margin: 0;
     font-family: var(--th-font-display);
     font-size: 1.35rem;
+    flex: 1;
+    text-align: center;
   }
 }
 
-.month-badge {
-  font-size: 0.72rem;
-  font-weight: 750;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--th-primary-dark);
-  padding: 0.35rem 0.75rem;
+.month-nav {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--th-border);
+  background: var(--th-surface);
+  color: var(--th-text);
   border-radius: 999px;
-  background: var(--th-accent-soft);
-  border: 1px solid color-mix(in srgb, var(--th-primary) 25%, var(--th-border));
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--th-primary);
+    color: var(--th-primary-dark);
+  }
 }
 
 .weekdays {
@@ -53,12 +60,28 @@
   aspect-ratio: 1;
   display: grid;
   place-items: center;
+  position: relative;
   border-radius: 12px;
   font-weight: 650;
   font-size: 0.88rem;
   color: var(--th-text-secondary);
   background: var(--th-surface-muted);
   border: 1px solid transparent;
+  cursor: pointer;
+  padding: 0;
+
+  &:disabled {
+    cursor: default;
+  }
+
+  em {
+    position: absolute;
+    bottom: 3px;
+    right: 5px;
+    font-style: normal;
+    font-size: 0.6rem;
+    font-weight: 800;
+  }
 
   &--empty {
     background: transparent;
@@ -74,6 +97,11 @@
     background: color-mix(in srgb, var(--th-primary) 22%, var(--th-surface-muted));
     color: var(--th-primary-dark);
     font-weight: 750;
+  }
+
+  &--selected {
+    outline: 2px solid var(--th-primary);
+    outline-offset: 1px;
   }
 }
 

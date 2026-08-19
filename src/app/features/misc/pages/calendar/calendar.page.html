@@ -6,14 +6,19 @@
     >
       <div class="th-hero-split__copy">
         <h1>Calendar</h1>
-        <p>Confirmed and proposed trip dates — see when your team is on the move.</p>
+        <p>Browse months, highlight whole trip ranges, and open the day your team is traveling.</p>
       </div>
     </div>
 
     <div class="th-hero-split__panel calendar-panel">
       <div class="month-head">
+        <button type="button" class="month-nav" (click)="prevMonth()" aria-label="Previous month">
+          <mat-icon>chevron_left</mat-icon>
+        </button>
         <h2>{{ monthLabel() }}</h2>
-        <span class="month-badge">Team trips</span>
+        <button type="button" class="month-nav" (click)="nextMonth()" aria-label="Next month">
+          <mat-icon>chevron_right</mat-icon>
+        </button>
       </div>
 
       <div class="weekdays" aria-hidden="true">
@@ -22,24 +27,31 @@
         }
       </div>
 
-      <div class="month-grid" role="grid" aria-label="Current month">
+      <div class="month-grid" role="grid" aria-label="Trip calendar">
         @for (cell of calendarDays(); track $index) {
-          <div
+          <button
+            type="button"
             class="day"
+            [disabled]="cell.day === null"
             [class.day--empty]="cell.day === null"
             [class.day--today]="cell.iso === todayIso"
-            [class.day--trip]="cell.hasTrip"
+            [class.day--trip]="cell.trips.length > 0"
+            [class.day--selected]="cell.iso === selectedIso()"
+            (click)="selectDay(cell.iso)"
           >
             @if (cell.day !== null) {
               <span>{{ cell.day }}</span>
+              @if (cell.trips.length > 1) {
+                <em>{{ cell.trips.length }}</em>
+              }
             }
-          </div>
+          </button>
         }
       </div>
 
-      <h3 class="list-title">Upcoming on the calendar</h3>
+      <h3 class="list-title">{{ listTitle() }}</h3>
       <ul class="trip-list">
-        @for (trip of trips(); track trip.id) {
+        @for (trip of listedTrips(); track trip.id) {
           <li>
             <a [routerLink]="['/trips', trip.id]">
               <strong>{{ trip.title }}</strong>
@@ -47,7 +59,7 @@
             </a>
           </li>
         } @empty {
-          <li class="empty">No trips scheduled yet.</li>
+          <li class="empty">No trips in this view.</li>
         }
       </ul>
     </div>

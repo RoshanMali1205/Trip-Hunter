@@ -165,4 +165,34 @@ export class BudgetRepository {
 
     return mapCategory(row, tripId);
   }
+
+  async deleteCategory(tripId: string, categoryId: string): Promise<void> {
+    if (assertDbOrMock('budget') === 'memory') {
+      throw new AppError(503, 'SUPABASE_NOT_CONFIGURED', 'Supabase is required to edit the budget');
+    }
+
+    const db = getSupabaseAdmin();
+    const { data, error } = await db
+      .from('budget_categories')
+      .select('id, budgets!inner(trip_id)')
+      .eq('id', categoryId)
+      .maybeSingle();
+
+    if (error) {
+      throw new AppError(502, 'DB_ERROR', error.message);
+    }
+    if (!data) {
+      throw new AppError(404, 'CATEGORY_NOT_FOUND', `Budget category ${categoryId} was not found`);
+    }
+    const row = data as unknown as { budgets: { trip_id: string } | { trip_id: string }[] };
+    const budget = Array.isArray(row.budgets) ? row.budgets[0] : row.budgets;
+    if (budget?.trip_id !== tripId) {
+      throw new AppError(404, 'CATEGORY_NOT_FOUND', `Budget category ${categoryId} was not found`);
+    }
+
+    const { error: deleteError } = await db.from('budget_categories').delete().eq('id', categoryId);
+    if (deleteError) {
+      throw new AppError(502, 'DB_ERROR', deleteError.message);
+    }
+  }
 }

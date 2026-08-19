@@ -1,0 +1,121 @@
+<section class="th-page--full teams-page">
+  <header
+    class="th-hero-backdrop"
+    style="--hero-image: url('https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=1600&q=80')"
+    aria-label="Teams"
+  >
+    <div class="th-hero-backdrop__inner">
+      <p class="th-hero-banner__brand">Trip Hunter</p>
+      <h1>Teams</h1>
+      <p>Group people in your organization, then attach a team when you create a trip.</p>
+    </div>
+  </header>
+
+  <div class="th-page-body">
+    <div class="head">
+      <h2>Your teams</h2>
+      <app-button variant="secondary" (click)="showForm.set(!showForm())">
+        {{ showForm() ? 'Cancel' : 'New team' }}
+      </app-button>
+    </div>
+
+    @if (showForm()) {
+      <form class="th-panel add-form" (ngSubmit)="create()">
+        <label>
+          Team name
+          <input type="text" required [(ngModel)]="name" name="teamName" placeholder="Pune engineering" />
+        </label>
+        <label class="wide">
+          Description
+          <input
+            type="text"
+            [(ngModel)]="description"
+            name="teamDescription"
+            placeholder="Optional — who this group is"
+          />
+        </label>
+        <app-button type="submit" [loading]="creating()">Create team</app-button>
+        @if (createError()) {
+          <p class="error">{{ createError() }}</p>
+        }
+      </form>
+    }
+
+    <ul class="team-list">
+      @for (team of teams(); track team.id) {
+        <li class="th-panel team-card">
+          <button type="button" class="team-toggle" (click)="toggle(team)">
+            <div>
+              <strong>{{ team.name }}</strong>
+              <span>{{ team.memberCount }} member{{ team.memberCount === 1 ? '' : 's' }}</span>
+              @if (team.description) {
+                <span>{{ team.description }}</span>
+              }
+            </div>
+            <em>{{ expandedId() === team.id ? 'Hide' : 'Members' }}</em>
+          </button>
+
+          @if (expandedId() === team.id) {
+            <div class="team-body">
+              <ul class="members">
+                @for (m of detail(team.id)?.members ?? []; track m.id) {
+                  <li>
+                    <div>
+                      <strong>{{ m.name }}</strong>
+                      <span>{{ m.email }} · {{ m.role }}</span>
+                    </div>
+                    @if (canManage(team)) {
+                      <app-button variant="link-danger" size="sm" (click)="removeMember(team, m)"
+                        >Remove</app-button
+                      >
+                    }
+                  </li>
+                } @empty {
+                  <li class="empty">No members yet.</li>
+                }
+              </ul>
+
+              @if (canManage(team)) {
+                <form class="member-form" (ngSubmit)="addMember(team)">
+                  <input
+                    type="email"
+                    required
+                    [(ngModel)]="memberEmail"
+                    name="memberEmail-{{ team.id }}"
+                    placeholder="teammate@company.com"
+                  />
+                  <select [(ngModel)]="memberRole" name="memberRole-{{ team.id }}">
+                    <option value="member">Member</option>
+                    <option value="lead">Lead</option>
+                  </select>
+                  <app-button type="submit" size="sm" [loading]="addingMember()">Add</app-button>
+                </form>
+                @if (memberError()) {
+                  <p class="error">{{ memberError() }}</p>
+                }
+                @if (people().length) {
+                  <p class="dir-label">People in your org</p>
+                  <ul class="directory">
+                    @for (p of people(); track p.id) {
+                      <li>
+                        <span>{{ p.name }} · {{ p.email }}</span>
+                        <app-button variant="link" size="sm" (click)="addFromDirectory(team, p.email)"
+                          >Add</app-button
+                        >
+                      </li>
+                    }
+                  </ul>
+                }
+                <app-button variant="link-danger" size="sm" (click)="removeTeam(team)"
+                  >Delete team</app-button
+                >
+              }
+            </div>
+          }
+        </li>
+      } @empty {
+        <li class="th-panel empty">No teams yet — create one to group people for future trips.</li>
+      }
+    </ul>
+  </div>
+</section>

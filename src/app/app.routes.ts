@@ -62,9 +62,14 @@ export const routes: Routes = [
           import('./features/misc/pages/expenses/expenses.page').then((m) => m.ExpensesPage),
       },
       {
-        path: 'admin',
+        path: 'teams',
         loadComponent: () =>
-          import('./features/profile/pages/profile/profile.page').then((m) => m.ProfilePage),
+          import('./features/misc/pages/teams/teams.page').then((m) => m.TeamsPage),
+      },
+      {
+        path: 'admin',
+        redirectTo: 'teams',
+        pathMatch: 'full',
       },
     ],
   },

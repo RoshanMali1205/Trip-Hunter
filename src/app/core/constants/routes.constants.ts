@@ -10,5 +10,6 @@ export const APP_ROUTES = {
   calendar: '/calendar',
   tasks: '/tasks',
   expenses: '/expenses',
-  admin: '/admin',
+  teams: '/teams',
+  admin: '/teams',
 } as const;

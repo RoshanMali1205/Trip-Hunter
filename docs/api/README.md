@@ -54,6 +54,20 @@ Mounted in `server/src/index.ts`.
 | `GET` | `/api/v1/me/expense-summary` | Yes | Paid / share / receive totals |
 | `GET` | `/api/v1/me/settlements` | Yes | Org-wide who-owes-whom, including paid |
 | `GET` | `/api/v1/me/activity` | Yes | Recent org activity |
+| `GET` | `/api/v1/org/members` | Yes | Active people in the caller’s org |
+
+### Teams
+
+| Method | Path | Auth | Notes |
+| --- | --- | --- | --- |
+| `GET` | `/api/v1/teams` | Yes | Org teams |
+| `POST` | `/api/v1/teams` | Yes | Create team (creator becomes lead) |
+| `GET` | `/api/v1/teams/:id` | Yes | Team + members |
+| `DELETE` | `/api/v1/teams/:id` | Yes | Delete (creator) |
+| `POST` | `/api/v1/teams/:id/members` | Yes | Add by registered org email |
+| `DELETE` | `/api/v1/teams/:id/members/:memberId` | Yes | Remove member |
+
+`POST /api/v1/trips` and `PATCH /api/v1/trips/:id` accept optional `teamId`.
 
 ### Trips
 
@@ -108,6 +122,7 @@ Mounted in `server/src/index.ts`.
 | `GET` | `/api/v1/trips/:tripId/budget` | Yes | Categories |
 | `POST` | `/api/v1/trips/:tripId/budget` | Yes | Create category |
 | `PATCH` | `/api/v1/trips/:tripId/budget/:categoryId` | Yes | Update category |
+| `DELETE` | `/api/v1/trips/:tripId/budget/:categoryId` | Yes | Delete category |
 | `GET` | `/api/v1/trips/:tripId/expenses` | Yes | List expenses |
 | `POST` | `/api/v1/trips/:tripId/expenses` | Yes | Create (with splits) |
 | `PATCH` | `/api/v1/expenses/:id` | Yes | Update expense status |
@@ -123,12 +138,12 @@ Settlements are derived from approved expenses. Payments are stored in `settleme
 | `GET` | `/api/v1/trips/:tripId/tasks` | Yes | Trip tasks |
 | `POST` | `/api/v1/trips/:tripId/tasks` | Yes | Create task |
 | `GET` | `/api/v1/tasks` | Yes | Current user’s org tasks |
-| `PATCH` | `/api/v1/tasks/:id` | Yes | Update status |
+| `PATCH` | `/api/v1/tasks/:id` | Yes | Update status and/or `assignedTo` |
 | `GET` | `/api/v1/trips/:tripId/approvals` | Yes | Trip approvals |
 | `PATCH` | `/api/v1/approvals/:id` | Yes | Approve / reject |
 | `GET` | `/api/v1/trips/:tripId/activity` | Yes | Trip activity feed |
 | `GET` | `/api/v1/trips/:tripId/comments` | Yes | Trip comments |
-| `POST` | `/api/v1/trips/:tripId/comments` | Yes | Add comment |
+| `POST` | `/api/v1/trips/:tripId/comments` | Yes | Add comment (`parentId` for replies) |
 | `DELETE` | `/api/v1/trips/:tripId/comments/:id` | Yes | Delete own comment |
 | `GET` | `/api/v1/trips/:tripId/documents` | Yes | List documents |
 | `POST` | `/api/v1/trips/:tripId/documents` | Yes | Upload (base64, max 5 MB) |
@@ -146,7 +161,7 @@ Settlements are derived from approved expenses. Payments are stored in `settleme
 
 ## Migrations the API expects
 
-Apply `supabase/migrations/` in order (`001`–`017`). On an existing project, these are the later ones that trip features depend on:
+Apply `supabase/migrations/` in order (`001`–`018`). On an existing project, these are the later ones that trip features depend on:
 
 - `012_trip_meta_fields.sql` — origin / trip type / max members / approval status
 - `013_trip_documents_storage.sql` — `trip-documents` Storage bucket
@@ -154,5 +169,6 @@ Apply `supabase/migrations/` in order (`001`–`017`). On an existing project, t
 - `015_backfill_org_membership.sql` — backfill profile + org membership so existing users can create trips
 - `016_ensure_trip_meta_reload_schema.sql` — ensure 012 columns exist and reload PostgREST schema cache
 - `017_pending_workflows.sql` — settlement payments, email invites before signup, lock poll dates
+- `018_enable_rls_on_app_tables.sql` — RLS on trip/team/expense tables (no client policies; service role bypasses)
 
 See also [nodejs-db-integration.md](nodejs-db-integration.md) and [auth-login-signup.md](auth-login-signup.md).
