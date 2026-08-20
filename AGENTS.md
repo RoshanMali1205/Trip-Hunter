@@ -33,3 +33,11 @@ non-obvious cloud gotchas are captured here.
   is not implemented; this is unrelated to environment setup.
 - Build: `npm run build` (SPA, prod) and `npm run server:build` (`tsc` for the API) both
   succeed. The prod SPA build emits a non-fatal component-style budget warning.
+
+### Buddy (India trip advisor)
+- In-app chat: floating **Ask Buddy** control in the authenticated shell. Runtime prompt:
+  `server/src/modules/advisor/buddy-persona.ts`. Needs `GEMINI_API_KEY` for live replies.
+- Team playbook (itineraries, seasons, budget bands): `docs/buddy/india-trip-playbook.md`.
+- Cursor skill for agents helping with Buddy / India trip planning:
+  `.cursor/skills/buddy-india-trip-planner/SKILL.md`. Use it when editing Buddy or when
+  the user wants an India itinerary explained in Trip Hunter terms.

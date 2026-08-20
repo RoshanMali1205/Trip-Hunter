@@ -48,11 +48,13 @@ export class TripAdvisorComponent implements OnInit {
           name: 'Buddy',
           title: 'India Trip Advisor',
           greeting:
-            'Hi Buddy! I’m your India trip specialist — ask me about destinations, seasons, and itineraries.',
+            'Hi Buddy! I’m your Trip Hunter India specialist — destinations, weather seasons, budgets, and day-by-day itineraries. Tell me origin, dates, group size, and vibe, or pick a suggestion below.',
           suggestions: [
             '3-day Goa team outing from Pune',
             'Best time to visit Manali for an offsite',
             'Weekend near Bangalore under ₹8k/person',
+            'Jaipur heritage itinerary for 4 days',
+            'Explain a 3-day Coorg plan I can copy into Trip Hunter',
           ],
           configured: false,
         });
