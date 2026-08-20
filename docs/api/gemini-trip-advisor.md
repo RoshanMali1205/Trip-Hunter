@@ -1,6 +1,8 @@
 # Buddy — Gemini India Trip Advisor
 
-Floating chat assistant in the authenticated app shell. Persona: **Buddy**, a specialist for India destinations, seasons/weather windows, budgets, and itineraries.
+Floating chat assistant in the authenticated app shell. Persona: **Buddy**, a specialist for India destinations, seasons/weather windows, budgets, explanations, and day-by-day itineraries.
+
+Planning knowledge for the team (seasons, budget bands, how to copy a plan into Trip Hunter) lives in [docs/buddy/india-trip-playbook.md](../buddy/india-trip-playbook.md). Cursor agents should use the project skill `.cursor/skills/buddy-india-trip-planner/SKILL.md`. The Gemini system prompt is `server/src/modules/advisor/buddy-persona.ts` — keep those three in sync when Buddy's voice or India scope changes.
 
 ## Setup
 

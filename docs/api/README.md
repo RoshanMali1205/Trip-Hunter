@@ -157,7 +157,7 @@ Settlements are derived from approved expenses. Payments are stored in `settleme
 | `PATCH` | `/api/v1/notifications/:id/read` | Yes | Mark one read |
 | `POST` | `/api/v1/notifications/read-all` | Yes | Mark all read |
 | `GET` | `/api/v1/advisor` | Yes | Buddy metadata + `configured` |
-| `POST` | `/api/v1/advisor/chat` | Yes | Gemini India trip chat |
+| `POST` | `/api/v1/advisor/chat` | Yes | Gemini India trip chat (persona in `buddy-persona.ts`; playbook in `docs/buddy/`) |
 
 ## Migrations the API expects
 

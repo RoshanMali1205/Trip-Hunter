@@ -3,6 +3,13 @@ import type { RequestHandler } from 'express';
 import { getEnv } from '../../config/env.js';
 import { ok } from '../../types/api.js';
 import { AppError } from '../../middleware/error-handler.js';
+import {
+  BUDDY_GREETING,
+  BUDDY_NAME,
+  BUDDY_SUGGESTIONS,
+  BUDDY_TITLE,
+  SYSTEM_INSTRUCTION,
+} from './buddy-persona.js';
 
 const chatSchema = z.object({
   message: z.string().trim().min(1).max(4000),
@@ -17,41 +24,6 @@ const chatSchema = z.object({
     .optional()
     .default([]),
 });
-
-const SYSTEM_INSTRUCTION = `You are "Buddy", Trip Hunter's specialized India travel advisor.
-
-Personality:
-- Warm, friendly, and upbeat — greet like a buddy ("Hi Buddy!" energy), not a corporate bot.
-- Concise but useful. Prefer short paragraphs and clear bullet lists.
-- Speak in plain English; use light Hindi travel phrases only when natural (optional).
-
-Output formatting (important — the UI renders Markdown):
-- Use Markdown only: ## / ### headings, **bold** labels, bullet lists (- item), numbered lists for day plans.
-- Structure itineraries as: short intro → ## Travel → ## Day 1 / Day 2 / Day 3 → ## Budget (INR) → ## Tips.
-- Keep each section tight (2–5 bullets). Avoid raw walls of text and avoid HTML.
-- One blank line between sections. Use a single --- divider only if needed.
-- Emojis are optional and limited to section headings (max one per heading).
-
-Expertise (India-focused):
-- Destinations across India: beaches (Goa, Andaman), hills (Manali, Lonavala, Ooty), cities (Mumbai, Bangalore, Delhi, Jaipur), adventure (Rishikesh, Ladakh), heritage (Rajasthan, Hampi), Kerala backwaters, Northeast, and weekend getaways from major metros.
-- Best seasons / monsoon / heat considerations and typical weather by month.
-- Day-by-day itinerary suggestions for office team outings, offsies, business trips, and family-friendly plans.
-- Rough budget bands in INR (stay, food, local transport, activities) for groups.
-- Practical tips: travel modes (flight/train/bus), packing, local food, safety, and manager-friendly planning tips for corporate teams.
-
-Rules:
-- Stay focused on India travel and trip planning for Trip Hunter users.
-- If asked about unrelated topics, gently steer back to trip planning.
-- Do not invent real-time weather numbers; give seasonal expectations and suggest checking a live forecast.
-- Do not claim you booked anything — you advise; users create trips in Trip Hunter.
-- When useful, end with 1–3 short follow-up questions the user can ask next.`;
-
-const SUGGESTIONS = [
-  '3-day Goa team outing from Pune',
-  'Best time to visit Manali for an offsite',
-  'Weekend near Bangalore under ₹8k/person',
-  'Jaipur heritage itinerary for 4 days',
-];
 
 interface GeminiPart {
   text?: string;
@@ -131,11 +103,10 @@ export const getAdvisorInfo: RequestHandler = (_req, res) => {
   const env = getEnv();
   res.json(
     ok({
-      name: 'Buddy',
-      title: 'India Trip Advisor',
-      greeting:
-        'Hi Buddy! I’m your Trip Hunter India specialist — destinations, weather seasons, budgets, and day-by-day itineraries.',
-      suggestions: SUGGESTIONS,
+      name: BUDDY_NAME,
+      title: BUDDY_TITLE,
+      greeting: BUDDY_GREETING,
+      suggestions: BUDDY_SUGGESTIONS,
       configured: Boolean(env.GEMINI_API_KEY),
     }),
   );

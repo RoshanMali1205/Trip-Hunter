@@ -35,7 +35,7 @@ Trip tabs and the dashboard talk to the live `/api/v1` API (not a stub). With Su
 | Activity | Trip feed + dashboard recent activity |
 | Notifications | In-app list, mark read, trip invites |
 | Teams | Create teams, add/remove members, attach a team when creating a trip |
-| Buddy | Gemini India trip advisor chat (needs `GEMINI_API_KEY`) |
+| Buddy | Gemini India trip advisor chat (needs `GEMINI_API_KEY`); India itinerary playbook + Cursor skill |
 | Explore | Cinematic destination lookbook with sticky chapters and scroll-loaded photos |
 | PWA | Installable production build, update + install banners |
 
@@ -180,13 +180,14 @@ Full route table: [docs/api/README.md](docs/api/README.md).
 
 ```text
 trip-hunter/
+├── .cursor/skills/           # Project agent skills (Buddy India planner)
 ├── src/                      # Angular SPA
 ├── server/                   # Express API (`/api/v1`)
 ├── netlify/functions/        # serverless-http wrapper
 ├── supabase/migrations/      # Postgres + Storage
 ├── public/                   # PWA assets, env.js
 ├── scripts/                  # Netlify build + browser env
-├── docs/                     # Architecture and API notes
+├── docs/                     # Architecture, API, Buddy playbook
 ├── netlify.toml
 └── .env.example
 ```
@@ -211,7 +212,8 @@ Step-by-step: [docs/api/free-live-hosting.md](docs/api/free-live-hosting.md). PW
 | [docs/api/nodejs-db-integration.md](docs/api/nodejs-db-integration.md) | Auth + service-role data access |
 | [docs/api/auth-login-signup.md](docs/api/auth-login-signup.md) | Demo vs Supabase Auth, avatars |
 | [docs/api/member-invites.md](docs/api/member-invites.md) | Invite flow |
-| [docs/api/gemini-trip-advisor.md](docs/api/gemini-trip-advisor.md) | Buddy / Gemini |
+| [docs/api/gemini-trip-advisor.md](docs/api/gemini-trip-advisor.md) | Buddy / Gemini setup |
+| [docs/buddy/india-trip-playbook.md](docs/buddy/india-trip-playbook.md) | Buddy India itinerary playbook |
 | [docs/api/pwa.md](docs/api/pwa.md) | Service worker, install, cache |
 | [docs/api/free-live-hosting.md](docs/api/free-live-hosting.md) | Netlify + Supabase go-live |
 
