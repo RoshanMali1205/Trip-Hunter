@@ -180,14 +180,17 @@ Full route table: [docs/api/README.md](docs/api/README.md).
 
 ```text
 trip-hunter/
+├── .claude/                  # Claude Code agents, prompts, skills
 ├── .cursor/skills/           # Project agent skills (Buddy India planner)
+├── .github/instructions/     # GitHub Copilot file-type standards
+├── PROJECT-CONVENTIONS.md    # Locked stack decisions for AI agents
 ├── src/                      # Angular SPA
 ├── server/                   # Express API (`/api/v1`)
 ├── netlify/functions/        # serverless-http wrapper
 ├── supabase/migrations/      # Postgres + Storage
 ├── public/                   # PWA assets, env.js
 ├── scripts/                  # Netlify build + browser env
-├── docs/                     # Architecture, API, Buddy playbook
+├── docs/                     # Architecture, API, Buddy playbook, multi-agent kit
 ├── netlify.toml
 └── .env.example
 ```
@@ -214,9 +217,18 @@ Step-by-step: [docs/api/free-live-hosting.md](docs/api/free-live-hosting.md). PW
 | [docs/api/member-invites.md](docs/api/member-invites.md) | Invite flow |
 | [docs/api/gemini-trip-advisor.md](docs/api/gemini-trip-advisor.md) | Buddy / Gemini setup |
 | [docs/buddy/india-trip-playbook.md](docs/buddy/india-trip-playbook.md) | Buddy India itinerary playbook |
+| [docs/multi-agent-kit/README.md](docs/multi-agent-kit/README.md) | Claude Code + Copilot multi-agent kit (SVG diagrams) |
 | [docs/api/pwa.md](docs/api/pwa.md) | Service worker, install, cache |
 | [docs/api/free-live-hosting.md](docs/api/free-live-hosting.md) | Netlify + Supabase go-live |
 
+## AI-augmented engineering
+
+Trip Hunter includes an adapted **Angular Multi-Agent Kit** (MIT for kit files) with
+Claude Code agents, Copilot instructions, filled `PROJECT-CONVENTIONS.md`, and SVG
+pipeline diagrams. See [docs/multi-agent-kit/README.md](docs/multi-agent-kit/README.md).
+
 ## License
 
-Private / proprietary unless otherwise stated.
+Application source is private / proprietary unless otherwise stated.
+Multi-agent kit docs, diagrams, agents, prompts, skills, and instruction files are
+[MIT](docs/multi-agent-kit/LICENSE) (see the kit README for the file list).
