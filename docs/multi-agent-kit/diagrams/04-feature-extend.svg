@@ -1,0 +1,97 @@
+<svg viewBox="0 0 1200 675" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="glow-coral" cx="18%" cy="22%" r="55%">
+      <stop offset="0%" stop-color="#ff6a1a" stop-opacity="0.30"/>
+      <stop offset="100%" stop-color="#ff6a1a" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glow-orange" cx="82%" cy="55%" r="50%">
+      <stop offset="0%" stop-color="#fb923c" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#fb923c" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glow-teal" cx="45%" cy="92%" r="55%">
+      <stop offset="0%" stop-color="#14b8a6" stop-opacity="0.20"/>
+      <stop offset="100%" stop-color="#14b8a6" stop-opacity="0"/>
+    </radialGradient>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#cbd5e1"/>
+    </marker>
+    <marker id="arrow-pink" viewBox="0 0 10 10" refX="8" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#ec4899"/>
+    </marker>
+    <filter id="ds" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="4"/>
+      <feOffset dx="0" dy="3" result="b"/>
+      <feFlood flood-color="#000" flood-opacity="0.45"/>
+      <feComposite in2="b" operator="in"/>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="1200" height="675" fill="#0f1419"/>
+  <rect width="1200" height="675" fill="url(#glow-coral)"/>
+  <rect width="1200" height="675" fill="url(#glow-orange)"/>
+  <rect width="1200" height="675" fill="url(#glow-teal)"/>
+  <text x="600" y="50" text-anchor="middle" fill="#ffffff"
+        font-family="Helvetica, Arial, sans-serif" font-size="28" font-weight="700">Extending Trip Hunter Features</text>
+  <text x="600" y="80" text-anchor="middle" fill="#94a3b8"
+        font-family="Helvetica, Arial, sans-serif" font-size="14">Feature-specialist agents inherit context · ship with their own LLD</text>
+  <text x="60" y="135" fill="#ff6a1a" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="700" letter-spacing="2">DEFAULT PIPELINE  →</text>
+  <rect x="40" y="155" width="300" height="380" rx="12" fill="#0f1419" fill-opacity="0.6" stroke="#ff6a1a" stroke-width="2" stroke-opacity="0.7" filter="url(#ds)"/>
+  <rect x="60" y="185" width="260" height="38" rx="6" fill="#0f1419" stroke="#ff6a1a" stroke-width="1" stroke-opacity="0.8"/>
+  <text x="80" y="210" font-size="16">📋</text>
+  <text x="110" y="210" fill="#ffffff" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="500">Planner</text>
+  <rect x="60" y="233" width="260" height="38" rx="6" fill="#0f1419" stroke="#ff6a1a" stroke-width="1" stroke-opacity="0.8"/>
+  <text x="80" y="258" font-size="16">⚙️</text>
+  <text x="110" y="258" fill="#ffffff" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="500">Implementer</text>
+  <rect x="60" y="281" width="260" height="38" rx="6" fill="#0f1419" stroke="#ff6a1a" stroke-width="1" stroke-opacity="0.8"/>
+  <text x="80" y="306" font-size="16">🎨</text>
+  <text x="110" y="306" fill="#ffffff" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="500">UI Styling</text>
+  <rect x="60" y="329" width="260" height="38" rx="6" fill="#0f1419" stroke="#ff6a1a" stroke-width="1" stroke-opacity="0.8"/>
+  <text x="80" y="354" font-size="16">🔍</text>
+  <text x="110" y="354" fill="#ffffff" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="500">Design Reviewer</text>
+  <rect x="60" y="377" width="260" height="38" rx="6" fill="#0f1419" stroke="#ff6a1a" stroke-width="1" stroke-opacity="0.8"/>
+  <text x="80" y="402" font-size="16">✅</text>
+  <text x="110" y="402" fill="#ffffff" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="500">Test Generator</text>
+  <rect x="60" y="425" width="260" height="38" rx="6" fill="#0f1419" stroke="#ff6a1a" stroke-width="1" stroke-opacity="0.8"/>
+  <text x="80" y="450" font-size="16">🔧</text>
+  <text x="110" y="450" fill="#ffffff" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="500">Test Fixer</text>
+  <rect x="60" y="473" width="260" height="38" rx="6" fill="#0f1419" stroke="#ff6a1a" stroke-width="1" stroke-opacity="0.8"/>
+  <text x="80" y="498" font-size="16">🔎</text>
+  <text x="110" y="498" fill="#ffffff" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="500">Reviewer</text>
+  <rect x="400" y="295" width="200" height="100" rx="12" fill="#0f1419" fill-opacity="0.95" stroke="#ff6a1a" stroke-width="2.5" filter="url(#ds)"/>
+  <text x="500" y="325" text-anchor="middle" font-size="22">🎯</text>
+  <text x="500" y="348" text-anchor="middle" fill="#ff6a1a" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="700" letter-spacing="2">ORCHESTRATOR</text>
+  <text x="500" y="370" text-anchor="middle" fill="#ffffff" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="600">Routes to specialist</text>
+  <text x="500" y="386" text-anchor="middle" fill="#94a3b8" font-family="Helvetica, Arial, sans-serif" font-size="11">when feature is in scope</text>
+  <line x1="340" y1="345" x2="400" y2="345" stroke="#cbd5e1" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="680" y="135" fill="#ec4899" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="700" letter-spacing="2">SPAWNED SPECIALIST  →</text>
+  <rect x="660" y="155" width="500" height="240" rx="12" fill="#0f1419" fill-opacity="0.85" stroke="#ec4899" stroke-width="2.5" filter="url(#ds)"/>
+  <text x="910" y="195" text-anchor="middle" font-size="26">🎁</text>
+  <text x="910" y="220" text-anchor="middle" fill="#ec4899" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="700" letter-spacing="2">FEATURE-SPECIALIST AGENT</text>
+  <text x="910" y="245" text-anchor="middle" fill="#ffffff" font-family="Helvetica, Arial, sans-serif" font-size="14" font-weight="600">e.g. Global Vehicle Search Agent</text>
+  <rect x="690" y="280" width="440" height="28" rx="6" fill="#0f1419" stroke="#ec4899" stroke-width="1" stroke-opacity="0.6"/>
+  <text x="705" y="299" fill="#ec4899" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="700" letter-spacing="1.5">READS ITS OWN LLD</text>
+  <text x="870" y="299" fill="#94a3b8" font-family="Helvetica, Arial, sans-serif" font-size="11">docs/&lt;feature&gt;-LLD.md</text>
+  <rect x="690" y="316" width="440" height="28" rx="6" fill="#0f1419" stroke="#ec4899" stroke-width="1" stroke-opacity="0.6"/>
+  <text x="705" y="335" fill="#ec4899" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="700" letter-spacing="1.5">KNOWS FEATURE FILES</text>
+  <text x="870" y="335" fill="#94a3b8" font-family="Helvetica, Arial, sans-serif" font-size="11">components, services, models</text>
+  <rect x="690" y="352" width="440" height="28" rx="6" fill="#0f1419" stroke="#ec4899" stroke-width="1" stroke-opacity="0.6"/>
+  <text x="705" y="371" fill="#ec4899" font-family="Helvetica, Arial, sans-serif" font-size="10" font-weight="700" letter-spacing="1.5">CARRIES CONSTRAINTS</text>
+  <text x="870" y="371" fill="#94a3b8" font-family="Helvetica, Arial, sans-serif" font-size="11">ACs, code patterns, i18n keys</text>
+  <path d="M 600 345 Q 650.0 280.0 660 275" stroke="#ec4899" stroke-width="2" fill="none" marker-end="url(#arrow-pink)"/>
+  <rect x="40" y="555" width="1120" height="40" rx="8" fill="#0f1419" fill-opacity="0.9" stroke="#fb923c" stroke-width="2"/>
+  <text x="60" y="582" fill="#fb923c" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="700" letter-spacing="2">TEMPLATE  ▸</text>
+  <text x="200" y="582" fill="#ffffff" font-family="Helvetica, Arial, sans-serif" font-size="13">Copy <tspan font-weight="700" fill="#fb923c">FEATURE-AGENT-TEMPLATE.md</tspan> → fill in placeholders → drop in <tspan font-weight="700" fill="#fb923c">.claude/agents/</tspan> · done.</text>
+  <line x1="40" y1="610" x2="1160" y2="610" stroke="#1e293b" stroke-width="1"/>
+  <circle cx="68" cy="640" r="20" fill="#ff6a1a" filter="url(#ds)"/>
+  <text x="68" y="647" text-anchor="middle" fill="#ffffff"
+        font-family="Helvetica, Arial, sans-serif" font-size="20" font-weight="700">R</text>
+  <text x="100" y="635" fill="#ffffff"
+        font-family="Helvetica, Arial, sans-serif" font-size="14" font-weight="600">Roshan Mali</text>
+  <text x="100" y="654" fill="#94a3b8"
+        font-family="Helvetica, Arial, sans-serif" font-size="11">Sr. Frontend Developer  ·  Angular  ·  AI-Augmented Engineering</text>
+  <rect x="985" y="624" width="170" height="32" rx="16" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+  <text x="1070" y="644" text-anchor="middle" fill="#94a3b8"
+        font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="500">#angular  #ai  #claudecode</text>
+</svg>

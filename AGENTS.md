@@ -1,5 +1,18 @@
 # AGENTS.md
 
+## Multi-agent kit (Claude Code + Copilot)
+
+Trip Hunter ships an adapted [Angular Multi-Agent Kit](docs/multi-agent-kit/README.md):
+
+- Conventions: `PROJECT-CONVENTIONS.md`
+- Claude Code: `.claude/CLAUDE.md`, `.claude/agents/`, `.claude/prompts/`, `.claude/skills/`
+- GitHub Copilot: `.github/copilot-instructions.md`, `.github/instructions/`
+- Buddy specialist: `.claude/agents/buddy-india-advisor.agent.md` (+ Cursor skill below)
+- SVG overview: `docs/multi-agent-kit/diagrams/`
+
+For end-to-end feature work in Claude Code, start with `@angular-orchestrator`.
+For Buddy / India itineraries, use `@buddy-india-advisor`.
+
 ## Cursor Cloud specific instructions
 
 Trip Hunter is an Angular 22 SPA (`src/`) plus an Express `/api/v1` server (`server/`).
