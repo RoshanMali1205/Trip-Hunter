@@ -27,7 +27,7 @@ Trip tabs and the dashboard talk to the live `/api/v1` API (not a stub). With Su
 | Itinerary | Add, edit, and delete day items |
 | Bookings | Add, edit, and delete (hotel, flight, bus, etc.) |
 | Budget | Categories create / update / delete |
-| Expenses | Create, status, splits, trip-level who-owes-whom, mark settlement paid |
+| Expenses | Create, equal or custom splits, receipt upload, status, who-owes-whom, mark settlement paid |
 | Tasks | Create, list, cycle status, assign to trip members |
 | Approvals | Pending list, approve / reject |
 | Documents | Upload / list / delete (Storage bucket `trip-documents`) |
@@ -43,7 +43,6 @@ Trip tabs and the dashboard talk to the live `/api/v1` API (not a stub). With Su
 
 - Settlements can be marked paid, but there is no bank/UPI transfer integration
 - Notifications are in-app only (schema allows email / push)
-- Custom expense splits and receipt uploads are not started
 
 ## Requirements
 
@@ -111,7 +110,7 @@ Copy `.env.example` → `.env`. Never commit secrets. Never put `SUPABASE_SERVIC
 
 ## Database
 
-SQL lives in `supabase/migrations/` (`001`–`020`). Apply in order (`supabase db push` or the SQL editor).
+SQL lives in `supabase/migrations/` (`001`–`021`). Apply in order (`supabase db push` or the SQL editor).
 
 On an existing project, confirm these are applied:
 
@@ -126,6 +125,7 @@ On an existing project, confirm these are applied:
 | `018_enable_rls_on_app_tables.sql` | Turn on RLS for trip/team/expense tables |
 | `019_rls_org_trip_policies.sql` | Org/trip member policies (required if you enable 018; otherwise JWT users are denied) |
 | `020_rls_auth_initplan.sql` | Wrap `auth.uid()` for the InitPlan advisor; drop overlapping dashboard policies |
+| `021_expense_split_mode.sql` | Remember custom expense splits when the shares happen to be equal |
 
 Details: [docs/api/nodejs-db-integration.md](docs/api/nodejs-db-integration.md), [docs/api/auth-login-signup.md](docs/api/auth-login-signup.md).
 
@@ -201,7 +201,7 @@ Netlify serves the Angular build and runs the **same Express app** as Functions 
 
 1. Connect this repo to [Netlify](https://app.netlify.com) (build uses `netlify.toml` / `scripts/netlify-build.sh`).
 2. Set `SUPABASE_URL`, `SUPABASE_PUBLIC_KEY`, `SUPABASE_SERVICE_ROLE_KEY`. Optional: `GEMINI_API_KEY`.
-3. Apply migrations `001`–`020` on the Supabase project.
+3. Apply migrations `001`–`021` on the Supabase project.
 4. Add Auth redirect URL `https://YOUR_SITE.netlify.app/auth/callback`.
 
 Step-by-step: [docs/api/free-live-hosting.md](docs/api/free-live-hosting.md). PWA notes: [docs/api/pwa.md](docs/api/pwa.md).
