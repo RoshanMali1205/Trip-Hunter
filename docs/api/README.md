@@ -124,12 +124,14 @@ Mounted in `server/src/index.ts`.
 | `PATCH` | `/api/v1/trips/:tripId/budget/:categoryId` | Yes | Update category |
 | `DELETE` | `/api/v1/trips/:tripId/budget/:categoryId` | Yes | Delete category |
 | `GET` | `/api/v1/trips/:tripId/expenses` | Yes | List expenses |
-| `POST` | `/api/v1/trips/:tripId/expenses` | Yes | Create (with splits) |
+| `POST` | `/api/v1/trips/:tripId/expenses` | Yes | Create. Even split by default; optional custom `splits` and `receipt` |
 | `PATCH` | `/api/v1/expenses/:id` | Yes | Update expense status |
 | `GET` | `/api/v1/trips/:tripId/settlements` | Yes | Computed who-owes-whom (minus recorded payments) |
 | `POST` | `/api/v1/trips/:tripId/settlements/pay` | Yes | Mark a pair as paid |
 
 Settlements are derived from approved expenses. Payments are stored in `settlement_payments` (migration 017).
+
+`POST /trips/:tripId/expenses` splits the amount evenly across accepted members (organizers included) when `splits` is omitted. A custom split is `splits: [{ "userId", "amount" }]`; each person must be an accepted member, and the shares must add up to `amount`. An optional `receipt` object `{ fileName, mimeType, contentBase64 }` accepts a PDF or image up to 5 MB. The file is saved with the trip documents (type `receipt`) and linked from `expenses.receipt_url`. The expense response includes `splitMode` (`equal` or `custom`), `splits`, and `receiptUrl`.
 
 ### Tasks, approvals, activity, comments, documents
 
@@ -161,7 +163,7 @@ Settlements are derived from approved expenses. Payments are stored in `settleme
 
 ## Migrations the API expects
 
-Apply `supabase/migrations/` in order (`001`–`020`). On an existing project, these are the later ones that trip features depend on:
+Apply `supabase/migrations/` in order (`001`–`021`). On an existing project, these are the later ones that trip features depend on:
 
 - `012_trip_meta_fields.sql` — origin / trip type / max members / approval status
 - `013_trip_documents_storage.sql` — `trip-documents` Storage bucket
@@ -172,5 +174,6 @@ Apply `supabase/migrations/` in order (`001`–`020`). On an existing project, t
 - `018_enable_rls_on_app_tables.sql` — enable RLS on trip/team/expense tables
 - `019_rls_org_trip_policies.sql` — org/trip member policies (run with 018; service role still bypasses)
 - `020_rls_auth_initplan.sql` — wrap `auth.uid()` (InitPlan advisor) and drop overlapping dashboard policies
+- `021_expense_split_mode.sql` — persist `expenses.split_mode` so a custom split stays labeled custom when the shares are equal. Without it, equal custom shares are shown as an even split; creating expenses still works
 
 See also [nodejs-db-integration.md](nodejs-db-integration.md) and [auth-login-signup.md](auth-login-signup.md).

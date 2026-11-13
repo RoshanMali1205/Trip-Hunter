@@ -3,8 +3,16 @@ import { getSupabaseAdmin } from '../../config/supabase.js';
 import { assertDbOrMock } from '../../config/data-mode.js';
 import { AppError } from '../../middleware/error-handler.js';
 import { recordActivity } from '../activity/activity.repository.js';
+import { DocumentRepository } from '../documents/document.repository.js';
+import { splitEvenly, splitModeOf, type ShareSplit } from './expense-splits.js';
 
 export type ExpenseStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
+export interface ExpenseSplitView {
+  userId: string;
+  name: string;
+  amount: number;
+}
 
 export interface Expense {
   id: string;
@@ -17,6 +25,9 @@ export interface Expense {
   currency: string;
   expenseDate: string;
   status: ExpenseStatus;
+  receiptUrl: string | null;
+  splitMode: 'equal' | 'custom';
+  splits: ExpenseSplitView[];
 }
 
 export interface SettlementLine {
@@ -72,6 +83,8 @@ interface ExpenseRow {
   currency: string;
   incurred_on: string;
   status: 'draft' | 'submitted' | 'approved' | 'rejected' | 'reimbursed';
+  receipt_url: string | null;
+  split_mode?: 'equal' | 'custom' | null;
   profiles: { display_name: string } | null;
 }
 
@@ -91,8 +104,9 @@ const STATUS_MAP: Record<ExpenseRow['status'], ExpenseStatus> = {
 };
 
 const memoryExpenses: Expense[] = [];
-const memorySplits = new Map<string, { userId: string; name: string; shareCents: number }[]>();
+const memorySplits = new Map<string, ShareSplit[]>();
 const memoryPayments: MemoryPayment[] = [];
+const documents = new DocumentRepository();
 
 function mapRow(row: ExpenseRow): Expense {
   return {
@@ -106,11 +120,40 @@ function mapRow(row: ExpenseRow): Expense {
     currency: row.currency,
     expenseDate: row.incurred_on,
     status: STATUS_MAP[row.status],
+    receiptUrl: row.receipt_url,
+    splitMode: row.split_mode === 'custom' ? 'custom' : 'equal',
+    splits: [],
+  };
+}
+
+function applySplits(expense: Expense, shares: ShareSplit[]): Expense {
+  const inferred = splitModeOf(shares.map((share) => share.shareCents));
+  return {
+    ...expense,
+    splitMode: expense.splitMode === 'custom' ? 'custom' : inferred,
+    splits: shares.map((share) => ({
+      userId: share.userId,
+      name: share.name,
+      amount: share.shareCents / 100,
+    })),
   };
 }
 
 const EXPENSE_SELECT =
-  'id, trip_id, paid_by, category, title, description, amount_cents, currency, incurred_on, status, profiles!paid_by(display_name)';
+  'id, trip_id, paid_by, category, title, description, amount_cents, currency, incurred_on, status, receipt_url, split_mode, profiles!paid_by(display_name)';
+
+const EXPENSE_SELECT_LEGACY =
+  'id, trip_id, paid_by, category, title, description, amount_cents, currency, incurred_on, status, receipt_url, profiles!paid_by(display_name)';
+
+function isMissingSplitMode(message: string): boolean {
+  return /split_mode/i.test(message) && /does not exist|schema cache|column/i.test(message);
+}
+
+export interface ExpenseReceiptInput {
+  fileName: string;
+  mimeType: string;
+  contentBase64: string;
+}
 
 export interface CreateExpenseInput {
   tripId: string;
@@ -124,22 +167,9 @@ export interface CreateExpenseInput {
   createdByName?: string;
   organizationId?: string | null;
   memberIds?: { userId: string; name: string }[];
-}
-
-function splitEvenly(
-  amountCents: number,
-  members: { userId: string; name: string }[],
-): { userId: string; name: string; shareCents: number }[] {
-  if (members.length === 0) {
-    return [];
-  }
-  const base = Math.floor(amountCents / members.length);
-  let remainder = amountCents - base * members.length;
-  return members.map((m) => {
-    const extra = remainder > 0 ? 1 : 0;
-    if (remainder > 0) remainder -= 1;
-    return { userId: m.userId, name: m.name, shareCents: base + extra };
-  });
+  /** When set, these shares are stored instead of an even split. */
+  splits?: ShareSplit[];
+  receipt?: ExpenseReceiptInput | null;
 }
 
 function settleBalances(
@@ -230,20 +260,22 @@ function isMissingSettlementTable(message: string): boolean {
 export class ExpenseRepository {
   async findByTrip(tripId: string): Promise<Expense[]> {
     if (assertDbOrMock('expenses') === 'memory') {
-      return memoryExpenses.filter((e) => e.tripId === tripId);
+      return memoryExpenses
+        .filter((expense) => expense.tripId === tripId)
+        .map((expense) => applySplits(expense, memorySplits.get(expense.id) ?? []));
     }
 
-    const { data, error } = await getSupabaseAdmin()
-      .from('expenses')
-      .select(EXPENSE_SELECT)
-      .eq('trip_id', tripId)
-      .order('incurred_on', { ascending: false });
+    const data = await this.selectExpenseRows((columns) =>
+      getSupabaseAdmin()
+        .from('expenses')
+        .select(columns)
+        .eq('trip_id', tripId)
+        .order('incurred_on', { ascending: false }),
+    );
 
-    if (error) {
-      throw new AppError(502, 'DB_ERROR', error.message);
-    }
-
-    return ((data ?? []) as unknown as ExpenseRow[]).map(mapRow);
+    const expenses = (data as ExpenseRow[]).map(mapRow);
+    const shares = await this.sharesForExpenses(expenses.map((expense) => expense.id));
+    return expenses.map((expense) => applySplits(expense, shares.get(expense.id) ?? []));
   }
 
   async create(input: CreateExpenseInput): Promise<Expense> {
@@ -253,70 +285,20 @@ export class ExpenseRepository {
         : input.paidBy
           ? [{ userId: input.paidBy, name: input.createdByName ?? 'You' }]
           : [];
-    const splits = splitEvenly(input.amountCents, members);
+    const splits =
+      input.splits && input.splits.length > 0
+        ? input.splits
+        : splitEvenly(input.amountCents, members);
 
-    if (assertDbOrMock('expenses') === 'memory') {
-      const expense: Expense = {
-        id: randomUUID(),
-        tripId: input.tripId,
-        paidBy: input.paidBy ?? '',
-        paidByName: input.createdByName ?? 'Unknown',
-        category: input.category,
-        description: input.title,
-        amount: input.amountCents / 100,
-        currency: input.currency,
-        expenseDate: input.incurredOn,
-        status: 'PENDING',
-      };
-      memoryExpenses.unshift(expense);
-      memorySplits.set(expense.id, splits);
-      await recordActivity({
-        organizationId: input.organizationId ?? null,
-        tripId: input.tripId,
-        actorId: input.createdBy,
-        actorName: input.createdByName,
-        action: 'created',
-        entityType: 'expense',
-        entityId: expense.id,
-        message: `${input.createdByName ?? 'Someone'} added expense “${expense.description}”`,
-      });
-      return expense;
-    }
-
-    const db = getSupabaseAdmin();
-    const { data, error } = await db
-      .from('expenses')
-      .insert({
-        trip_id: input.tripId,
-        title: input.title,
-        category: input.category,
-        amount_cents: input.amountCents,
-        currency: input.currency,
-        incurred_on: input.incurredOn,
-        paid_by: input.paidBy,
-        created_by: input.createdBy,
-      })
-      .select(EXPENSE_SELECT)
-      .single();
-
-    if (error) {
-      throw new AppError(502, 'DB_ERROR', error.message);
-    }
-
-    const expense = mapRow(data as unknown as ExpenseRow);
-
-    if (splits.length > 0) {
-      const { error: splitError } = await db.from('expense_splits').insert(
-        splits.map((s) => ({
-          expense_id: expense.id,
-          user_id: s.userId,
-          share_cents: s.shareCents,
-          share_pct: Math.round((s.shareCents / input.amountCents) * 10000) / 100,
-        })),
-      );
-      if (splitError) {
-        console.warn('expense_splits insert failed:', splitError.message);
+    const expense = await this.insertExpense(input);
+    try {
+      await this.insertSplits(expense.id, input.amountCents, splits);
+      if (input.receipt) {
+        expense.receiptUrl = await this.attachReceipt(input, expense.id);
       }
+    } catch (err) {
+      await this.deleteExpenseQuiet(expense.id);
+      throw err;
     }
 
     await recordActivity({
@@ -330,36 +312,222 @@ export class ExpenseRepository {
       message: `${input.createdByName ?? 'Someone'} added expense “${expense.description}”`,
     });
 
-    return expense;
+    return applySplits(expense, splits);
   }
 
   async updateStatus(id: string, status: 'APPROVED' | 'REJECTED'): Promise<Expense> {
     if (assertDbOrMock('expenses') === 'memory') {
-      const expense = memoryExpenses.find((e) => e.id === id);
+      const expense = memoryExpenses.find((item) => item.id === id);
       if (!expense) {
         throw new AppError(404, 'EXPENSE_NOT_FOUND', `Expense ${id} was not found`);
       }
       expense.status = status;
-      return expense;
+      return applySplits(expense, memorySplits.get(id) ?? []);
     }
 
     const dbStatus = status === 'APPROVED' ? 'approved' : 'rejected';
 
-    const { data, error } = await getSupabaseAdmin()
+    let updated = await getSupabaseAdmin()
       .from('expenses')
       .update({ status: dbStatus })
       .eq('id', id)
       .select(EXPENSE_SELECT)
+      .maybeSingle();
+
+    if (updated.error && isMissingSplitMode(updated.error.message)) {
+      updated = await getSupabaseAdmin()
+        .from('expenses')
+        .update({ status: dbStatus })
+        .eq('id', id)
+        .select(EXPENSE_SELECT_LEGACY)
+        .maybeSingle();
+    }
+    if (updated.error) {
+      throw new AppError(502, 'DB_ERROR', updated.error.message);
+    }
+    if (!updated.data) {
+      throw new AppError(404, 'EXPENSE_NOT_FOUND', `Expense ${id} was not found`);
+    }
+
+    const expense = mapRow(updated.data as unknown as ExpenseRow);
+    const shares = await this.sharesForExpenses([expense.id]);
+    return applySplits(expense, shares.get(expense.id) ?? []);
+  }
+
+  private async insertExpense(input: CreateExpenseInput): Promise<Expense> {
+    if (assertDbOrMock('expenses') === 'memory') {
+      const expense: Expense = {
+        id: randomUUID(),
+        tripId: input.tripId,
+        paidBy: input.paidBy ?? '',
+        paidByName: input.createdByName ?? 'Unknown',
+        category: input.category,
+        description: input.title,
+        amount: input.amountCents / 100,
+        currency: input.currency,
+        expenseDate: input.incurredOn,
+        status: 'PENDING',
+        receiptUrl: null,
+        splitMode: input.splits && input.splits.length > 0 ? 'custom' : 'equal',
+        splits: [],
+      };
+      memoryExpenses.unshift(expense);
+      return expense;
+    }
+
+    const row = {
+      trip_id: input.tripId,
+      title: input.title,
+      category: input.category,
+      amount_cents: input.amountCents,
+      currency: input.currency,
+      incurred_on: input.incurredOn,
+      paid_by: input.paidBy,
+      created_by: input.createdBy,
+    };
+    const mode = input.splits && input.splits.length > 0 ? 'custom' : 'equal';
+    let inserted = await getSupabaseAdmin()
+      .from('expenses')
+      .insert({ ...row, split_mode: mode })
+      .select(EXPENSE_SELECT)
       .single();
+
+    if (inserted.error && isMissingSplitMode(inserted.error.message)) {
+      inserted = await getSupabaseAdmin()
+        .from('expenses')
+        .insert(row)
+        .select(EXPENSE_SELECT_LEGACY)
+        .single();
+    }
+    if (inserted.error) {
+      throw new AppError(502, 'DB_ERROR', inserted.error.message);
+    }
+
+    const expense = mapRow(inserted.data as unknown as ExpenseRow);
+    expense.splitMode = mode;
+    return expense;
+  }
+
+  private async selectExpenseRows(
+    run: (columns: string) => PromiseLike<{ data: unknown; error: { message: string } | null }>,
+  ): Promise<unknown[]> {
+    const first = await run(EXPENSE_SELECT);
+    if (!first.error) {
+      return (first.data as unknown[] | null) ?? [];
+    }
+    if (!isMissingSplitMode(first.error.message)) {
+      throw new AppError(502, 'DB_ERROR', first.error.message);
+    }
+    const second = await run(EXPENSE_SELECT_LEGACY);
+    if (second.error) {
+      throw new AppError(502, 'DB_ERROR', second.error.message);
+    }
+    return (second.data as unknown[] | null) ?? [];
+  }
+
+  private async insertSplits(
+    expenseId: string,
+    amountCents: number,
+    splits: ShareSplit[],
+  ): Promise<void> {
+    if (splits.length === 0) {
+      return;
+    }
+    if (assertDbOrMock('expenses') === 'memory') {
+      memorySplits.set(expenseId, splits);
+      return;
+    }
+
+    const { error } = await getSupabaseAdmin().from('expense_splits').insert(
+      splits.map((split) => ({
+        expense_id: expenseId,
+        user_id: split.userId,
+        share_cents: split.shareCents,
+        share_pct: amountCents > 0 ? Math.round((split.shareCents / amountCents) * 10000) / 100 : 0,
+      })),
+    );
+    if (error) {
+      throw new AppError(502, 'DB_ERROR', error.message);
+    }
+  }
+
+  private async attachReceipt(input: CreateExpenseInput, expenseId: string): Promise<string> {
+    const receipt = input.receipt;
+    if (!receipt) {
+      return '';
+    }
+    const doc = await documents.create({
+      tripId: input.tripId,
+      title: `${input.title} receipt`,
+      docType: 'receipt',
+      fileName: receipt.fileName,
+      mimeType: receipt.mimeType,
+      contentBase64: receipt.contentBase64,
+      uploadedBy: input.createdBy,
+      uploadedByName: input.createdByName,
+      organizationId: input.organizationId,
+    });
+
+    if (assertDbOrMock('expenses') === 'memory') {
+      const stored = memoryExpenses.find((expense) => expense.id === expenseId);
+      if (stored) {
+        stored.receiptUrl = doc.url;
+      }
+      return doc.url;
+    }
+
+    const { error } = await getSupabaseAdmin()
+      .from('expenses')
+      .update({ receipt_url: doc.url })
+      .eq('id', expenseId);
+    if (error) {
+      await documents.delete(input.tripId, doc.id).catch(() => undefined);
+      throw new AppError(502, 'DB_ERROR', error.message);
+    }
+    return doc.url;
+  }
+
+  private async deleteExpenseQuiet(expenseId: string): Promise<void> {
+    try {
+      if (assertDbOrMock('expenses') === 'memory') {
+        const index = memoryExpenses.findIndex((expense) => expense.id === expenseId);
+        if (index !== -1) {
+          memoryExpenses.splice(index, 1);
+        }
+        memorySplits.delete(expenseId);
+        return;
+      }
+      await getSupabaseAdmin().from('expenses').delete().eq('id', expenseId);
+    } catch {
+      // Best-effort rollback after a failed split or receipt upload.
+    }
+  }
+
+  private async sharesForExpenses(ids: string[]): Promise<Map<string, ShareSplit[]>> {
+    const grouped = new Map<string, ShareSplit[]>();
+    if (ids.length === 0 || assertDbOrMock('expenses') === 'memory') {
+      return grouped;
+    }
+
+    const { data, error } = await getSupabaseAdmin()
+      .from('expense_splits')
+      .select('expense_id, user_id, share_cents, profiles!user_id(display_name)')
+      .in('expense_id', ids);
 
     if (error) {
       throw new AppError(502, 'DB_ERROR', error.message);
     }
-    if (!data) {
-      throw new AppError(404, 'EXPENSE_NOT_FOUND', `Expense ${id} was not found`);
-    }
 
-    return mapRow(data as unknown as ExpenseRow);
+    for (const row of (data ?? []) as unknown as SplitRow[]) {
+      const list = grouped.get(row.expense_id) ?? [];
+      list.push({
+        userId: row.user_id,
+        name: row.profiles?.display_name ?? 'Teammate',
+        shareCents: row.share_cents,
+      });
+      grouped.set(row.expense_id, list);
+    }
+    return grouped;
   }
 
   async settlementsForTrip(tripId: string, tripName?: string): Promise<SettlementLine[]> {
@@ -441,62 +609,26 @@ export class ExpenseRepository {
     const currency = expenses[0]?.currency ?? 'INR';
 
     const ensure = (userId: string, name: string) => {
-      if (!balances.has(userId)) {
-        balances.set(userId, { name, cents: 0 });
+      if (!userId || balances.has(userId)) {
+        return;
       }
+      balances.set(userId, { name, cents: 0 });
     };
-
-    if (assertDbOrMock('expenses') === 'memory') {
-      for (const expense of expenses) {
-        ensure(expense.paidBy, expense.paidByName);
-        balances.get(expense.paidBy)!.cents += Math.round(expense.amount * 100);
-        const splits = memorySplits.get(expense.id) ?? [
-          {
-            userId: expense.paidBy,
-            name: expense.paidByName,
-            shareCents: Math.round(expense.amount * 100),
-          },
-        ];
-        for (const split of splits) {
-          ensure(split.userId, split.name);
-          balances.get(split.userId)!.cents -= split.shareCents;
-        }
-      }
-      return settleBalances(balances, currency);
-    }
-
-    const db = getSupabaseAdmin();
-    const { data: splits, error } = await db
-      .from('expense_splits')
-      .select('expense_id, user_id, share_cents, profiles!user_id(display_name)')
-      .in(
-        'expense_id',
-        expenses.map((e) => e.id),
-      );
-
-    if (error) {
-      throw new AppError(502, 'DB_ERROR', error.message);
-    }
-
-    const splitsByExpense = new Map<string, SplitRow[]>();
-    for (const row of (splits ?? []) as unknown as SplitRow[]) {
-      const list = splitsByExpense.get(row.expense_id) ?? [];
-      list.push(row);
-      splitsByExpense.set(row.expense_id, list);
-    }
 
     for (const expense of expenses) {
       ensure(expense.paidBy, expense.paidByName);
-      balances.get(expense.paidBy)!.cents += Math.round(expense.amount * 100);
+      const payer = balances.get(expense.paidBy);
+      if (payer) {
+        payer.cents += Math.round(expense.amount * 100);
+      }
 
-      const expenseSplits = splitsByExpense.get(expense.id);
-      if (expenseSplits && expenseSplits.length > 0) {
-        for (const split of expenseSplits) {
-          ensure(split.user_id, split.profiles?.display_name ?? 'Teammate');
-          balances.get(split.user_id)!.cents -= split.share_cents;
+      if (expense.splits.length > 0) {
+        for (const split of expense.splits) {
+          ensure(split.userId, split.name);
+          balances.get(split.userId)!.cents -= Math.round(split.amount * 100);
         }
-      } else {
-        balances.get(expense.paidBy)!.cents -= Math.round(expense.amount * 100);
+      } else if (payer) {
+        payer.cents -= Math.round(expense.amount * 100);
       }
     }
 

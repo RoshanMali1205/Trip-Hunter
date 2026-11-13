@@ -63,6 +63,41 @@ interface MemoryEmailInvite {
 }
 
 const memoryEmailInvites: MemoryEmailInvite[] = [];
+
+/** Accepted teammates on the seeded Goa outing so demo splits have more than one person. */
+const GOA_TRIP_ID = '33333333-3333-3333-3333-333333333333';
+const memoryMembers: TripMember[] = [
+  {
+    id: '88888888-8888-8888-8888-888888888881',
+    tripId: GOA_TRIP_ID,
+    userId: '11111111-1111-1111-1111-111111111111',
+    name: 'Alex Rivera',
+    email: 'alex@acme.example',
+    avatarUrl: null,
+    role: 'organizer',
+    rsvpStatus: 'accepted',
+  },
+  {
+    id: '88888888-8888-8888-8888-888888888882',
+    tripId: GOA_TRIP_ID,
+    userId: '66666666-6666-6666-6666-666666666666',
+    name: 'Priya Shah',
+    email: 'priya.shah@acme.example',
+    avatarUrl: null,
+    role: 'traveler',
+    rsvpStatus: 'accepted',
+  },
+  {
+    id: '88888888-8888-8888-8888-888888888883',
+    tripId: GOA_TRIP_ID,
+    userId: '77777777-7777-7777-7777-777777777777',
+    name: 'Rohan Iyer',
+    email: 'rohan.iyer@acme.example',
+    avatarUrl: null,
+    role: 'traveler',
+    rsvpStatus: 'accepted',
+  },
+];
 const notifications = new NotificationRepository();
 
 function mapEmailInvite(row: EmailInviteRow): TripMember {
@@ -87,7 +122,8 @@ function isMissingEmailInviteTable(message: string): boolean {
 export class MemberRepository {
   async findByTrip(tripId: string): Promise<TripMember[]> {
     if (assertDbOrMock('trip members') === 'memory') {
-      return this.findOpenEmailInvites(tripId);
+      const seeded = memoryMembers.filter((member) => member.tripId === tripId);
+      return [...seeded, ...(await this.findOpenEmailInvites(tripId))];
     }
 
     const { data, error } = await getSupabaseAdmin()
@@ -352,6 +388,13 @@ export class MemberRepository {
 
   async remove(tripId: string, memberId: string): Promise<void> {
     if (assertDbOrMock('trip members') === 'memory') {
+      const seeded = memoryMembers.findIndex(
+        (member) => member.id === memberId && member.tripId === tripId,
+      );
+      if (seeded !== -1) {
+        memoryMembers.splice(seeded, 1);
+        return;
+      }
       const index = memoryEmailInvites.findIndex((i) => i.id === memberId && i.tripId === tripId);
       if (index === -1) {
         throw new AppError(404, 'MEMBERSHIP_NOT_FOUND', `Member ${memberId} was not found`);

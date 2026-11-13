@@ -136,6 +136,12 @@ export interface BudgetCategory {
   currency: string;
 }
 
+export interface ExpenseSplit {
+  userId: string;
+  name: string;
+  amount: number;
+}
+
 export interface Expense {
   id: string;
   tripId: string;
@@ -147,6 +153,9 @@ export interface Expense {
   currency: string;
   expenseDate: string;
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  receiptUrl?: string | null;
+  splitMode?: 'equal' | 'custom';
+  splits?: ExpenseSplit[];
 }
 
 export interface TripTask {

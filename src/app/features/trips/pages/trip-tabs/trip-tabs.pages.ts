@@ -58,6 +58,16 @@ function dayPillLabel(date: string, index: number): string {
   return `Day ${index + 1} · ${weekday}`;
 }
 
+function mimeFromName(name: string): string {
+  const lower = name.toLowerCase();
+  if (lower.endsWith('.pdf')) return 'application/pdf';
+  if (lower.endsWith('.png')) return 'image/png';
+  if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg';
+  if (lower.endsWith('.webp')) return 'image/webp';
+  if (lower.endsWith('.gif')) return 'image/gif';
+  return 'application/octet-stream';
+}
+
 function rangeLabel(start: string, end: string): string {
   const s = new Date(`${start}T12:00:00`);
   const e = new Date(`${end}T12:00:00`);
@@ -2573,6 +2583,66 @@ export class TripBudgetPage {
           Date
           <input type="date" [(ngModel)]="expenseDate" name="expenseDate" />
         </label>
+        <div class="split-box">
+          <span class="split-label">Who shares this</span>
+          <div class="split-toggle">
+            <app-button
+              type="button"
+              size="sm"
+              [variant]="splitMode() === 'equal' ? 'primary' : 'secondary'"
+              (click)="setSplitMode('equal')"
+              >Split equally</app-button
+            >
+            <app-button
+              type="button"
+              size="sm"
+              [variant]="splitMode() === 'custom' ? 'primary' : 'secondary'"
+              (click)="setSplitMode('custom')"
+              >Custom shares</app-button
+            >
+          </div>
+          @if (splitHint()) {
+            <p class="split-hint">{{ splitHint() }}</p>
+          }
+          @if (splitMode() === 'custom' && eligibleMembers().length) {
+            <div class="share-list">
+              @for (member of eligibleMembers(); track member.userId) {
+                <label>
+                  {{ member.name }}
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    [ngModel]="shareOf(member.userId)"
+                    (ngModelChange)="setShare(member.userId, $event)"
+                    [name]="'share-' + member.userId"
+                  />
+                </label>
+              }
+            </div>
+            <p class="split-hint" [class.warn]="shareMismatch()">
+              Shares add up to {{ shareTotal() | inr }}
+              @if (amount() !== null) {
+                of {{ amount() | inr }}
+              }
+            </p>
+            <app-button type="button" variant="link" size="sm" (click)="prefillEqualShares()">
+              Distribute the amount evenly
+            </app-button>
+          }
+        </div>
+        <label class="wide">
+          Receipt
+          <input
+            type="file"
+            name="receipt"
+            accept="image/jpeg,image/png,image/webp,image/gif,application/pdf"
+            (change)="onReceipt($event)"
+          />
+        </label>
+        @if (receiptName()) {
+          <p class="file-name">{{ receiptName() }}</p>
+        }
         <app-button type="submit" [loading]="adding()">Add expense</app-button>
         @if (addError()) {
           <p class="add-error">{{ addError() }}</p>
@@ -2587,6 +2657,17 @@ export class TripBudgetPage {
             <div>
               <strong>{{ e.description }}</strong>
               <span>{{ e.paidByName }} · {{ e.category }} · {{ e.expenseDate }}</span>
+              @if (e.splits?.length) {
+                <span class="splits">
+                  {{ e.splitMode === 'custom' ? 'Custom split' : 'Split equally' }}
+                  @for (share of e.splits; track share.userId) {
+                    · {{ share.name }} {{ share.amount | inr: e.currency }}
+                  }
+                </span>
+              }
+              @if (e.receiptUrl) {
+                <a class="receipt-link" [href]="e.receiptUrl" target="_blank" rel="noopener">View receipt</a>
+              }
               @if (e.status === 'PENDING') {
                 <span class="pending-actions">
                   <app-button variant="link" size="sm" (click)="respond(e.id, 'APPROVED')">Approve</app-button>
@@ -2681,6 +2762,49 @@ export class TripBudgetPage {
         font-size: 0.85rem;
         grid-column: 1 / -1;
       }
+      .split-box {
+        grid-column: 1 / -1;
+        display: grid;
+        gap: 0.55rem;
+      }
+      .split-label {
+        font-size: 0.85rem;
+        color: var(--th-text-secondary);
+      }
+      .split-toggle {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+      .split-hint {
+        margin: 0;
+        font-size: 0.82rem;
+        color: var(--th-text-muted);
+      }
+      .split-hint.warn {
+        color: #dc2626;
+      }
+      .share-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 0.75rem;
+      }
+      .file-name {
+        margin: 0;
+        grid-column: 1 / -1;
+        font-size: 0.85rem;
+        color: var(--th-text-muted);
+      }
+      .splits {
+        margin-top: 0.2rem;
+      }
+      .receipt-link {
+        display: inline-block;
+        margin-top: 0.25rem;
+        color: var(--th-primary-light);
+        font-size: 0.82rem;
+        font-weight: 650;
+      }
       ul {
         list-style: none;
         margin: 0;
@@ -2699,6 +2823,8 @@ export class TripBudgetPage {
         font-size: 0.82rem;
       }
       .pending-actions {
+        display: flex;
+        gap: 0.85rem;
         margin-top: 0.3rem;
       }
       .link-btn {
@@ -2756,14 +2882,52 @@ export class TripExpensesPage {
   private readonly tripId = tripIdFromParent(this.route);
   readonly expenses = computed(() => this.store.getExpenses(this.tripId()));
   readonly settlements = computed(() => this.store.getSettlements(this.tripId()));
+  readonly members = computed(() => this.store.getMembers(this.tripId()));
+  readonly eligibleMembers = computed(() =>
+    this.members().filter(
+      (member) =>
+        !!member.userId &&
+        !member.pendingSignup &&
+        (member.inviteStatus === 'ACCEPTED' || member.role === 'ORGANIZER'),
+    ),
+  );
 
   readonly showForm = signal(false);
   readonly description = signal('');
   readonly category = signal<ExpenseCategory>('other');
   readonly amount = signal<number | null>(null);
   readonly expenseDate = signal('');
+  readonly splitMode = signal<'equal' | 'custom'>('equal');
+  readonly shares = signal<Record<string, number | null>>({});
+  readonly receiptName = signal('');
+  readonly receiptMime = signal('');
+  readonly receiptBase64 = signal('');
   readonly adding = signal(false);
   readonly addError = signal('');
+
+  readonly shareTotal = computed(() =>
+    this.eligibleMembers().reduce(
+      (sum, member) => sum + (Number(this.shares()[member.userId]) || 0),
+      0,
+    ),
+  );
+  readonly shareMismatch = computed(() => {
+    if (this.splitMode() !== 'custom') return false;
+    const amount = this.amount();
+    if (amount === null) return false;
+    return Math.round(this.shareTotal() * 100) !== Math.round(amount * 100);
+  });
+  readonly splitHint = computed(() => {
+    const count = this.eligibleMembers().length;
+    if (count === 0) {
+      return 'No accepted teammates yet — this expense stays on you.';
+    }
+    if (this.splitMode() === 'equal') {
+      const noun = count === 1 ? 'person' : 'people';
+      return `Split equally across ${count} ${noun}.`;
+    }
+    return '';
+  });
 
   constructor() {
     effect(() => {
@@ -2771,8 +2935,79 @@ export class TripExpensesPage {
       if (id) {
         void this.store.loadExpenses(id);
         void this.store.loadSettlements(id);
+        void this.store.loadMembers(id);
       }
     });
+  }
+
+  setSplitMode(mode: 'equal' | 'custom'): void {
+    this.splitMode.set(mode);
+    if (mode === 'custom') {
+      this.prefillEqualShares();
+    }
+  }
+
+  shareOf(userId: string): number | null {
+    return this.shares()[userId] ?? null;
+  }
+
+  setShare(userId: string, value: number | string | null): void {
+    const amount = value === null || value === '' ? null : Number(value);
+    this.shares.update((current) => ({
+      ...current,
+      [userId]: amount !== null && Number.isFinite(amount) ? amount : null,
+    }));
+  }
+
+  prefillEqualShares(): void {
+    const people = this.eligibleMembers();
+    const amount = this.amount();
+    if (amount === null || people.length === 0) {
+      this.shares.set({});
+      return;
+    }
+    const cents = Math.round(amount * 100);
+    const base = Math.floor(cents / people.length);
+    let remainder = cents - base * people.length;
+    const next: Record<string, number> = {};
+    for (const member of people) {
+      const extra = remainder > 0 ? 1 : 0;
+      if (remainder > 0) remainder -= 1;
+      next[member.userId] = (base + extra) / 100;
+    }
+    this.shares.set(next);
+  }
+
+  onReceipt(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    this.receiptName.set('');
+    this.receiptMime.set('');
+    this.receiptBase64.set('');
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      this.addError.set('Receipt must be 5MB or smaller.');
+      input.value = '';
+      return;
+    }
+    const allowed = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    const mime = file.type || mimeFromName(file.name);
+    if (!allowed.includes(mime)) {
+      this.addError.set('Receipt must be a PDF or an image (JPEG, PNG, WEBP, GIF).');
+      input.value = '';
+      return;
+    }
+    this.addError.set('');
+    this.receiptName.set(file.name);
+    this.receiptMime.set(mime);
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = String(reader.result ?? '');
+      const base64 = result.includes(',') ? result.slice(result.indexOf(',') + 1) : result;
+      this.receiptBase64.set(base64);
+    };
+    reader.onerror = () => this.addError.set('Could not read that receipt.');
+    reader.readAsDataURL(file);
   }
 
   async submit(): Promise<void> {
@@ -2780,6 +3015,20 @@ export class TripExpensesPage {
     const description = this.description().trim();
     const amount = this.amount();
     if (!id || !description || amount === null) return;
+    if (this.receiptName() && !this.receiptBase64()) {
+      this.addError.set('Still reading the receipt. Try again in a moment.');
+      return;
+    }
+    if (this.splitMode() === 'custom') {
+      if (this.eligibleMembers().length === 0) {
+        this.addError.set('Accept trip members before using a custom split.');
+        return;
+      }
+      if (this.shareMismatch()) {
+        this.addError.set('Custom shares must add up to the expense amount.');
+        return;
+      }
+    }
 
     this.adding.set(true);
     this.addError.set('');
@@ -2789,13 +3038,32 @@ export class TripExpensesPage {
         category: this.category(),
         amount,
         expenseDate: this.expenseDate() || undefined,
+        splits:
+          this.splitMode() === 'custom'
+            ? this.eligibleMembers().map((member) => ({
+                userId: member.userId,
+                amount: Number(this.shares()[member.userId] ?? 0),
+              }))
+            : undefined,
+        receipt: this.receiptBase64()
+          ? {
+              fileName: this.receiptName(),
+              mimeType: this.receiptMime(),
+              contentBase64: this.receiptBase64(),
+            }
+          : undefined,
       });
       this.description.set('');
       this.amount.set(null);
       this.expenseDate.set('');
+      this.splitMode.set('equal');
+      this.shares.set({});
+      this.receiptName.set('');
+      this.receiptMime.set('');
+      this.receiptBase64.set('');
       this.showForm.set(false);
-    } catch {
-      this.addError.set('Could not add that expense. Please try again.');
+    } catch (err) {
+      this.addError.set(readApiErrorMessage(err, 'Could not add that expense. Please try again.'));
     } finally {
       this.adding.set(false);
     }

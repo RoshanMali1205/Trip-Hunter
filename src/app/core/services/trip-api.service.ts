@@ -167,6 +167,12 @@ export interface ApiBudgetCategory {
   currency: string;
 }
 
+export interface ApiExpenseSplit {
+  userId: string;
+  name: string;
+  amount: number;
+}
+
 export interface ApiExpense {
   id: string;
   tripId: string;
@@ -178,6 +184,9 @@ export interface ApiExpense {
   currency: string;
   expenseDate: string;
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  receiptUrl?: string | null;
+  splitMode?: 'equal' | 'custom';
+  splits?: ApiExpenseSplit[];
 }
 
 export interface ApiTripTask {
@@ -278,6 +287,9 @@ export interface CreateExpensePayload {
   amount: number;
   currency?: string;
   expenseDate?: string;
+  /** Omit for an even split across accepted members. */
+  splits?: { userId: string; amount: number }[];
+  receipt?: { fileName: string; mimeType: string; contentBase64: string };
 }
 
 export type CreateBookingType =
