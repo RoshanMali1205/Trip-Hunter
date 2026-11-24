@@ -44,7 +44,7 @@ export class LoginPage {
   readonly signUpForm = this.fb.nonNullable.group({
     firstName: ['', [Validators.required, Validators.minLength(1)]],
     lastName: [''],
-    phone: ['', [Validators.required, Validators.minLength(10)]],
+    phone: ['', [Validators.required]],
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(6)]],
     confirmPassword: ['', [Validators.required]],
@@ -156,19 +156,20 @@ export class LoginPage {
   async submitSignUp(): Promise<void> {
     this.error.set('');
     this.info.set('');
-    if (this.signUpForm.invalid) {
+    const raw = this.signUpForm.getRawValue();
+    if (raw.password && raw.confirmPassword && raw.password !== raw.confirmPassword) {
       this.signUpForm.markAllAsTouched();
-      this.error.set('Fill in name, phone, email, and a password (6+ characters).');
+      this.error.set('Passwords do not match.');
       return;
     }
-
-    const raw = this.signUpForm.getRawValue();
-    if (!normalizePhone(raw.phone)) {
+    if (raw.phone.trim() && !normalizePhone(raw.phone)) {
+      this.signUpForm.markAllAsTouched();
       this.error.set('Enter a valid phone number (at least 10 digits).');
       return;
     }
-    if (raw.password !== raw.confirmPassword) {
-      this.error.set('Passwords do not match.');
+    if (this.signUpForm.invalid || !normalizePhone(raw.phone)) {
+      this.signUpForm.markAllAsTouched();
+      this.error.set('Fill in name, phone, email, and a password (6+ characters).');
       return;
     }
 
@@ -189,9 +190,11 @@ export class LoginPage {
       }
 
       if (result.needsEmailConfirmation) {
-        this.info.set(result.message ?? 'Check your email to confirm your account.');
         this.clearAvatar();
         this.showSignIn();
+        this.info.set(
+          result.message ?? 'Account created. Check your email to confirm, then sign in.',
+        );
         this.signInForm.patchValue({ email: raw.email, password: '' });
         return;
       }

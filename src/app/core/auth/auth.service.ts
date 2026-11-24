@@ -15,7 +15,17 @@ import {
 export { validateAvatarFile, prepareAvatarFile, fileToDataUrl } from './avatar-image';
 
 const SESSION_KEY = 'auth-session';
+const DEMO_ACCOUNTS_KEY = 'demo-accounts';
 const PENDING_AVATAR_KEY = 'th-pending-avatar';
+
+/** Profile captured at demo signup so a later sign-in does not invent one. */
+interface DemoAccount {
+  email: string;
+  firstName: string;
+  lastName: string;
+  phone?: string;
+  avatarUrl?: string;
+}
 
 export type AuthMode = 'supabase' | 'demo';
 
@@ -152,10 +162,7 @@ export class AuthService {
       if (membership) {
         organizationId = membership.organization_id;
         role = mapOrgRole(String(membership.role ?? 'member'));
-        const org = membership.organizations as
-          | { name?: string }
-          | { name?: string }[]
-          | null;
+        const org = membership.organizations as { name?: string } | { name?: string }[] | null;
         if (Array.isArray(org)) {
           organizationName = org[0]?.name ?? organizationName;
         } else if (org?.name) {
@@ -190,7 +197,7 @@ export class AuthService {
 
     const supabase = getSupabaseBrowserClient();
     if (!supabase) {
-      return this.demoSignIn(trimmed);
+      return this.demoSignIn(trimmed, password);
     }
 
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -199,7 +206,7 @@ export class AuthService {
     });
 
     if (error) {
-      return { ok: false, message: error.message };
+      return { ok: false, message: friendlyAuthError(error.message) };
     }
     if (data.session) {
       await this.applySupabaseSession(data.session);
@@ -241,7 +248,7 @@ export class AuthService {
           };
         }
       }
-      return this.demoSignIn(email, firstName, lastName, phone, avatarUrl);
+      return this.demoSignIn(email, input.password, firstName, lastName, phone, avatarUrl);
     }
 
     const displayName = [firstName, lastName].filter(Boolean).join(' ');
@@ -306,22 +313,54 @@ export class AuthService {
     return { ok: true };
   }
 
-  /** Finish PKCE / magic-link redirect on `/auth/callback`. */
+  /** Finish PKCE / magic-link / email-confirmation redirect on `/auth/callback`. */
   async handleAuthCallback(): Promise<AuthResult> {
     const supabase = getSupabaseBrowserClient();
     if (!supabase) {
       return { ok: false, message: 'Supabase is not configured.' };
     }
 
+    const params = new URLSearchParams(window.location.search);
+    const urlError = params.get('error_description') || params.get('error');
+    if (urlError) {
+      return { ok: false, message: urlError.replace(/\+/g, ' ') };
+    }
+
+    const tokenHash = params.get('token_hash');
+    const otpType = params.get('type');
+    if (tokenHash && isEmailOtpType(otpType)) {
+      const { data, error } = await supabase.auth.verifyOtp({
+        token_hash: tokenHash,
+        type: otpType,
+      });
+      if (error) {
+        return { ok: false, message: friendlyAuthError(error.message) };
+      }
+      if (data.session) {
+        await this.applySupabaseSession(data.session);
+        return { ok: true };
+      }
+    }
+
+    // Client init already exchanges a PKCE `code` when the verifier is present.
     const { data, error } = await supabase.auth.getSession();
     if (error) {
-      return { ok: false, message: error.message };
+      return { ok: false, message: friendlyAuthError(error.message) };
     }
-    if (!data.session) {
-      return { ok: false, message: 'No session found after redirect.' };
+    if (data.session) {
+      await this.applySupabaseSession(data.session);
+      return { ok: true };
     }
-    await this.applySupabaseSession(data.session);
-    return { ok: true };
+
+    if (params.get('code')) {
+      return {
+        ok: false,
+        message:
+          'This confirmation link did not finish sign-in. Open it in the same browser you used to create the account, or sign in with your email and password once the email is confirmed.',
+      };
+    }
+
+    return { ok: false, message: 'No session found after redirect.' };
   }
 
   async logout(): Promise<void> {
@@ -523,25 +562,74 @@ export class AuthService {
     }
   }
 
+  /**
+   * Demo sign-in. A password is accepted for any email (6+ characters).
+   * When that email already signed up in this browser, restore that profile
+   * instead of grafting the seeded mock user's surname onto the address.
+   */
   private demoSignIn(
     email: string,
+    password?: string,
     firstName?: string,
     lastName?: string,
     phone?: string,
     avatarUrl?: string,
   ): AuthResult {
+    if (password != null && password.length < 6) {
+      return { ok: false, message: 'Password must be at least 6 characters.' };
+    }
+
+    const saved = findDemoAccount(email);
+    const explicitProfile = firstName != null;
+    const profile = explicitProfile
+      ? { email, firstName, lastName: lastName ?? '', phone, avatarUrl }
+      : saved;
+
+    if (!explicitProfile && !profile && isSeedDemoEmail(email)) {
+      return this.finishDemoSession({
+        email: CURRENT_USER.email,
+        firstName: CURRENT_USER.firstName,
+        lastName: CURRENT_USER.lastName,
+        phone: CURRENT_USER.phone,
+        avatarUrl: CURRENT_USER.avatarUrl,
+      });
+    }
+
+    const source = profile ?? {
+      email,
+      firstName: '',
+      lastName: '',
+      phone: undefined,
+      avatarUrl: undefined,
+    };
     const derivedFirst =
-      firstName ||
-      email.split('@')[0]?.split('.')[0] ||
-      CURRENT_USER.firstName;
+      source.firstName || email.split('@')[0]?.split(/[._-]/)[0] || CURRENT_USER.firstName;
+
+    return this.finishDemoSession({
+      email: source.email || email,
+      firstName: capitalize(derivedFirst),
+      lastName: source.lastName ?? '',
+      phone: source.phone,
+      avatarUrl: source.avatarUrl,
+    });
+  }
+
+  private finishDemoSession(account: DemoAccount): AuthResult {
     const user: UserProfile = {
       ...CURRENT_USER,
-      email,
-      firstName: capitalize(derivedFirst),
-      lastName: lastName ?? CURRENT_USER.lastName,
-      phone: phone || CURRENT_USER.phone,
-      avatarUrl: avatarUrl || CURRENT_USER.avatarUrl,
+      email: account.email,
+      firstName: account.firstName,
+      lastName: account.lastName,
+      phone: account.phone || undefined,
+      avatarUrl: account.avatarUrl || undefined,
     };
+    rememberDemoAccount({
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      phone: user.phone,
+      avatarUrl: user.avatarUrl,
+    });
     const session = { user, accessToken: 'demo-token' };
     this.sessionSignal.set(session);
     this.persist(session);
@@ -552,6 +640,51 @@ export class AuthService {
 function capitalize(value: string): string {
   if (!value) return value;
   return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function demoAccountKey(email: string): string {
+  return email.trim().toLowerCase();
+}
+
+function isSeedDemoEmail(email: string): boolean {
+  return demoAccountKey(email) === demoAccountKey(CURRENT_USER.email);
+}
+
+function findDemoAccount(email: string): DemoAccount | null {
+  const saved = lsGet<Record<string, DemoAccount>>(DEMO_ACCOUNTS_KEY, {});
+  return saved[demoAccountKey(email)] ?? null;
+}
+
+function rememberDemoAccount(account: DemoAccount): void {
+  const saved = lsGet<Record<string, DemoAccount>>(DEMO_ACCOUNTS_KEY, {});
+  saved[demoAccountKey(account.email)] = account;
+  lsSet(DEMO_ACCOUNTS_KEY, saved);
+}
+
+const EMAIL_OTP_TYPES = new Set([
+  'signup',
+  'invite',
+  'magiclink',
+  'recovery',
+  'email_change',
+  'email',
+]);
+
+function isEmailOtpType(
+  value: string | null,
+): value is 'signup' | 'invite' | 'magiclink' | 'recovery' | 'email_change' | 'email' {
+  return !!value && EMAIL_OTP_TYPES.has(value);
+}
+
+function friendlyAuthError(raw: string): string {
+  const message = (raw || '').trim();
+  if (/email not confirmed/i.test(message)) {
+    return 'Confirm your email first, then sign in. Check your inbox for the Trip Hunter link.';
+  }
+  if (/invalid login credentials/i.test(message)) {
+    return 'Email or password is incorrect. If you just created an account, confirm the email before signing in.';
+  }
+  return message || 'Sign in failed.';
 }
 
 function mapOrgRole(role: string): OrgRole {
@@ -585,7 +718,11 @@ function friendlyStorageError(raw: string): string {
   if (/row-level security|policy|permission|not authorized|jwt/i.test(message)) {
     return 'You don’t have permission to upload photos. Sign in again, or check avatars storage policies in Supabase.';
   }
-  if (/maximum allowed size|exceeded the maximum|file size limit|object exceeded|payload|too large|entity too large|413/i.test(message)) {
+  if (
+    /maximum allowed size|exceeded the maximum|file size limit|object exceeded|payload|too large|entity too large|413/i.test(
+      message,
+    )
+  ) {
     return 'Storage still has a size limit. Apply migration 014 (removes the avatars bucket cap), then try again.';
   }
   if (/network|fetch|failed to fetch/i.test(message)) {
